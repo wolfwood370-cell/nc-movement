@@ -1,8 +1,11 @@
 import { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { loading } = useAuth();
+  const { session, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -10,5 +13,6 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
       </div>
     );
   }
+  if (!session) return <Navigate to="/auth" replace state={{ from: location }} />;
   return <>{children}</>;
 }
