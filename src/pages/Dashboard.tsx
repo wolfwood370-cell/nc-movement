@@ -5,11 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 
 interface Client { id: string; full_name: string; created_at: string }
 interface RecentAssessment {
@@ -31,8 +30,8 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<RecentAssessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
-  const [newName, setNewName] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -49,16 +48,14 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, []);
 
-  const createClient = async () => {
-    if (!newName.trim() || !user) return;
-    const { data, error } = await supabase
-      .from('clients')
-      .insert({ full_name: newName.trim(), practitioner_id: user.id })
-      .select('id')
-      .single();
+  const createClient = async (v: ClientFormValues) => {
+    if (!user) return;
+    setSubmitting(true);
+    const { data, error } = await supabase.from('clients')
+      .insert(toClientPayload(v, user.id)).select('id').single();
+    setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Cliente aggiunto');
-    setNewName('');
     setOpen(false);
     await load();
     if (data?.id) navigate(`/assessments/fms/new?clientId=${data.id}`);
@@ -74,7 +71,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <section>
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Benvenuto</p>
-        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Assessment Studio</h1>
+        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Practitioner Studio</h1>
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
@@ -110,16 +107,9 @@ export default function Dashboard() {
             <DialogTrigger asChild>
               <Button size="sm" className="rounded-full"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
-              <div className="space-y-3 pt-2">
-                <Label htmlFor="cn">Nome completo</Label>
-                <Input id="cn" autoFocus value={newName} onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && createClient()} placeholder="Es. Mario Rossi" />
-              </div>
-              <DialogFooter>
-                <Button onClick={createClient} className="w-full tap-target">Aggiungi e avvia FMS</Button>
-              </DialogFooter>
+              <ClientForm onSubmit={createClient} submitting={submitting} submitLabel="Aggiungi e avvia FMS" />
             </DialogContent>
           </Dialog>
         </div>
