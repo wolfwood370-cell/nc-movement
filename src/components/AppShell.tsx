@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/clients', label: 'Clients', icon: Users, end: false },
-  { to: '/assessments', label: 'Assess', icon: Activity, end: false },
+  { to: '/clients', label: 'Clienti', icon: Users, end: false },
+  { to: '/assessments', label: 'Test', icon: Activity, end: false },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -43,7 +43,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 inset-x-0 z-30 glass-card border-t border-border rounded-none pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-3xl mx-auto grid grid-cols-3">
           {tabs.map(t => (
             <NavLink
