@@ -18,10 +18,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen', icon: ClipboardList, route: 'fms',  enabled: true },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.', icon: Compass,       route: 'sfma', enabled: false },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',             icon: Target,        route: 'ybt',  enabled: false },
-  { key: 'fcs',  label: 'FCS',  desc: 'Fundamental Capacity',       icon: Gauge,         route: 'fcs',  enabled: false },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   icon: ClipboardList, enabled: true },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    icon: Compass,       enabled: false },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                icon: Target,        enabled: false },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         icon: Gauge,         enabled: false },
 ];
 
 export default function Dashboard() {
@@ -43,7 +43,7 @@ export default function Dashboard() {
         .order('assessed_at', { ascending: false }).limit(5),
     ]);
     setClients(c ?? []);
-    setRecent((r ?? []) as any);
+    setRecent((r ?? []) as RecentAssessment[]);
     setLoading(false);
   };
 
@@ -57,7 +57,7 @@ export default function Dashboard() {
       .select('id')
       .single();
     if (error) { toast.error(error.message); return; }
-    toast.success('Client added');
+    toast.success('Cliente aggiunto');
     setNewName('');
     setOpen(false);
     await load();
@@ -66,21 +66,21 @@ export default function Dashboard() {
 
   const startTest = (testKey: string, clientId: string) => {
     if (testKey === 'fms') navigate(`/assessments/fms/new?clientId=${clientId}`);
-    else toast.info(`${testKey.toUpperCase()} module coming next.`);
+    else toast.info(`Modulo ${testKey.toUpperCase()} in arrivo.`);
     setPickTestOpen(null);
   };
 
   return (
     <div className="space-y-6">
       <section>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Welcome</p>
-        <h1 className="font-display text-3xl font-bold mt-1">Assessment Studio</h1>
-        <p className="text-muted-foreground text-sm mt-1">Pick a client or kick off a new screen.</p>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Benvenuto</p>
+        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Assessment Studio</h1>
+        <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
       {/* Quick start tests */}
       <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Quick start</h2>
+        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
         <div className="grid grid-cols-2 gap-3">
           {quickTests.map(t => (
             <button
@@ -95,7 +95,7 @@ export default function Dashboard() {
               <div className="font-display font-bold text-lg">{t.label}</div>
               <div className="text-xs text-muted-foreground leading-snug">{t.desc}</div>
               {!t.enabled && (
-                <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">soon</span>
+                <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
               )}
             </button>
           ))}
@@ -105,33 +105,33 @@ export default function Dashboard() {
       {/* Clients */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">Clients</h2>
+          <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">Clienti</h2>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full"><Plus className="w-4 h-4 mr-1" />New</Button>
+              <Button size="sm" className="rounded-full"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Add a client</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-2">
-                <Label htmlFor="cn">Full name</Label>
+                <Label htmlFor="cn">Nome completo</Label>
                 <Input id="cn" autoFocus value={newName} onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && createClient()} placeholder="e.g. Alex Morgan" />
+                  onKeyDown={e => e.key === 'Enter' && createClient()} placeholder="Es. Mario Rossi" />
               </div>
               <DialogFooter>
-                <Button onClick={createClient} className="w-full tap-target">Add & start FMS</Button>
+                <Button onClick={createClient} className="w-full tap-target">Aggiungi e avvia FMS</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
         {loading ? (
-          <div className="surface-card p-6 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="surface-card p-6 text-center text-sm text-muted-foreground">Caricamento…</div>
         ) : clients.length === 0 ? (
           <div className="surface-card p-8 text-center">
             <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-            <p className="font-medium">No clients yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Add your first client to begin assessing.</p>
-            <Button onClick={() => setOpen(true)} className="mt-4"><Plus className="w-4 h-4 mr-1" />Add client</Button>
+            <p className="font-medium">Nessun cliente</p>
+            <p className="text-sm text-muted-foreground mt-1">Aggiungi il primo cliente per iniziare a valutare.</p>
+            <Button onClick={() => setOpen(true)} className="mt-4"><Plus className="w-4 h-4 mr-1" />Aggiungi cliente</Button>
           </div>
         ) : (
           <div className="surface-card divide-y divide-border overflow-hidden">
@@ -144,7 +144,7 @@ export default function Dashboard() {
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium truncate">{c.full_name}</div>
-                    <div className="text-xs text-muted-foreground">Added {new Date(c.created_at).toLocaleDateString()}</div>
+                    <div className="text-xs text-muted-foreground">Aggiunto il {new Date(c.created_at).toLocaleDateString('it-IT')}</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -152,7 +152,7 @@ export default function Dashboard() {
             ))}
             {clients.length > 5 && (
               <Link to="/clients" className="flex items-center justify-center p-3 text-sm text-primary font-medium hover:bg-accent/40">
-                View all {clients.length} clients
+                Vedi tutti i {clients.length} clienti
               </Link>
             )}
           </div>
@@ -161,11 +161,11 @@ export default function Dashboard() {
 
       {/* Recent FMS */}
       <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Recent assessments</h2>
+        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Valutazioni recenti</h2>
         {recent.length === 0 ? (
           <div className="surface-card p-6 text-center text-sm text-muted-foreground">
             <Activity className="w-8 h-8 mx-auto mb-2 opacity-60" />
-            No assessments yet.
+            Ancora nessuna valutazione.
           </div>
         ) : (
           <div className="surface-card divide-y divide-border overflow-hidden">
@@ -173,9 +173,9 @@ export default function Dashboard() {
               <Link key={a.id} to={`/assessments/fms/${a.id}`}
                 className="flex items-center justify-between p-4 hover:bg-accent/40 transition-colors tap-target">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{a.clients?.full_name ?? 'Unknown'}</div>
+                  <div className="font-medium truncate">{a.clients?.full_name ?? 'Sconosciuto'}</div>
                   <div className="text-xs text-muted-foreground">
-                    FMS · {new Date(a.assessed_at).toLocaleDateString()} · {a.primary_corrective ?? '—'}
+                    FMS · {new Date(a.assessed_at).toLocaleDateString('it-IT')} · {a.primary_corrective ?? '—'}
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-3">
@@ -192,13 +192,13 @@ export default function Dashboard() {
       <Dialog open={!!pickTestOpen} onOpenChange={(o) => !o && setPickTestOpen(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Start {pickTestOpen?.toUpperCase()} — pick a client</DialogTitle>
+            <DialogTitle>Avvia {pickTestOpen?.toUpperCase()} — scegli un cliente</DialogTitle>
           </DialogHeader>
           {clients.length === 0 ? (
             <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground mb-3">No clients yet.</p>
+              <p className="text-sm text-muted-foreground mb-3">Nessun cliente.</p>
               <Button onClick={() => { setPickTestOpen(null); setOpen(true); }}>
-                <Plus className="w-4 h-4 mr-1" />Add client first
+                <Plus className="w-4 h-4 mr-1" />Aggiungi prima un cliente
               </Button>
             </div>
           ) : (
