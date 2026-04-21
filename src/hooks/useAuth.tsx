@@ -27,8 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       } else {
         // Single-user mode: auto sign-in anonymously so RLS still works.
-        const { data: anon, error } = await supabase.auth.signInAnonymously();
-        if (error) console.error('Anonymous sign-in failed', error);
+        const { data: anon } = await supabase.auth.signInAnonymously();
         setSession(anon.session ?? null);
         setLoading(false);
       }
