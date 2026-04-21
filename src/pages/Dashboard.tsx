@@ -18,10 +18,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen', icon: ClipboardList, route: 'fms',  enabled: true },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.', icon: Compass,       route: 'sfma', enabled: false },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',             icon: Target,        route: 'ybt',  enabled: false },
-  { key: 'fcs',  label: 'FCS',  desc: 'Fundamental Capacity',       icon: Gauge,         route: 'fcs',  enabled: false },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   icon: ClipboardList, enabled: true },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    icon: Compass,       enabled: false },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                icon: Target,        enabled: false },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         icon: Gauge,         enabled: false },
 ];
 
 export default function Dashboard() {
@@ -43,7 +43,7 @@ export default function Dashboard() {
         .order('assessed_at', { ascending: false }).limit(5),
     ]);
     setClients(c ?? []);
-    setRecent((r ?? []) as any);
+    setRecent((r ?? []) as RecentAssessment[]);
     setLoading(false);
   };
 
