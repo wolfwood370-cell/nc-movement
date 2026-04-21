@@ -31,7 +31,7 @@ export default function ClientDetail() {
   return (
     <div className="space-y-6">
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground tap-target">
-        <ChevronLeft className="w-4 h-4" /> Back
+        <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
       <div className="surface-card p-5 flex items-center gap-4">
@@ -40,27 +40,27 @@ export default function ClientDetail() {
         </div>
         <div className="min-w-0">
           <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
-          <p className="text-xs text-muted-foreground">{fms.length} assessment{fms.length === 1 ? '' : 's'}</p>
+          <p className="text-xs text-muted-foreground">{fms.length} valutazion{fms.length === 1 ? 'e' : 'i'}</p>
         </div>
       </div>
 
       <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
-        <Plus className="w-5 h-5 mr-2" /> New FMS Assessment
+        <Plus className="w-5 h-5 mr-2" /> Nuova valutazione FMS
       </Button>
 
       <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">FMS history</h2>
+        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Storico FMS</h2>
         {fms.length === 0 ? (
           <div className="surface-card p-8 text-center">
             <ClipboardList className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">No FMS assessments yet.</p>
+            <p className="text-sm text-muted-foreground">Nessuna valutazione FMS.</p>
           </div>
         ) : (
           <div className="surface-card divide-y divide-border overflow-hidden">
             {fms.map(a => (
               <Link key={a.id} to={`/assessments/fms/${a.id}`} className="flex items-center justify-between p-4 hover:bg-accent/40 tap-target">
                 <div className="min-w-0">
-                  <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString()}</div>
+                  <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
                   <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
                 </div>
                 <div className="text-right shrink-0 ml-3">
