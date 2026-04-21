@@ -16,36 +16,101 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          competition_level: string | null
           created_at: string
           date_of_birth: string | null
+          email: string | null
           full_name: string
+          gender: string | null
+          height_cm: number | null
           id: string
           notes: string | null
           practitioner_id: string
-          sex: string | null
+          primary_sport: string | null
           updated_at: string
+          weight_kg: number | null
         }
         Insert: {
+          competition_level?: string | null
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           full_name: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
           notes?: string | null
           practitioner_id: string
-          sex?: string | null
+          primary_sport?: string | null
           updated_at?: string
+          weight_kg?: number | null
         }
         Update: {
+          competition_level?: string | null
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           full_name?: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
           notes?: string | null
           practitioner_id?: string
-          sex?: string | null
+          primary_sport?: string | null
           updated_at?: string
+          weight_kg?: number | null
         }
         Relationships: []
+      }
+      fcs_assessments: {
+        Row: {
+          assessed_at: string
+          client_id: string
+          created_at: string
+          explosive_score: number | null
+          id: string
+          impact_score: number | null
+          motor_score: number | null
+          notes: string | null
+          postural_score: number | null
+          practitioner_id: string
+          updated_at: string
+        }
+        Insert: {
+          assessed_at?: string
+          client_id: string
+          created_at?: string
+          explosive_score?: number | null
+          id?: string
+          impact_score?: number | null
+          motor_score?: number | null
+          notes?: string | null
+          postural_score?: number | null
+          practitioner_id: string
+          updated_at?: string
+        }
+        Update: {
+          assessed_at?: string
+          client_id?: string
+          created_at?: string
+          explosive_score?: number | null
+          id?: string
+          impact_score?: number | null
+          motor_score?: number | null
+          notes?: string | null
+          postural_score?: number | null
+          practitioner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fcs_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fms_assessments: {
         Row: {
@@ -138,24 +203,89 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          professional_title: string | null
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          professional_title?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          professional_title?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      ybt_assessments: {
+        Row: {
+          anterior_left_cm: number | null
+          anterior_right_cm: number | null
+          assessed_at: string
+          client_id: string
+          created_at: string
+          id: string
+          limb_length_cm: number | null
+          notes: string | null
+          posterolateral_left_cm: number | null
+          posterolateral_right_cm: number | null
+          posteromedial_left_cm: number | null
+          posteromedial_right_cm: number | null
+          practitioner_id: string
+          updated_at: string
+        }
+        Insert: {
+          anterior_left_cm?: number | null
+          anterior_right_cm?: number | null
+          assessed_at?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          limb_length_cm?: number | null
+          notes?: string | null
+          posterolateral_left_cm?: number | null
+          posterolateral_right_cm?: number | null
+          posteromedial_left_cm?: number | null
+          posteromedial_right_cm?: number | null
+          practitioner_id: string
+          updated_at?: string
+        }
+        Update: {
+          anterior_left_cm?: number | null
+          anterior_right_cm?: number | null
+          assessed_at?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          limb_length_cm?: number | null
+          notes?: string | null
+          posterolateral_left_cm?: number | null
+          posterolateral_right_cm?: number | null
+          posteromedial_left_cm?: number | null
+          posteromedial_right_cm?: number | null
+          practitioner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ybt_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
