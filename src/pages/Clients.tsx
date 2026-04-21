@@ -30,7 +30,7 @@ export default function Clients() {
     if (!newName.trim() || !user) return;
     const { error } = await supabase.from('clients').insert({ full_name: newName.trim(), practitioner_id: user.id });
     if (error) { toast.error(error.message); return; }
-    toast.success('Client added');
+    toast.success('Cliente aggiunto');
     setNewName(''); setOpen(false); load();
   };
 
