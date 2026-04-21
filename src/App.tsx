@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Assessments from "./pages/Assessments";
 import FmsAssessment from "./pages/FmsAssessment";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Shell><Dashboard /></Shell>} />
             <Route path="/clients" element={<Shell><Clients /></Shell>} />
             <Route path="/clients/:id" element={<Shell><ClientDetail /></Shell>} />
