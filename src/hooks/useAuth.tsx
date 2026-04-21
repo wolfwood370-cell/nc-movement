@@ -21,9 +21,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        setSession(data.session);
+        setLoading(false);
+      } else {
+        // Single-user mode: auto sign-in anonymously so RLS still works.
+        const { data: anon, error } = await supabase.auth.signInAnonymously();
+        if (error) console.error('Anonymous sign-in failed', error);
+        setSession(anon.session ?? null);
+        setLoading(false);
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
