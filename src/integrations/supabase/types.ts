@@ -14,7 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          practitioner_id: string
+          sex: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          practitioner_id: string
+          sex?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          practitioner_id?: string
+          sex?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fms_assessments: {
+        Row: {
+          aslr_left: number | null
+          aslr_right: number | null
+          assessed_at: string
+          clearing_shoulder_pain: boolean
+          clearing_spinal_extension_pain: boolean
+          clearing_spinal_flexion_pain: boolean
+          client_id: string
+          created_at: string
+          deep_squat_score: number | null
+          hurdle_step_left: number | null
+          hurdle_step_right: number | null
+          id: string
+          inline_lunge_left: number | null
+          inline_lunge_right: number | null
+          notes: string | null
+          practitioner_id: string
+          primary_corrective: string | null
+          rotary_stability_left: number | null
+          rotary_stability_right: number | null
+          shoulder_mobility_left: number | null
+          shoulder_mobility_right: number | null
+          total_score: number | null
+          trunk_stability_pushup_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          aslr_left?: number | null
+          aslr_right?: number | null
+          assessed_at?: string
+          clearing_shoulder_pain?: boolean
+          clearing_spinal_extension_pain?: boolean
+          clearing_spinal_flexion_pain?: boolean
+          client_id: string
+          created_at?: string
+          deep_squat_score?: number | null
+          hurdle_step_left?: number | null
+          hurdle_step_right?: number | null
+          id?: string
+          inline_lunge_left?: number | null
+          inline_lunge_right?: number | null
+          notes?: string | null
+          practitioner_id: string
+          primary_corrective?: string | null
+          rotary_stability_left?: number | null
+          rotary_stability_right?: number | null
+          shoulder_mobility_left?: number | null
+          shoulder_mobility_right?: number | null
+          total_score?: number | null
+          trunk_stability_pushup_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aslr_left?: number | null
+          aslr_right?: number | null
+          assessed_at?: string
+          clearing_shoulder_pain?: boolean
+          clearing_spinal_extension_pain?: boolean
+          clearing_spinal_flexion_pain?: boolean
+          client_id?: string
+          created_at?: string
+          deep_squat_score?: number | null
+          hurdle_step_left?: number | null
+          hurdle_step_right?: number | null
+          id?: string
+          inline_lunge_left?: number | null
+          inline_lunge_right?: number | null
+          notes?: string | null
+          practitioner_id?: string
+          primary_corrective?: string | null
+          rotary_stability_left?: number | null
+          rotary_stability_right?: number | null
+          shoulder_mobility_left?: number | null
+          shoulder_mobility_right?: number | null
+          total_score?: number | null
+          trunk_stability_pushup_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fms_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
