@@ -4,9 +4,13 @@ export type Score = 0 | 1 | 2 | 3 | null;
 
 export interface FmsScores {
   deep_squat_score: Score;
+  tibia_length_cm: number | null;
   hurdle_step_left: Score; hurdle_step_right: Score;
   inline_lunge_left: Score; inline_lunge_right: Score;
+  ankle_clearing_left_pain: boolean;
+  ankle_clearing_right_pain: boolean;
   shoulder_mobility_left: Score; shoulder_mobility_right: Score;
+  hand_length_cm: number | null;
   aslr_left: Score; aslr_right: Score;
   trunk_stability_pushup_score: Score;
   rotary_stability_left: Score; rotary_stability_right: Score;
@@ -17,9 +21,13 @@ export interface FmsScores {
 
 export const emptyFmsScores = (): FmsScores => ({
   deep_squat_score: null,
+  tibia_length_cm: null,
   hurdle_step_left: null, hurdle_step_right: null,
   inline_lunge_left: null, inline_lunge_right: null,
+  ankle_clearing_left_pain: false,
+  ankle_clearing_right_pain: false,
   shoulder_mobility_left: null, shoulder_mobility_right: null,
+  hand_length_cm: null,
   aslr_left: null, aslr_right: null,
   trunk_stability_pushup_score: null,
   rotary_stability_left: null, rotary_stability_right: null,
@@ -44,6 +52,7 @@ export interface PatternResult {
  * - Shoulder pain  -> Shoulder Mobility = 0
  * - Spinal extension pain -> Trunk Stability Push-Up = 0
  * - Spinal flexion pain   -> Rotary Stability = 0
+ * Ankle clearing is informational only (does not alter scores).
  */
 export function computePatterns(s: FmsScores): PatternResult[] {
   const lowest = (l: Score, r: Score): Score => {
@@ -109,14 +118,14 @@ export function primaryCorrective(patterns: PatternResult[]): {
   detail: string;
 } {
   if (patterns.some(p => p.final === null)) {
-    return { level: 'incomplete', label: 'Incomplete', detail: 'Score every pattern to generate the corrective focus.' };
+    return { level: 'incomplete', label: 'Incompleto', detail: 'Assegna un punteggio a ogni pattern per generare il focus correttivo.' };
   }
   const painful = patterns.filter(p => p.final === 0);
   if (painful.length) {
     return {
       level: 'pain',
-      label: 'Refer / Manage Pain',
-      detail: `Pain detected in: ${painful.map(p => p.label).join(', ')}. Address pain before progressing the corrective hierarchy.`,
+      label: 'Riferire / Gestire il Dolore',
+      detail: `Dolore rilevato in: ${painful.map(p => p.label).join(', ')}. Trattare il dolore prima di progredire nella gerarchia correttiva.`,
     };
   }
   const at = (key: string) => patterns.find(p => p.key === key)!;
@@ -124,33 +133,37 @@ export function primaryCorrective(patterns: PatternResult[]): {
   if (mobility.length) {
     return {
       level: 'mobility',
-      label: 'Mobility',
-      detail: `Prioritize mobility correctives for: ${mobility.map(p => p.label).join(', ')}.`,
+      label: 'Mobilità',
+      detail: `Priorità ai correttivi di mobilità per: ${mobility.map(p => p.label).join(', ')}.`,
     };
   }
   const motor = [at('rotary_stability'), at('trunk_stability_pushup')].filter(p => p.final === 1);
   if (motor.length) {
     return {
       level: 'motor_control',
-      label: 'Motor Control / Stability',
-      detail: `Prioritize stability correctives for: ${motor.map(p => p.label).join(', ')}.`,
+      label: 'Controllo Motorio / Stabilità',
+      detail: `Priorità ai correttivi di stabilità per: ${motor.map(p => p.label).join(', ')}.`,
     };
   }
   const fn = [at('inline_lunge'), at('hurdle_step'), at('deep_squat')].filter(p => p.final === 1);
   if (fn.length) {
     return {
       level: 'functional',
-      label: 'Functional Patterning',
-      detail: `Re-pattern: ${fn.map(p => p.label).join(', ')}.`,
+      label: 'Ri-pattern Funzionale',
+      detail: `Ri-pattern: ${fn.map(p => p.label).join(', ')}.`,
     };
   }
-  return { level: 'clear', label: 'No Limitations Found', detail: 'All patterns scored ≥ 2. Train with confidence.' };
+  return { level: 'clear', label: 'Nessuna Limitazione', detail: 'Tutti i pattern ≥ 2. Allenare con fiducia.' };
 }
 
+/**
+ * Color tokens per score:
+ *  0 = rosso (pain), 1 = giallo (warning), 2 = arancione (dysfunction), 3 = verde (functional)
+ */
 export const scoreColor = (s: Score): string => {
   if (s === null) return 'bg-muted text-muted-foreground';
   if (s === 0) return 'bg-pain text-destructive-foreground';
-  if (s === 1) return 'bg-dysfunction text-warning-foreground';
-  if (s === 2) return 'bg-secondary text-secondary-foreground';
+  if (s === 1) return 'bg-warning text-warning-foreground';
+  if (s === 2) return 'bg-dysfunction text-warning-foreground';
   return 'bg-functional text-success-foreground';
 };
