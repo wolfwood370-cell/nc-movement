@@ -114,6 +114,8 @@ export type Database = {
       }
       fms_assessments: {
         Row: {
+          ankle_clearing_left_pain: boolean
+          ankle_clearing_right_pain: boolean
           aslr_left: number | null
           aslr_right: number | null
           assessed_at: string
@@ -123,6 +125,7 @@ export type Database = {
           client_id: string
           created_at: string
           deep_squat_score: number | null
+          hand_length_cm: number | null
           hurdle_step_left: number | null
           hurdle_step_right: number | null
           id: string
@@ -135,11 +138,14 @@ export type Database = {
           rotary_stability_right: number | null
           shoulder_mobility_left: number | null
           shoulder_mobility_right: number | null
+          tibia_length_cm: number | null
           total_score: number | null
           trunk_stability_pushup_score: number | null
           updated_at: string
         }
         Insert: {
+          ankle_clearing_left_pain?: boolean
+          ankle_clearing_right_pain?: boolean
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
@@ -149,6 +155,7 @@ export type Database = {
           client_id: string
           created_at?: string
           deep_squat_score?: number | null
+          hand_length_cm?: number | null
           hurdle_step_left?: number | null
           hurdle_step_right?: number | null
           id?: string
@@ -161,11 +168,14 @@ export type Database = {
           rotary_stability_right?: number | null
           shoulder_mobility_left?: number | null
           shoulder_mobility_right?: number | null
+          tibia_length_cm?: number | null
           total_score?: number | null
           trunk_stability_pushup_score?: number | null
           updated_at?: string
         }
         Update: {
+          ankle_clearing_left_pain?: boolean
+          ankle_clearing_right_pain?: boolean
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
@@ -175,6 +185,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           deep_squat_score?: number | null
+          hand_length_cm?: number | null
           hurdle_step_left?: number | null
           hurdle_step_right?: number | null
           id?: string
@@ -187,6 +198,7 @@ export type Database = {
           rotary_stability_right?: number | null
           shoulder_mobility_left?: number | null
           shoulder_mobility_right?: number | null
+          tibia_length_cm?: number | null
           total_score?: number | null
           trunk_stability_pushup_score?: number | null
           updated_at?: string
