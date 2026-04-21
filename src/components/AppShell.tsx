@@ -1,8 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Users, LayoutDashboard, LogOut } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
+import { Activity, Users, LayoutDashboard } from 'lucide-react';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -11,31 +9,21 @@ const tabs = [
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const { signOut, user } = useAuth();
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/75 border-b border-border">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-30 glass-card border-b border-border rounded-none">
+        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-primary grid place-items-center shadow-elevated">
+            <div className="w-9 h-9 rounded-xl bg-gradient-primary grid place-items-center shadow-elevated">
               <Activity className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm">NC Movement</div>
+              <div className="font-display font-bold text-sm text-gradient-primary">NC Movement</div>
               <div className="text-[10px] text-muted-foreground -mt-0.5">Assessment Studio</div>
             </div>
           </button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => signOut()}
-            aria-label="Sign out"
-            title={user?.email ?? ''}
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
         </div>
       </header>
 
