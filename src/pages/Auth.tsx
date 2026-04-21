@@ -32,43 +32,43 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success('Account created. You are signed in.');
+        toast.success('Account creato. Sei dentro.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success('Welcome back.');
+        toast.success('Bentornato.');
       }
     } catch (err: any) {
-      toast.error(err?.message ?? 'Authentication failed');
+      toast.error(err?.message ?? 'Autenticazione fallita');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background grid place-items-center px-4">
+    <div className="min-h-screen bg-background grid place-items-center px-4 animate-fade-in">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-primary grid place-items-center shadow-elevated">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-primary grid place-items-center shadow-elevated glow-primary">
             <Activity className="w-7 h-7 text-primary-foreground" strokeWidth={2.5} />
           </div>
           <div className="text-center">
-            <h1 className="font-display font-bold text-2xl">NC Movement</h1>
-            <p className="text-sm text-muted-foreground mt-1">Assessment studio for clinicians & coaches.</p>
+            <h1 className="font-display font-bold text-3xl text-gradient-primary">NC Movement</h1>
+            <p className="text-sm text-muted-foreground mt-1">Studio di valutazione per clinici e coach.</p>
           </div>
         </div>
 
-        <div className="surface-card p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-xl">
+        <div className="glass-card rounded-xl p-6 space-y-5 shadow-card">
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg">
             {(['signin', 'signup'] as const).map(m => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`py-2 text-sm font-semibold rounded-lg transition-colors ${
+                className={`py-2 text-sm font-semibold rounded-md transition-colors ${
                   mode === m ? 'bg-card text-foreground shadow-card' : 'text-muted-foreground'
                 }`}
               >
-                {m === 'signin' ? 'Sign in' : 'Create account'}
+                {m === 'signin' ? 'Accedi' : 'Crea account'}
               </button>
             ))}
           </div>
@@ -76,8 +76,8 @@ export default function AuthPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div className="space-y-1.5">
-                <Label htmlFor="name">Display name</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Dr. Cook" />
+                <Label htmlFor="name">Nome visualizzato</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Es. Dott. Rossi" />
               </div>
             )}
             <div className="space-y-1.5">
@@ -89,13 +89,13 @@ export default function AuthPage() {
               <Input id="password" type="password" required minLength={6} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} />
             </div>
             <Button type="submit" className="w-full tap-target" disabled={busy}>
-              {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+              {busy ? 'Attendere…' : mode === 'signin' ? 'Accedi' : 'Crea account'}
             </Button>
           </form>
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Built for fitness professionals & clinicians.
+          Per professionisti del fitness e clinici.
         </p>
       </div>
     </div>
