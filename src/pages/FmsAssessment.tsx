@@ -59,11 +59,18 @@ export default function FmsAssessment() {
         const { data } = await supabase.from('fms_assessments')
           .select('*, clients(full_name)').eq('id', id).maybeSingle();
         if (data) {
-          const s: any = { ...emptyFmsScores() };
-          Object.keys(emptyFmsScores()).forEach(k => { if ((data as any)[k] !== undefined && (data as any)[k] !== null) s[k] = (data as any)[k]; });
+          const empty = emptyFmsScores();
+          const s = { ...empty } as FmsScores;
+          (Object.keys(empty) as (keyof FmsScores)[]).forEach((k) => {
+            const v = (data as Record<string, unknown>)[k];
+            if (v !== undefined && v !== null) {
+              (s as Record<string, unknown>)[k] = v;
+            }
+          });
           setScores(s);
           setClientId(data.client_id);
-          setClientName((data as any).clients?.full_name ?? '');
+          const joined = (data as { clients?: { full_name?: string } | null }).clients;
+          setClientName(joined?.full_name ?? '');
           setReadOnly(true);
         }
       } else if (clientIdParam) {
@@ -78,25 +85,27 @@ export default function FmsAssessment() {
   const total = useMemo(() => computeTotal(patterns), [patterns]);
   const corrective = useMemo(() => primaryCorrective(patterns), [patterns]);
 
-  const setField = (k: keyof FmsScores, v: any) => setScores(p => ({ ...p, [k]: v }));
+  const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
+    setScores(p => ({ ...p, [k]: v }));
 
   const save = async () => {
-    if (!user || !clientId) { toast.error('Missing client'); return; }
-    if (total === null) { toast.error('Score every pattern before saving.'); return; }
+    if (!user || !clientId) { toast.error('Cliente mancante'); return; }
+    if (total === null) { toast.error('Compila tutti i pattern prima di salvare.'); return; }
     setSaving(true);
-    const payload: any = {
+    const payload = {
       practitioner_id: user.id,
       client_id: clientId,
       ...scores,
       total_score: total,
-      primary_corrective: `${corrective.label}`,
+      primary_corrective: corrective.label,
     };
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success('Assessment saved');
+    toast.success('Valutazione salvata');
     navigate(`/assessments/fms/${data!.id}`, { replace: true });
   };
+
 
   if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
 
