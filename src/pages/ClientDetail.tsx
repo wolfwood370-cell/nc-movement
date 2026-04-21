@@ -21,12 +21,12 @@ export default function ClientDetail() {
         supabase.from('fms_assessments').select('id, assessed_at, total_score, primary_corrective')
           .eq('client_id', id).order('assessed_at', { ascending: false }),
       ]);
-      setClient(c as any);
-      setFms((a ?? []) as any);
+      setClient((c ?? null) as Client | null);
+      setFms((a ?? []) as Fms[]);
     })();
   }, [id]);
 
-  if (!client) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
 
   return (
     <div className="space-y-6">

@@ -60,11 +60,11 @@ export default function FmsAssessment() {
           .select('*, clients(full_name)').eq('id', id).maybeSingle();
         if (data) {
           const empty = emptyFmsScores();
-          const s = { ...empty } as FmsScores;
+          const s: FmsScores = { ...empty };
           (Object.keys(empty) as (keyof FmsScores)[]).forEach((k) => {
-            const v = (data as Record<string, unknown>)[k];
+            const v = (data as unknown as Record<string, unknown>)[k as string];
             if (v !== undefined && v !== null) {
-              (s as Record<string, unknown>)[k] = v;
+              (s as unknown as Record<string, unknown>)[k as string] = v;
             }
           });
           setScores(s);
@@ -107,7 +107,7 @@ export default function FmsAssessment() {
   };
 
 
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
 
   const correctiveTone =
     corrective.level === 'pain' ? 'bg-pain text-destructive-foreground' :
@@ -126,14 +126,14 @@ export default function FmsAssessment() {
   return (
     <div className="space-y-5 pb-4">
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground tap-target">
-        <ChevronLeft className="w-4 h-4" /> Back
+        <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
       <header className="space-y-1">
         <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS</p>
-        <h1 className="font-display font-bold text-2xl">{clientName || 'Assessment'}</h1>
+        <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
         <p className="text-sm text-muted-foreground">
-          {readOnly ? 'Read-only — completed assessment' : 'Tap to score each pattern. Lowest L/R counts.'}
+          {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
         </p>
       </header>
 
@@ -153,24 +153,24 @@ export default function FmsAssessment() {
 
       {/* Clearing tests */}
       <section className="surface-card p-4">
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Pain clearing tests</h2>
+        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Test di esclusione del dolore</h2>
         <div className="space-y-3">
-          {[
-            { key: 'clearing_shoulder_pain', label: 'Shoulder Impingement', forces: 'Shoulder Mobility → 0' },
-            { key: 'clearing_spinal_extension_pain', label: 'Spinal Extension', forces: 'Trunk Stability Push-Up → 0' },
-            { key: 'clearing_spinal_flexion_pain', label: 'Spinal Flexion', forces: 'Rotary Stability → 0' },
-          ].map(c => {
-            const active = !!(scores as any)[c.key];
+          {([
+            { key: 'clearing_shoulder_pain' as const, label: 'Impingement spalla', forces: 'Mobilità Spalla → 0' },
+            { key: 'clearing_spinal_extension_pain' as const, label: 'Estensione spinale', forces: 'Trunk Stability Push-Up → 0' },
+            { key: 'clearing_spinal_flexion_pain' as const, label: 'Flessione spinale', forces: 'Rotary Stability → 0' },
+          ]).map(c => {
+            const active = scores[c.key];
             return (
               <div key={c.key} className={`flex items-center justify-between rounded-xl p-3 transition-colors ${active ? 'bg-pain/10 border border-pain/40' : 'bg-muted/40'}`}>
                 <div>
                   <div className="font-medium text-sm">{c.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{active ? c.forces : 'Negative (no pain)'}</div>
+                  <div className="text-[11px] text-muted-foreground">{active ? c.forces : 'Negativo (nessun dolore)'}</div>
                 </div>
                 <Switch
                   checked={active}
                   disabled={readOnly}
-                  onCheckedChange={(v) => setField(c.key as keyof FmsScores, v)}
+                  onCheckedChange={(v) => setField(c.key, v)}
                   aria-label={c.label}
                 />
               </div>
@@ -190,7 +190,7 @@ export default function FmsAssessment() {
                 <div className="min-w-0">
                   <div className="font-display font-semibold">{p.label}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {p.bilateral ? 'Bilateral · score Left & Right' : 'Single score'}
+                    {p.bilateral ? 'Bilaterale · valuta Sinistra & Destra' : 'Punteggio singolo'}
                     {cleared && <span className="ml-1 text-pain font-semibold">· {p.clearedNote}</span>}
                   </div>
                 </div>
@@ -200,7 +200,7 @@ export default function FmsAssessment() {
                   </div>
                   {result.asymmetric && (
                     <div className="text-[10px] uppercase font-bold text-warning mt-1 flex items-center gap-1 justify-end">
-                      <AlertTriangle className="w-3 h-3" /> Asymmetry
+                      <AlertTriangle className="w-3 h-3" /> Asimmetria
                     </div>
                   )}
                 </div>
@@ -209,17 +209,17 @@ export default function FmsAssessment() {
               {p.bilateral ? (
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Left</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Sinistra</div>
                     <ScoreSelector
-                      value={(scores as any)[p.leftField!] as Score}
+                      value={scores[p.leftField!] as Score}
                       onChange={(s) => setField(p.leftField!, s)}
                       disabled={readOnly || cleared}
                     />
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Right</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Destra</div>
                     <ScoreSelector
-                      value={(scores as any)[p.rightField!] as Score}
+                      value={scores[p.rightField!] as Score}
                       onChange={(s) => setField(p.rightField!, s)}
                       disabled={readOnly || cleared}
                     />
@@ -227,7 +227,7 @@ export default function FmsAssessment() {
                 </div>
               ) : (
                 <ScoreSelector
-                  value={(scores as any)[p.scoreField!] as Score}
+                  value={scores[p.scoreField!] as Score}
                   onChange={(s) => setField(p.scoreField!, s)}
                   disabled={readOnly || cleared}
                 />
@@ -245,7 +245,7 @@ export default function FmsAssessment() {
             className="w-full h-14 rounded-2xl text-base shadow-elevated tap-target"
           >
             <Save className="w-5 h-5 mr-2" />
-            {saving ? 'Saving…' : total === null ? 'Score every pattern to save' : `Save assessment · ${total}/21`}
+            {saving ? 'Salvataggio…' : total === null ? 'Compila tutti i pattern per salvare' : `Salva valutazione · ${total}/21`}
           </Button>
         </div>
       )}
