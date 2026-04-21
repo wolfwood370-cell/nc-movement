@@ -38,31 +38,31 @@ export default function Clients() {
     <div className="space-y-5">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-display font-bold text-2xl">Clients</h1>
-          <p className="text-sm text-muted-foreground">{clients.length} on roster</p>
+          <h1 className="font-display font-bold text-2xl">Clienti</h1>
+          <p className="text-sm text-muted-foreground">{clients.length} in lista</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full"><Plus className="w-4 h-4 mr-1" />New</Button>
+            <Button className="rounded-full"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add a client</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <Label htmlFor="n">Full name</Label>
+              <Label htmlFor="n">Nome completo</Label>
               <Input id="n" autoFocus value={newName} onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && create()} />
             </div>
-            <DialogFooter><Button onClick={create} className="w-full tap-target">Add</Button></DialogFooter>
+            <DialogFooter><Button onClick={create} className="w-full tap-target">Aggiungi</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       {loading ? (
-        <div className="surface-card p-6 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="surface-card p-6 text-center text-sm text-muted-foreground">Caricamento…</div>
       ) : clients.length === 0 ? (
         <div className="surface-card p-8 text-center">
           <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="font-medium">No clients yet</p>
+          <p className="font-medium">Nessun cliente</p>
         </div>
       ) : (
         <div className="surface-card divide-y divide-border overflow-hidden">
@@ -74,7 +74,7 @@ export default function Clients() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-medium truncate">{c.full_name}</div>
-                  <div className="text-xs text-muted-foreground">Added {new Date(c.created_at).toLocaleDateString()}</div>
+                  <div className="text-xs text-muted-foreground">Aggiunto il {new Date(c.created_at).toLocaleDateString('it-IT')}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
