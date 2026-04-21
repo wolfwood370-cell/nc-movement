@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppShell from "@/components/AppShell";
-import AuthPage from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
@@ -28,7 +27,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<Shell><Dashboard /></Shell>} />
             <Route path="/clients" element={<Shell><Clients /></Shell>} />
             <Route path="/clients/:id" element={<Shell><ClientDetail /></Shell>} />
