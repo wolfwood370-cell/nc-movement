@@ -250,6 +250,10 @@ export default function YbtAssessment() {
         {clientName && <p className="text-sm text-muted-foreground mt-1">{clientName}</p>}
       </header>
 
+      {!readOnly && (
+        <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+      )}
+
       {/* Test type toggle: Lower Quarter (legs) vs Upper Quarter (shoulders) */}
       <div className="surface-card p-3">
         <ToggleGroup
