@@ -3,9 +3,7 @@
 
 export type HapticType = 'success' | 'alert' | 'neutral';
 
-interface NavigatorWithVibrate extends Navigator {
-  vibrate?: (pattern: number | number[]) => boolean;
-}
+type VibrateFn = (pattern: number | number[]) => boolean;
 
 const PATTERNS: Record<HapticType, number | number[]> = {
   success: 50,            // sharp single pulse — score 3 / FN
@@ -19,10 +17,10 @@ const PATTERNS: Record<HapticType, number | number[]> = {
  */
 export function triggerHapticFeedback(type: HapticType): void {
   if (typeof window === 'undefined') return;
-  const nav = window.navigator as NavigatorWithVibrate;
-  if (typeof nav.vibrate !== 'function') return;
+  const vibrate = (window.navigator as Navigator & { vibrate?: VibrateFn }).vibrate;
+  if (typeof vibrate !== 'function') return;
   try {
-    nav.vibrate(PATTERNS[type]);
+    vibrate.call(window.navigator, PATTERNS[type]);
   } catch {
     // ignore — some browsers throw if vibration is gated by user activation
   }
