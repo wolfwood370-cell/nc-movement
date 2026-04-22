@@ -122,8 +122,40 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
               ))}
             </ul>
           )}
+
+          {client && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant={referralEligible ? 'default' : 'outline'}
+                onClick={() => setReferralOpen(true)}
+                className="w-full tap-target"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {referralEligible ? 'Esporta Referto Medico' : 'Genera Referto (anche se assente)'}
+              </Button>
+              {referralEligible && (
+                <p className="text-[11px] text-muted-foreground mt-2 text-center">
+                  Red flag rilevati: si raccomanda rinvio clinico.
+                </p>
+              )}
+            </div>
+          )}
         </section>
       </div>
+
+      {client && (
+        <MedicalReferralReport
+          open={referralOpen}
+          onClose={() => setReferralOpen(false)}
+          autoPrint
+          client={client}
+          practitioner={practitioner ?? null}
+          fms={latestFms}
+          ybt={ybtLatest ?? null}
+          sfma={sfmaLatest ?? null}
+        />
+      )}
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
