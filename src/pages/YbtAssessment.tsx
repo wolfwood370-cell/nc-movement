@@ -177,6 +177,7 @@ export default function YbtAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
+          setAssessedAt((data as { assessed_at?: string | null }).assessed_at ?? null);
           const joined = (data as { clients?: { full_name?: string; gender?: string | null; primary_sport?: string | null } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setClientGender(joined?.gender ?? null);
@@ -213,6 +214,7 @@ export default function YbtAssessment() {
       test_type: testType,
       practitioner_id: user.id,
       client_id: clientId,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data: saved, error } = await supabase
       .from('ybt_assessments')
