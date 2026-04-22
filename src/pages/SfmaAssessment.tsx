@@ -232,7 +232,7 @@ export default function SfmaAssessment() {
         {SFMA_PATTERNS.map((p) => (
           <div
             key={p.key}
-            ref={(el) => (cardRefs.current[p.key] = el)}
+            ref={(el) => { cardRefs.current[p.key] = el; }}
             className="surface-card p-4 space-y-3"
           >
             <div className="flex items-center justify-between gap-3">
