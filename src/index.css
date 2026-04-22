@@ -253,9 +253,10 @@
     border: 0 !important;
   }
 
-  /* Neutralize Radix dialog overlay/positioning so only the page is white. */
-  [data-radix-popper-content-wrapper],
-  [role="dialog"] {
+  /* Neutralize Radix dialog wrappers ONLY when they contain the printable
+     referral, so other open dialogs (if any) keep their own layout. */
+  [role="dialog"]:has(#medical-referral-print),
+  [data-radix-popper-content-wrapper]:has(#medical-referral-print) {
     position: static !important;
     transform: none !important;
     box-shadow: none !important;
