@@ -1,21 +1,42 @@
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
-import { AlertTriangle, Sparkles } from 'lucide-react';
+import { AlertTriangle, Sparkles, FileText } from 'lucide-react';
 import RiskGauge from './RiskGauge';
+import MedicalReferralReport from './MedicalReferralReport';
+import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
 type FcsMetrics = ReturnType<typeof computeFcsMetrics>;
 
+interface ClientLite {
+  full_name: string;
+  date_of_birth: string | null;
+  gender: string | null;
+  primary_sport: string | null;
+}
+
+interface PractitionerLite {
+  display_name?: string | null;
+  professional_title?: string | null;
+}
+
+interface SfmaWithBreakouts extends Partial<SfmaFormValues> {
+  assessed_at?: string;
+  breakout_results?: unknown;
+}
+
 interface Props {
   fmsHistory: FmsAssessmentRow[];
   ybtLatest?: YbtRow | null;
   fcsMetrics?: FcsMetrics | null;
-  sfmaLatest?: Partial<SfmaFormValues> | null;
+  sfmaLatest?: SfmaWithBreakouts | null;
+  client?: ClientLite | null;
+  practitioner?: PractitionerLite | null;
 }
 
 /** Convert a 0..1+ ratio against its target into a 0..100 score (capped at 100). */
