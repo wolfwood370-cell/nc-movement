@@ -123,6 +123,9 @@ export const computeFcsMetrics = (v: FcsFormValues) => ({
   explosiveSymmetry: symmetry(v.explosive_single_leg_jump_l, v.explosive_single_leg_jump_r, 0.90),
   impactSymmetry: symmetry(v.impact_212_bound_l, v.impact_212_bound_r, 0.95),
   forwardReachSymmetry: symmetry(v.mcs_forward_reach_l, v.mcs_forward_reach_r, 0.95),
+  horizontalReachSymmetry: symmetry(v.mcs_horizontal_reach_l, v.mcs_horizontal_reach_r, 0.95),
+  wristExtensionSymmetry: symmetry(v.mcs_wrist_extension_l, v.mcs_wrist_extension_r, 0.95),
+  horizontalAdductionSymmetry: symmetry(v.mcs_horizontal_adduction_l, v.mcs_horizontal_adduction_r, 0.95),
   carryLoadRatio: ratio(v.postural_carry_load_kg, v.bodyweight_kg, 0.75),
 });
 
