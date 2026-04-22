@@ -57,11 +57,11 @@ export default function ClientDetail() {
       ]);
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
-      setLatestSfma((s ?? null) as never);
+      setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
       setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
       setLatestYbt((y ?? null) as unknown as YbtRow | null);
-      setPractitioner((p ?? null) as never);
+      setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
     })();
   }, [id]);
 

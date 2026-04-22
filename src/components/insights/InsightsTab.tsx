@@ -129,33 +129,21 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
                 type="button"
                 variant={referralEligible ? 'default' : 'outline'}
                 onClick={() => setReferralOpen(true)}
+                disabled={!referralEligible}
                 className="w-full tap-target"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                {referralEligible ? 'Esporta Referto Medico' : 'Genera Referto (anche se assente)'}
+                {referralEligible ? 'Esporta Referto Medico' : 'Nessun reperto da rinviare'}
               </Button>
-              {referralEligible && (
-                <p className="text-[11px] text-muted-foreground mt-2 text-center">
-                  Red flag rilevati: si raccomanda rinvio clinico.
-                </p>
-              )}
+              <p className="text-[11px] text-muted-foreground mt-2 text-center">
+                {referralEligible
+                  ? 'Red flag rilevati: si raccomanda rinvio clinico.'
+                  : 'Il referto si abilita automaticamente in presenza di dolore o test di esclusione positivi.'}
+              </p>
             </div>
           )}
         </section>
       </div>
-
-      {client && (
-        <MedicalReferralReport
-          open={referralOpen}
-          onClose={() => setReferralOpen(false)}
-          autoPrint
-          client={client}
-          practitioner={practitioner ?? null}
-          fms={latestFms}
-          ybt={ybtLatest ?? null}
-          sfma={sfmaLatest ?? null}
-        />
-      )}
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -259,6 +247,19 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
           </div>
         )}
       </section>
+
+      {client && (
+        <MedicalReferralReport
+          open={referralOpen}
+          onClose={() => setReferralOpen(false)}
+          autoPrint
+          client={client}
+          practitioner={practitioner ?? null}
+          fms={latestFms}
+          ybt={ybtLatest ?? null}
+          sfma={sfmaLatest ?? null}
+        />
+      )}
     </div>
   );
 }
