@@ -1,13 +1,13 @@
 import { forwardRef, useMemo, useState } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
 import { AlertTriangle, Sparkles, FileText } from 'lucide-react';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import { Button } from '@/components/ui/button';
-import { computeRisk, mobilityStability, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
+import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -32,7 +32,7 @@ interface SfmaWithBreakouts extends Partial<SfmaFormValues> {
 
 interface Props {
   fmsHistory: FmsAssessmentRow[];
-  ybtLatest?: YbtRow | null;
+  ybtHistory?: YbtRow[];
   fcsMetrics?: FcsMetrics | null;
   sfmaLatest?: SfmaWithBreakouts | null;
   client?: ClientLite | null;
@@ -48,11 +48,12 @@ function ratioToScore(value: number | null, target: number): number {
 const abs = (a: number | null, b: number | null) =>
   a !== null && b !== null ? Math.abs(a - b) : null;
 
-export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
+export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
   const latestFms = fmsHistory[0] ?? null;
+  const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
   const risk = useMemo(
-    () => computeRisk(latestFms, ybtLatest ?? null, sfmaLatest ?? null),
+    () => computeRisk(latestFms, ybtLatest, sfmaLatest ?? null),
     [latestFms, ybtLatest, sfmaLatest],
   );
 
@@ -85,7 +86,7 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
     Totale: f.total_score ?? 0,
   })), [fmsHistory]);
 
-  // ---- YBT asymmetry bars ------------------------------------------------
+  // ---- YBT asymmetry bars (latest snapshot, all 3 reach directions) ------
   const ybtBars = useMemo(() => {
     if (!ybtLatest) return null;
     return [
@@ -94,6 +95,15 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
       { axis: 'Posterolaterale',diff: abs(ybtLatest.posterolateral_left_cm, ybtLatest.posterolateral_right_cm) ?? 0, critical: false },
     ];
   }, [ybtLatest]);
+
+  // ---- YBT anterior asymmetry trend (longitudinal) -----------------------
+  const ybtAntTrend = useMemo(() => {
+    if (!ybtHistory?.length) return [];
+    return [...ybtHistory].reverse().map((y) => ({
+      date: new Date(y.assessed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+      Asimmetria: ybtAnteriorAsymmetry(y) ?? 0,
+    }));
+  }, [ybtHistory]);
 
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
@@ -202,27 +212,72 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
         </section>
       </div>
 
-      {/* FMS total trend */}
-      <section className="surface-card p-4">
-        <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
-          FMS — Progressione Totale
-        </h3>
-        {totalTrend.length === 0 ? (
-          <EmptyChart label="Nessuna valutazione FMS registrata." />
-        ) : (
-          <div className="h-56">
-            <ResponsiveContainer>
-              <LineChart data={totalTrend} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={axisStyle} />
-                <YAxis tick={axisStyle} domain={[0, 21]} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="Totale" stroke="hsl(var(--primary))" strokeWidth={2.5} dot />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </section>
+      {/* ============ Longitudinal Progress ============ */}
+      <div className="pt-2">
+        <h2 className="font-display font-bold text-lg mb-3">Progressione Longitudinale</h2>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* FMS total trend with risk reference line at 14 */}
+          <section className="surface-card p-4">
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
+              FMS — Score Totale nel tempo
+            </h3>
+            {totalTrend.length === 0 ? (
+              <EmptyChart label="Nessuna valutazione FMS registrata." />
+            ) : (
+              <div className="h-56">
+                <ResponsiveContainer>
+                  <LineChart data={totalTrend} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={axisStyle} />
+                    <YAxis tick={axisStyle} domain={[0, 21]} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <ReferenceLine
+                      y={14}
+                      stroke="hsl(var(--warning))"
+                      strokeDasharray="4 4"
+                      label={{ value: 'Soglia rischio (14)', fill: 'hsl(var(--warning))', fontSize: 10, position: 'insideTopRight' }}
+                    />
+                    <Line type="monotone" dataKey="Totale" stroke="hsl(var(--primary))" strokeWidth={2.5} dot />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+
+          {/* YBT anterior asymmetry trend with 4cm red-flag line */}
+          <section className="surface-card p-4">
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
+              YBT — Asimmetria Anteriore (cm)
+            </h3>
+            {ybtAntTrend.length === 0 ? (
+              <EmptyChart label="Nessuna valutazione YBT registrata." />
+            ) : (
+              <div className="h-56">
+                <ResponsiveContainer>
+                  <BarChart data={ybtAntTrend} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={axisStyle} />
+                    <YAxis tick={axisStyle} unit=" cm" />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <ReferenceLine
+                      y={4}
+                      stroke="hsl(var(--pain))"
+                      strokeDasharray="4 4"
+                      label={{ value: 'Red flag (>4)', fill: 'hsl(var(--pain))', fontSize: 10, position: 'insideTopRight' }}
+                    />
+                    <Bar dataKey="Asimmetria" radius={[6, 6, 0, 0]}>
+                      {ybtAntTrend.map((d, i) => (
+                        <Cell key={i} fill={d.Asimmetria > 4 ? 'hsl(var(--pain))' : 'hsl(var(--primary))'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
 
       {/* Mobility vs Stability */}
       <section className="surface-card p-4">

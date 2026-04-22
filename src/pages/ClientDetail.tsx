@@ -32,7 +32,7 @@ export default function ClientDetail() {
   const [latestSfma, setLatestSfma] = useState<(SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null>(null);
   const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
-  const [latestYbt, setLatestYbt] = useState<YbtRow | null>(null);
+  const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function ClientDetail() {
         supabase.from('fcs_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('ybt_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+          .eq('client_id', id).order('assessed_at', { ascending: false }),
         profilePromise,
       ]);
       setClient((c ?? null) as Client | null);
@@ -60,7 +60,7 @@ export default function ClientDetail() {
       setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
       setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
-      setLatestYbt((y ?? null) as unknown as YbtRow | null);
+      setYbtHistory((y ?? []) as unknown as YbtRow[]);
       setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
     })();
   }, [id]);
@@ -236,7 +236,7 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtLatest={latestYbt} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
+          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
         </TabsContent>
       </Tabs>
     </div>

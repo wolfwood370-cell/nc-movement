@@ -1,4 +1,5 @@
 import { Score, scoreColor } from '@/lib/fms';
+import { triggerHapticFeedback } from '@/lib/haptics';
 
 interface Props {
   value: Score;
@@ -24,7 +25,10 @@ export default function ScoreSelector({ value, onChange, disabled }: Props) {
             key={n}
             type="button"
             disabled={disabled}
-            onClick={() => onChange(n)}
+            onClick={() => {
+              triggerHapticFeedback(n === 0 ? 'alert' : n === 3 ? 'success' : 'neutral');
+              onChange(n);
+            }}
             className={`tap-target h-14 rounded-xl font-display font-bold text-2xl transition-all border-2 ${
               active
                 ? `${colorClass} border-transparent shadow-elevated scale-[1.02]`

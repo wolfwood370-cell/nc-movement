@@ -26,6 +26,7 @@ import {
   type BreakoutResults,
 } from '@/lib/breakouts';
 import BreakoutHub from '@/components/sfma/BreakoutHub';
+import { triggerHapticFeedback } from '@/lib/haptics';
 
 // Color classes per score, using design system tokens (HSL via Tailwind config).
 const SCORE_STYLES: Record<SfmaScore, { active: string; idle: string; chip: string; full: string; subtitle: string }> = {
@@ -140,6 +141,7 @@ export default function SfmaAssessment() {
 
   const handlePick = (score: SfmaScore) => {
     if (!currentPattern) return;
+    triggerHapticFeedback(score === 'FN' ? 'success' : score === 'DN' ? 'neutral' : 'alert');
     setValue(currentPattern.key, score, { shouldDirty: true, shouldValidate: true });
     // Auto-advance
     setTimeout(() => {
