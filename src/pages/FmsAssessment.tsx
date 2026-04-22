@@ -115,6 +115,7 @@ export default function FmsAssessment() {
           });
           setScores(s);
           setClientId(data.client_id);
+          setAssessedAt(data.assessed_at ?? null);
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
