@@ -87,6 +87,12 @@ export type Database = {
           mcs_ankle_pain_r: boolean
           mcs_forward_reach_l: number | null
           mcs_forward_reach_r: number | null
+          mcs_horizontal_adduction_l: number | null
+          mcs_horizontal_adduction_r: number | null
+          mcs_horizontal_reach_l: number | null
+          mcs_horizontal_reach_r: number | null
+          mcs_wrist_extension_l: number | null
+          mcs_wrist_extension_r: number | null
           motor_score: number | null
           notes: string | null
           postural_carry_distance_m: number | null
@@ -122,6 +128,12 @@ export type Database = {
           mcs_ankle_pain_r?: boolean
           mcs_forward_reach_l?: number | null
           mcs_forward_reach_r?: number | null
+          mcs_horizontal_adduction_l?: number | null
+          mcs_horizontal_adduction_r?: number | null
+          mcs_horizontal_reach_l?: number | null
+          mcs_horizontal_reach_r?: number | null
+          mcs_wrist_extension_l?: number | null
+          mcs_wrist_extension_r?: number | null
           motor_score?: number | null
           notes?: string | null
           postural_carry_distance_m?: number | null
@@ -157,6 +169,12 @@ export type Database = {
           mcs_ankle_pain_r?: boolean
           mcs_forward_reach_l?: number | null
           mcs_forward_reach_r?: number | null
+          mcs_horizontal_adduction_l?: number | null
+          mcs_horizontal_adduction_r?: number | null
+          mcs_horizontal_reach_l?: number | null
+          mcs_horizontal_reach_r?: number | null
+          mcs_wrist_extension_l?: number | null
+          mcs_wrist_extension_r?: number | null
           motor_score?: number | null
           notes?: string | null
           postural_carry_distance_m?: number | null

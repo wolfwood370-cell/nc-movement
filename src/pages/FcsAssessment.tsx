@@ -338,6 +338,60 @@ export default function FcsAssessment() {
             </div>
             <SymmetryBadge label="Simmetria Forward Reach" result={metrics.forwardReachSymmetry} />
           </SectionCard>
+
+          <SectionCard title="Upper Body — Wrist Extension" subtitle="Estensione del polso (gradi)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Sinistro" hint="°">
+                <Controller control={control} name="mcs_wrist_extension_l"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="°" disabled={readOnly} />
+                  )} />
+              </Field>
+              <Field label="Destro" hint="°">
+                <Controller control={control} name="mcs_wrist_extension_r"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="°" disabled={readOnly} />
+                  )} />
+              </Field>
+            </div>
+            <SymmetryBadge label="Simmetria Wrist Extension" result={metrics.wristExtensionSymmetry} />
+          </SectionCard>
+
+          <SectionCard title="Upper Body — Horizontal Adduction" subtitle="Adduzione orizzontale di spalla (gradi)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Sinistro" hint="°">
+                <Controller control={control} name="mcs_horizontal_adduction_l"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="°" disabled={readOnly} />
+                  )} />
+              </Field>
+              <Field label="Destro" hint="°">
+                <Controller control={control} name="mcs_horizontal_adduction_r"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="°" disabled={readOnly} />
+                  )} />
+              </Field>
+            </div>
+            <SymmetryBadge label="Simmetria Horizontal Adduction" result={metrics.horizontalAdductionSymmetry} />
+          </SectionCard>
+
+          <SectionCard title="Upper Body — Horizontal Reach" subtitle="Allungo orizzontale (cm)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Sinistro" hint="cm">
+                <Controller control={control} name="mcs_horizontal_reach_l"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="cm" disabled={readOnly} />
+                  )} />
+              </Field>
+              <Field label="Destro" hint="cm">
+                <Controller control={control} name="mcs_horizontal_reach_r"
+                  render={({ field }) => (
+                    <NumPadInput value={field.value} onChange={field.onChange} suffix="cm" disabled={readOnly} />
+                  )} />
+              </Field>
+            </div>
+            <SymmetryBadge label="Simmetria Horizontal Reach" result={metrics.horizontalReachSymmetry} />
+          </SectionCard>
         </TabsContent>
 
         {/* ---------------- 2. POWER / EXPLOSIVE ---------------- */}
