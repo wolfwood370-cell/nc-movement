@@ -6,6 +6,7 @@ import {
 import { AlertTriangle, Sparkles, FileText } from 'lucide-react';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
+import CorrectivePlanCard from './CorrectivePlanCard';
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import type { computeFcsMetrics } from '@/lib/fcs';
@@ -154,6 +155,9 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
           )}
         </section>
       </div>
+
+      {/* Corrective prescription engine */}
+      <CorrectivePlanCard fms={latestFms} />
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
