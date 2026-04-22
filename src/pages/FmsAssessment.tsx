@@ -13,6 +13,7 @@ import {
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import FmsClientReport from '@/components/fms/FmsClientReport';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { useFormDraft } from '@/hooks/useFormDraft';
 
 interface PatternDef {
@@ -150,6 +151,7 @@ export default function FmsAssessment() {
       ...scores,
       total_score: total,
       primary_corrective: corrective.label,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
