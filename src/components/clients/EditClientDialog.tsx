@@ -16,6 +16,8 @@ interface InitialClient {
   weight_kg: number | null;
   primary_sport: string | null;
   competition_level: string | null;
+  has_previous_injury?: boolean | null;
+  injury_notes?: string | null;
 }
 
 export default function EditClientDialog({
@@ -33,6 +35,8 @@ export default function EditClientDialog({
     weight_kg: client.weight_kg != null ? String(client.weight_kg) : '',
     primary_sport: client.primary_sport ?? '',
     competition_level: (client.competition_level as ClientFormValues['competition_level']) ?? '',
+    has_previous_injury: !!client.has_previous_injury,
+    injury_notes: client.injury_notes ?? '',
   };
 
   const submit = async (v: ClientFormValues) => {
@@ -48,6 +52,8 @@ export default function EditClientDialog({
         weight_kg: v.weight_kg ? Number(v.weight_kg) : null,
         primary_sport: v.primary_sport.trim() || null,
         competition_level: v.competition_level || null,
+        has_previous_injury: v.has_previous_injury,
+        injury_notes: v.has_previous_injury ? (v.injury_notes.trim() || null) : null,
       })
       .eq('id', client.id);
     setBusy(false);

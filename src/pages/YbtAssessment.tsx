@@ -9,13 +9,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import NumPadInput from '@/components/fcs/NumPadInput';
 
 import {
   YBT_DEFAULTS,
   ybtSchema,
   type YbtFormValues,
+  type YbtTestType,
   computeYbtMetrics,
+  getYbtLabels,
   ANTERIOR_ASYMMETRY_THRESHOLD_CM,
 } from '@/lib/ybt';
 
@@ -143,8 +146,10 @@ export default function YbtAssessment() {
     defaultValues: YBT_DEFAULTS,
     mode: 'onBlur',
   });
-  const { control, handleSubmit, reset, watch } = form;
+  const { control, handleSubmit, reset, watch, setValue } = form;
   const values = watch();
+  const testType: YbtTestType = (values.test_type as YbtTestType) ?? 'LQ';
+  const labels = useMemo(() => getYbtLabels(testType), [testType]);
   const metrics = useMemo(
     () => computeYbtMetrics(values, { gender: clientGender, primarySport: clientSport }),
     [values, clientGender, clientSport],
@@ -203,6 +208,7 @@ export default function YbtAssessment() {
     setSaving(true);
     const payload = {
       ...data,
+      test_type: testType,
       practitioner_id: user.id,
       client_id: clientId,
     };
@@ -240,13 +246,44 @@ export default function YbtAssessment() {
         {clientName && <p className="text-sm text-muted-foreground mt-1">{clientName}</p>}
       </header>
 
+      {/* Test type toggle: Lower Quarter (legs) vs Upper Quarter (shoulders) */}
+      <div className="surface-card p-3">
+        <ToggleGroup
+          type="single"
+          value={testType}
+          onValueChange={(val) => {
+            if (!val || readOnly) return;
+            setValue('test_type', val as YbtTestType, { shouldDirty: true });
+          }}
+          className="grid grid-cols-2 gap-2 w-full"
+          disabled={readOnly}
+        >
+          <ToggleGroupItem
+            value="LQ"
+            aria-label="Lower Quarter"
+            className="h-14 rounded-xl data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border border-border flex-col gap-0"
+          >
+            <span className="text-sm font-display font-semibold">Lower Quarter</span>
+            <span className="text-[10px] uppercase tracking-wider opacity-80">Gambe</span>
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="UQ"
+            aria-label="Upper Quarter"
+            className="h-14 rounded-xl data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border border-border flex-col gap-0"
+          >
+            <span className="text-sm font-display font-semibold">Upper Quarter</span>
+            <span className="text-[10px] uppercase tracking-wider opacity-80">Spalle</span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
       {/* Limb length */}
       <div className="surface-card p-4 space-y-3">
-        <div className="font-display font-semibold">Lunghezza arto inferiore</div>
+        <div className="font-display font-semibold">{labels.limbLabel}</div>
         <div className="text-[11px] text-muted-foreground -mt-1">
-          SIAS → malleolo mediale (cm). Usata per i punteggi compositi.
+          {labels.limbHint}
         </div>
-        <Field label="Lunghezza arto">
+        <Field label={labels.limbLabel}>
           <Controller
             control={control}
             name="limb_length_cm"
@@ -258,7 +295,7 @@ export default function YbtAssessment() {
                 disabled={readOnly}
                 suffix="cm"
                 placeholder="0.0"
-                ariaLabel="Lunghezza arto"
+                ariaLabel={labels.limbLabel}
               />
             )}
           />
@@ -267,8 +304,8 @@ export default function YbtAssessment() {
 
       {/* Reaches */}
       <ReachRow
-        title="Anteriore"
-        hint={`Asimmetria > ${ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm = rischio elevato`}
+        title={labels.reach1.title}
+        hint={labels.reach1.hint}
         rightField="anterior_right_cm"
         leftField="anterior_left_cm"
         asym={metrics.asym.anterior}
@@ -277,7 +314,8 @@ export default function YbtAssessment() {
         control={control}
       />
       <ReachRow
-        title="Posteromediale"
+        title={labels.reach2.title}
+        hint={labels.reach2.hint}
         rightField="posteromedial_right_cm"
         leftField="posteromedial_left_cm"
         asym={metrics.asym.posteromedial}
@@ -285,7 +323,8 @@ export default function YbtAssessment() {
         control={control}
       />
       <ReachRow
-        title="Posterolaterale"
+        title={labels.reach3.title}
+        hint={labels.reach3.hint}
         rightField="posterolateral_right_cm"
         leftField="posterolateral_left_cm"
         asym={metrics.asym.posterolateral}
@@ -327,7 +366,7 @@ export default function YbtAssessment() {
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <div className="text-xs">
               <div className="font-semibold">Bandiera rossa</div>
-              Asimmetria anteriore &gt; {ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm: rischio infortunio aumentato.
+              Asimmetria {labels.reach1.title.toLowerCase()} &gt; {ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm: rischio infortunio aumentato.
             </div>
           </div>
         )}

@@ -41,12 +41,23 @@ export function ybtAnteriorAsymmetry(y?: YbtRow | null): number | null {
   return diff(y.anterior_left_cm, y.anterior_right_cm);
 }
 
+export interface ClinicalContext {
+  hasPreviousInjury?: boolean | null;
+}
+
 export function computeRisk(
   latestFms?: FmsAssessmentRow | null,
   latestYbt?: YbtRow | null,
   latestSfma?: Partial<SfmaFormValues> | null,
+  ctx: ClinicalContext = {},
 ): RiskResult {
   const alerts: string[] = [];
+
+  // ---- Anamnesi: storia di infortuni precedenti -------------------------
+  // Il pregresso è il #1 predittore di nuovo infortunio (Cook). Sempre attivo.
+  if (ctx.hasPreviousInjury) {
+    alerts.push('Storia di infortunio precedente (vedi note) — mantenere vigilanza elevata.');
+  }
 
   // ---- SFMA pain (Top-Tier DP/FP) ----------------------------------------
   let sfmaPain = false;

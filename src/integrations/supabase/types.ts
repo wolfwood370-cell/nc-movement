@@ -22,8 +22,10 @@ export type Database = {
           email: string | null
           full_name: string
           gender: string | null
+          has_previous_injury: boolean
           height_cm: number | null
           id: string
+          injury_notes: string | null
           notes: string | null
           practitioner_id: string
           primary_sport: string | null
@@ -37,8 +39,10 @@ export type Database = {
           email?: string | null
           full_name: string
           gender?: string | null
+          has_previous_injury?: boolean
           height_cm?: number | null
           id?: string
+          injury_notes?: string | null
           notes?: string | null
           practitioner_id: string
           primary_sport?: string | null
@@ -52,8 +56,10 @@ export type Database = {
           email?: string | null
           full_name?: string
           gender?: string | null
+          has_previous_injury?: boolean
           height_cm?: number | null
           id?: string
+          injury_notes?: string | null
           notes?: string | null
           practitioner_id?: string
           primary_sport?: string | null
@@ -483,6 +489,7 @@ export type Database = {
           posteromedial_left_cm: number | null
           posteromedial_right_cm: number | null
           practitioner_id: string
+          test_type: Database["public"]["Enums"]["ybt_test_type"]
           updated_at: string
         }
         Insert: {
@@ -499,6 +506,7 @@ export type Database = {
           posteromedial_left_cm?: number | null
           posteromedial_right_cm?: number | null
           practitioner_id: string
+          test_type?: Database["public"]["Enums"]["ybt_test_type"]
           updated_at?: string
         }
         Update: {
@@ -515,6 +523,7 @@ export type Database = {
           posteromedial_left_cm?: number | null
           posteromedial_right_cm?: number | null
           practitioner_id?: string
+          test_type?: Database["public"]["Enums"]["ybt_test_type"]
           updated_at?: string
         }
         Relationships: [
@@ -537,6 +546,7 @@ export type Database = {
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
       sfma_score: "FN" | "DN" | "FP" | "DP"
+      ybt_test_type: "LQ" | "UQ"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -666,6 +676,7 @@ export const Constants = {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
       sfma_score: ["FN", "DN", "FP", "DP"],
+      ybt_test_type: ["LQ", "UQ"],
     },
   },
 } as const
