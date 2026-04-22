@@ -3,7 +3,7 @@ import { ChevronLeft, ClipboardList, Compass, Target, Gauge } from 'lucide-react
 
 const tests = [
   { key: 'fms',  label: 'FMS — Functional Movement Screen', icon: ClipboardList, ready: true },
-  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', icon: Compass, ready: false },
+  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', icon: Compass, ready: true },
   { key: 'ybt',  label: 'YBT — Y-Balance Test', icon: Target, ready: false },
   { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', icon: Gauge, ready: true },
 ];

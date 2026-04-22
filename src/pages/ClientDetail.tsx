@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow } from '@/lib/insights';
+import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 
 interface Client {
   id: string; full_name: string;
@@ -24,19 +25,25 @@ export default function ClientDetail() {
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [fms, setFms] = useState<FmsAssessmentRow[]>([]);
+  const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const [{ data: c }, { data: a }] = await Promise.all([
+      const [{ data: c }, { data: a }, { data: s }] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).maybeSingle(),
         supabase.from('fms_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }),
+        supabase.from('sfma_assessments').select('*')
+          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
+      setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
     })();
   }, [id]);
+
+  const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
 
   if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
   const age = calcAge(client.date_of_birth);
@@ -68,7 +75,19 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {sfmaAlert?.hasPain && (
+        <div className="surface-card border-pain/40 bg-pain/5 p-3 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-pain shrink-0" />
+          <div className="text-xs">
+            <div className="font-semibold text-pain">SFMA: dolore rilevato</div>
+            <div className="text-muted-foreground">
+              {sfmaAlert.painPatterns.length} pattern doloros{sfmaAlert.painPatterns.length === 1 ? 'o' : 'i'} nell'ultima valutazione.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
           <Plus className="w-5 h-5 mr-2" /> Nuova FMS
         </Button>
@@ -78,6 +97,13 @@ export default function ClientDetail() {
           className="w-full tap-target h-14 rounded-2xl"
         >
           <Gauge className="w-5 h-5 mr-2" /> Nuova FCS
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/assessments/sfma/new?clientId=${client.id}`)}
+          className="w-full tap-target h-14 rounded-2xl"
+        >
+          <Compass className="w-5 h-5 mr-2" /> Nuova SFMA
         </Button>
       </div>
 
