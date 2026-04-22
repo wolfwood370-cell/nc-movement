@@ -87,7 +87,7 @@ export function computePatterns(s: FmsScores): PatternResult[] {
       left: sm_l, right: sm_r,
       final: lowest(sm_l, sm_r),
       asymmetric: sm_l !== null && sm_r !== null && sm_l !== sm_r,
-      cleared: s.clearing_shoulder_pain },
+      cleared: s.clearing_shoulder_pain || s.clearing_shoulder_left_pain || s.clearing_shoulder_right_pain },
     { key: 'aslr', label: 'Active Straight-Leg Raise', bilateral: true,
       left: s.aslr_left, right: s.aslr_right,
       final: lowest(s.aslr_left, s.aslr_right),
