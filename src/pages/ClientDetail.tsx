@@ -32,7 +32,7 @@ export default function ClientDetail() {
   const [latestSfma, setLatestSfma] = useState<(SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null>(null);
   const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
-  const [latestYbt, setLatestYbt] = useState<YbtRow | null>(null);
+  const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
   useEffect(() => {
@@ -236,7 +236,7 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtLatest={latestYbt} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
+          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
         </TabsContent>
       </Tabs>
     </div>
