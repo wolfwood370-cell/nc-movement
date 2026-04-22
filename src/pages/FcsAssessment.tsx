@@ -171,11 +171,13 @@ export default function FcsAssessment() {
           .maybeSingle();
         if (!cancelled && data) {
           setClientName(data.full_name ?? '');
-          // Pre-fill biometrics from client profile
+          const footParam = params.get('foot');
+          // Pre-fill biometrics from client profile (and foot from biometric guard).
           reset({
             ...FCS_DEFAULTS,
             bodyweight_kg: data.weight_kg ?? null,
             height_cm: data.height_cm ?? null,
+            foot_length_cm: footParam ? Number(footParam) : null,
           });
         }
       }
