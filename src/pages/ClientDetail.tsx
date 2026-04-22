@@ -59,6 +59,7 @@ export default function ClientDetail() {
 
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
+  const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
 
   if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
   const age = calcAge(client.date_of_birth);
@@ -122,25 +123,79 @@ export default function ClientDetail() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
-          <Plus className="w-5 h-5 mr-2" /> Nuova FMS
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => navigate(`/assessments/fcs/new?clientId=${client.id}`)}
-          className="w-full tap-target h-14 rounded-2xl"
-        >
-          <Gauge className="w-5 h-5 mr-2" /> Nuova FCS
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => navigate(`/assessments/sfma/new?clientId=${client.id}`)}
-          className="w-full tap-target h-14 rounded-2xl"
-        >
-          <Compass className="w-5 h-5 mr-2" /> Nuova SFMA
-        </Button>
-      </div>
+      {redFlags.hasFlags && (
+        <div className="surface-card border-pain/40 bg-pain/5 p-3 flex items-start gap-3">
+          <Lock className="w-5 h-5 text-pain shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <div className="font-semibold text-pain">Lock Clinico: FCS e YBT bloccati</div>
+            <div className="text-muted-foreground">
+              Risolvi i red flag della FMS (Dolore / Asimmetria) tramite SFMA prima di procedere con i test di capacità dinamica.
+            </div>
+            {redFlags.reasons.length > 0 && (
+              <ul className="list-disc list-inside text-muted-foreground/80">
+                {redFlags.reasons.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      <TooltipProvider delayDuration={150}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
+            <Plus className="w-5 h-5 mr-2" /> Nuova FMS
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/assessments/sfma/new?clientId=${client.id}`)}
+            className="w-full tap-target h-14 rounded-2xl"
+          >
+            <Compass className="w-5 h-5 mr-2" /> Nuova SFMA
+          </Button>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="w-full">
+                <Button
+                  variant="secondary"
+                  disabled={redFlags.hasFlags}
+                  onClick={() => navigate(`/assessments/fcs/new?clientId=${client.id}`)}
+                  className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
+                >
+                  {redFlags.hasFlags ? <Lock className="w-5 h-5 mr-2" /> : <Gauge className="w-5 h-5 mr-2" />}
+                  Nuova FCS
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {redFlags.hasFlags && (
+              <TooltipContent className="max-w-xs text-xs">
+                Lock Clinico: risolvi i red flag della FMS (Dolore / Asimmetria) tramite SFMA prima del Fundamental Capacity Screen.
+              </TooltipContent>
+            )}
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="w-full">
+                <Button
+                  variant="secondary"
+                  disabled={redFlags.hasFlags}
+                  onClick={() => navigate(`/assessments/ybt/new?clientId=${client.id}`)}
+                  className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
+                >
+                  {redFlags.hasFlags ? <Lock className="w-5 h-5 mr-2" /> : <Activity className="w-5 h-5 mr-2" />}
+                  Nuova YBT
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {redFlags.hasFlags && (
+              <TooltipContent className="max-w-xs text-xs">
+                Lock Clinico: risolvi i red flag della FMS (Dolore / Asimmetria) tramite SFMA prima dello Y-Balance Test.
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       <Tabs defaultValue="history" className="w-full">
         <TabsList className="grid grid-cols-2 w-full">
