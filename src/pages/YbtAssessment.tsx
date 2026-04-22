@@ -132,6 +132,8 @@ export default function YbtAssessment() {
 
   const [clientId, setClientId] = useState<string | null>(clientIdParam);
   const [clientName, setClientName] = useState('');
+  const [clientGender, setClientGender] = useState<string | null>(null);
+  const [clientSport, setClientSport] = useState<string | null>(null);
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -143,7 +145,10 @@ export default function YbtAssessment() {
   });
   const { control, handleSubmit, reset, watch } = form;
   const values = watch();
-  const metrics = useMemo(() => computeYbtMetrics(values), [values]);
+  const metrics = useMemo(
+    () => computeYbtMetrics(values, { gender: clientGender, primarySport: clientSport }),
+    [values, clientGender, clientSport],
+  );
 
   useEffect(() => {
     let cancelled = false;

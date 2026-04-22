@@ -247,6 +247,19 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
           </div>
         )}
       </section>
+
+      {client && (
+        <MedicalReferralReport
+          open={referralOpen}
+          onClose={() => setReferralOpen(false)}
+          autoPrint
+          client={client}
+          practitioner={practitioner ?? null}
+          fms={latestFms}
+          ybt={ybtLatest ?? null}
+          sfma={sfmaLatest ?? null}
+        />
+      )}
     </div>
   );
 }
