@@ -30,11 +30,12 @@ export default function ClientDetail() {
   const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
   const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
+  const [latestYbt, setLatestYbt] = useState<YbtRow | null>(null);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const [{ data: c }, { data: a }, { data: s }, { data: f }] = await Promise.all([
+      const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).maybeSingle(),
         supabase.from('fms_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }),
@@ -42,12 +43,15 @@ export default function ClientDetail() {
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('fcs_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('ybt_assessments').select('*')
+          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
       setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
       setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
+      setLatestYbt((y ?? null) as unknown as YbtRow | null);
     })();
   }, [id]);
 
