@@ -8,6 +8,7 @@ import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
+import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
 
 interface Client {
   id: string; full_name: string;
