@@ -115,6 +115,8 @@ export default function ClientDetail() {
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
           <Plus className="w-5 h-5 mr-2" /> Nuova FMS
         </Button>
