@@ -1,6 +1,7 @@
 // Injury Risk Index + insight helpers
 import type { FmsScores } from './fms';
 import { computePatterns, computeTotal } from './fms';
+import type { SfmaFormValues } from './sfma';
 
 export type RiskLevel = 'critical' | 'high' | 'moderate' | 'low' | 'unknown';
 
@@ -10,6 +11,8 @@ export interface RiskResult {
   detail: string;
   /** 0–100, higher = more risk (for gauge fill) */
   score: number;
+  /** Human-readable clinical alerts explaining why the risk is elevated. */
+  alerts: string[];
 }
 
 export interface FmsAssessmentRow extends Partial<FmsScores> {
