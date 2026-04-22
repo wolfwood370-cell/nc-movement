@@ -37,6 +37,14 @@ export const fcsSchema = z.object({
   mcs_forward_reach_l: optionalPositiveNumber,
   mcs_forward_reach_r: optionalPositiveNumber,
 
+  // Upper Body Motor Control
+  mcs_wrist_extension_l: optionalPositiveNumber,
+  mcs_wrist_extension_r: optionalPositiveNumber,
+  mcs_horizontal_adduction_l: optionalPositiveNumber,
+  mcs_horizontal_adduction_r: optionalPositiveNumber,
+  mcs_horizontal_reach_l: optionalPositiveNumber,
+  mcs_horizontal_reach_r: optionalPositiveNumber,
+
   // Power
   power_broad_jump_cm: optionalPositiveNumber,
   power_broad_jump_hands_hips_cm: optionalPositiveNumber,
