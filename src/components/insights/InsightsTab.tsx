@@ -86,7 +86,7 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
     Totale: f.total_score ?? 0,
   })), [fmsHistory]);
 
-  // ---- YBT asymmetry bars ------------------------------------------------
+  // ---- YBT asymmetry bars (latest snapshot, all 3 reach directions) ------
   const ybtBars = useMemo(() => {
     if (!ybtLatest) return null;
     return [
@@ -95,6 +95,15 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
       { axis: 'Posterolaterale',diff: abs(ybtLatest.posterolateral_left_cm, ybtLatest.posterolateral_right_cm) ?? 0, critical: false },
     ];
   }, [ybtLatest]);
+
+  // ---- YBT anterior asymmetry trend (longitudinal) -----------------------
+  const ybtAntTrend = useMemo(() => {
+    if (!ybtHistory?.length) return [];
+    return [...ybtHistory].reverse().map((y) => ({
+      date: new Date(y.assessed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+      Asimmetria: ybtAnteriorAsymmetry(y) ?? 0,
+    }));
+  }, [ybtHistory]);
 
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
