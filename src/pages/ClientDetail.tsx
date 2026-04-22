@@ -28,6 +28,7 @@ export default function ClientDetail() {
   const [client, setClient] = useState<Client | null>(null);
   const [fms, setFms] = useState<FmsAssessmentRow[]>([]);
   const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
+  const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
 
   useEffect(() => {
