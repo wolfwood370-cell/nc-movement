@@ -19,6 +19,8 @@ interface ClientLite {
   date_of_birth: string | null;
   gender: string | null;
   primary_sport: string | null;
+  has_previous_injury?: boolean | null;
+  injury_notes?: string | null;
 }
 
 interface PractitionerLite {
@@ -54,8 +56,8 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
   const risk = useMemo(
-    () => computeRisk(latestFms, ybtLatest, sfmaLatest ?? null),
-    [latestFms, ybtLatest, sfmaLatest],
+    () => computeRisk(latestFms, ybtLatest, sfmaLatest ?? null, { hasPreviousInjury: client?.has_previous_injury ?? false }),
+    [latestFms, ybtLatest, sfmaLatest, client?.has_previous_injury],
   );
 
   const referralEligible = risk.level === 'critical';
