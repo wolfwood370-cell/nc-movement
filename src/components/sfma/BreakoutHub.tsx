@@ -115,7 +115,7 @@ export default function BreakoutHub({ values, results, onSave, saving }: Breakou
           <DialogHeader>
             <DialogTitle>{openPattern?.label ?? 'Breakout'}</DialogTitle>
           </DialogHeader>
-          {openSchema && openKey && (
+          {openKey && openSchema ? (
             <BreakoutWizard
               schema={openSchema}
               initial={results[openKey] ?? null}
@@ -126,7 +126,15 @@ export default function BreakoutHub({ values, results, onSave, saving }: Breakou
                 setOpenKey(null);
               }}
             />
-          )}
+          ) : openKey ? (
+            <div className="surface-card p-5 text-center space-y-2">
+              <Lock className="w-6 h-6 mx-auto text-muted-foreground" />
+              <div className="font-display font-semibold">Breakout in arrivo</div>
+              <p className="text-xs text-muted-foreground">
+                Albero clinico non ancora disponibile per questo pattern. Per favore valuta manualmente.
+              </p>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
