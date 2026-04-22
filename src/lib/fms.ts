@@ -15,6 +15,8 @@ export interface FmsScores {
   trunk_stability_pushup_score: Score;
   rotary_stability_left: Score; rotary_stability_right: Score;
   clearing_shoulder_pain: boolean;
+  clearing_shoulder_left_pain: boolean;
+  clearing_shoulder_right_pain: boolean;
   clearing_spinal_extension_pain: boolean;
   clearing_spinal_flexion_pain: boolean;
 }
@@ -32,6 +34,8 @@ export const emptyFmsScores = (): FmsScores => ({
   trunk_stability_pushup_score: null,
   rotary_stability_left: null, rotary_stability_right: null,
   clearing_shoulder_pain: false,
+  clearing_shoulder_left_pain: false,
+  clearing_shoulder_right_pain: false,
   clearing_spinal_extension_pain: false,
   clearing_spinal_flexion_pain: false,
 });
@@ -59,8 +63,8 @@ export function computePatterns(s: FmsScores): PatternResult[] {
     if (l === null || r === null) return null;
     return (Math.min(l, r) as Score);
   };
-  const sm_l: Score = s.clearing_shoulder_pain ? 0 : s.shoulder_mobility_left;
-  const sm_r: Score = s.clearing_shoulder_pain ? 0 : s.shoulder_mobility_right;
+  const sm_l: Score = (s.clearing_shoulder_pain || s.clearing_shoulder_left_pain) ? 0 : s.shoulder_mobility_left;
+  const sm_r: Score = (s.clearing_shoulder_pain || s.clearing_shoulder_right_pain) ? 0 : s.shoulder_mobility_right;
   const tspu: Score = s.clearing_spinal_extension_pain ? 0 : s.trunk_stability_pushup_score;
   const rs_l: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_left;
   const rs_r: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_right;
@@ -83,7 +87,7 @@ export function computePatterns(s: FmsScores): PatternResult[] {
       left: sm_l, right: sm_r,
       final: lowest(sm_l, sm_r),
       asymmetric: sm_l !== null && sm_r !== null && sm_l !== sm_r,
-      cleared: s.clearing_shoulder_pain },
+      cleared: s.clearing_shoulder_pain || s.clearing_shoulder_left_pain || s.clearing_shoulder_right_pain },
     { key: 'aslr', label: 'Active Straight-Leg Raise', bilateral: true,
       left: s.aslr_left, right: s.aslr_right,
       final: lowest(s.aslr_left, s.aslr_right),
@@ -163,7 +167,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
 export const scoreColor = (s: Score): string => {
   if (s === null) return 'bg-muted text-muted-foreground';
   if (s === 0) return 'bg-pain text-destructive-foreground';
-  if (s === 1) return 'bg-warning text-warning-foreground';
-  if (s === 2) return 'bg-dysfunction text-warning-foreground';
+  if (s === 1) return 'bg-dysfunction text-warning-foreground';
+  if (s === 2) return 'bg-warning text-warning-foreground';
   return 'bg-functional text-success-foreground';
 };
