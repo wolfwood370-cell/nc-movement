@@ -15,6 +15,7 @@ import FcsAssessment from "./pages/FcsAssessment";
 import SfmaAssessment from "./pages/SfmaAssessment";
 import YbtAssessment from "./pages/YbtAssessment";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Shell><Dashboard /></Shell>} />
             <Route path="/clients" element={<Shell><Clients /></Shell>} />
             <Route path="/clients/:id" element={<Shell><ClientDetail /></Shell>} />
