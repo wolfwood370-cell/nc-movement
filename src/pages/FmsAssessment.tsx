@@ -262,18 +262,26 @@ export default function FmsAssessment() {
         </div>
       </header>
 
-      {hasDraft && draft && !readOnly && (
-        <div className="surface-card border-warning/40 bg-warning/5 p-3 flex items-center justify-between gap-3">
-          <div className="text-xs">
-            <div className="font-semibold text-warning-foreground">Bozza non salvata trovata</div>
-            <div className="text-muted-foreground">Vuoi recuperare i punteggi inseriti in precedenza?</div>
+      {hasDraft && draft && !readOnly && (() => {
+        // Only surface the recovery banner when the cached draft contains
+        // at least one user-entered value (avoids flashing on a fresh open).
+        const isEmpty = Object.values(draft).every(
+          (v) => v === null || v === false || v === undefined,
+        );
+        if (isEmpty) return null;
+        return (
+          <div className="surface-card border-warning/40 bg-warning/5 p-3 flex items-center justify-between gap-3">
+            <div className="text-xs">
+              <div className="font-semibold text-warning-foreground">Bozza non salvata trovata</div>
+              <div className="text-muted-foreground">Vuoi recuperare i punteggi inseriti in precedenza?</div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" variant="ghost" onClick={() => { dismissDraft(); clearDraft(); }}>Scarta</Button>
+              <Button size="sm" onClick={() => { setScores(draft); dismissDraft(); }}>Recupera</Button>
+            </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Button size="sm" variant="ghost" onClick={() => { dismissDraft(); clearDraft(); }}>Scarta</Button>
-            <Button size="sm" onClick={() => { setScores(draft); dismissDraft(); }}>Recupera</Button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
