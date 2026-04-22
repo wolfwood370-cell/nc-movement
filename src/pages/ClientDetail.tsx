@@ -96,7 +96,25 @@ export default function ClientDetail() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {Object.keys(latestSfmaBreakouts).length > 0 && (
+        <div className="surface-card p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-primary" />
+            <div className="text-xs font-semibold">Diagnosi SFMA (ultimo breakout)</div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(latestSfmaBreakouts).map(([key, outcome]) => (
+              <span
+                key={key}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${DIAGNOSIS_META[outcome.diagnosis].chip}`}
+                title={`${key}: ${DIAGNOSIS_META[outcome.diagnosis].full}`}
+              >
+                {outcome.diagnosis}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
         <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
           <Plus className="w-5 h-5 mr-2" /> Nuova FMS
         </Button>
