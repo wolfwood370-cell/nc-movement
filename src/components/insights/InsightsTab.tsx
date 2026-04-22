@@ -98,12 +98,18 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   }, [ybtLatest]);
 
   // ---- YBT anterior asymmetry trend (longitudinal) -----------------------
+  // Skip rows where the anterior reach is missing on either side: a `0` would
+  // misleadingly read as "perfect symmetry" on the chart.
   const ybtAntTrend = useMemo(() => {
     if (!ybtHistory?.length) return [];
-    return [...ybtHistory].reverse().map((y) => ({
-      date: new Date(y.assessed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
-      Asimmetria: ybtAnteriorAsymmetry(y) ?? 0,
-    }));
+    return [...ybtHistory]
+      .reverse()
+      .map((y) => ({ y, asym: ybtAnteriorAsymmetry(y) }))
+      .filter((d): d is { y: YbtRow; asym: number } => d.asym !== null)
+      .map(({ y, asym }) => ({
+        date: new Date(y.assessed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+        Asimmetria: asym,
+      }));
   }, [ybtHistory]);
 
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
