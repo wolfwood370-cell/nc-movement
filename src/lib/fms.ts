@@ -15,6 +15,8 @@ export interface FmsScores {
   trunk_stability_pushup_score: Score;
   rotary_stability_left: Score; rotary_stability_right: Score;
   clearing_shoulder_pain: boolean;
+  clearing_shoulder_left_pain: boolean;
+  clearing_shoulder_right_pain: boolean;
   clearing_spinal_extension_pain: boolean;
   clearing_spinal_flexion_pain: boolean;
 }
