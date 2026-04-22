@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface ClientFormValues {
   full_name: string;
@@ -13,11 +15,14 @@ export interface ClientFormValues {
   weight_kg: string;
   primary_sport: string;
   competition_level: '' | 'recreational' | 'amateur' | 'pro';
+  has_previous_injury: boolean;
+  injury_notes: string;
 }
 
 export const emptyClient = (): ClientFormValues => ({
   full_name: '', email: '', date_of_birth: '', gender: '',
   height_cm: '', weight_kg: '', primary_sport: '', competition_level: '',
+  has_previous_injury: false, injury_notes: '',
 });
 
 export default function ClientForm({
@@ -93,6 +98,38 @@ export default function ClientForm({
           </Select>
         </div>
       </div>
+
+      {/* Anamnesi infortuni */}
+      <div className="rounded-xl border border-border p-3 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <Label htmlFor="inj" className="text-sm">Infortunio muscoloscheletrico precedente</Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Il principale predittore di nuovo infortunio (Cook).
+            </p>
+          </div>
+          <Switch
+            id="inj"
+            checked={v.has_previous_injury}
+            onCheckedChange={(val) => set('has_previous_injury', val)}
+          />
+        </div>
+        {v.has_previous_injury && (
+          <div className="space-y-2">
+            <Label htmlFor="inj_notes" className="text-xs uppercase tracking-wider text-muted-foreground">
+              Dettagli (sede, data, intervento, recidive)
+            </Label>
+            <Textarea
+              id="inj_notes"
+              value={v.injury_notes}
+              onChange={(e) => set('injury_notes', e.target.value)}
+              placeholder="Es. Distorsione caviglia dx, 2023, riabilitazione completa…"
+              className="min-h-20"
+            />
+          </div>
+        )}
+      </div>
+
       <Button type="submit" disabled={submitting || !v.full_name.trim()} className="w-full tap-target h-12 rounded-xl">
         {submitting ? 'Salvataggio…' : submitLabel}
       </Button>
@@ -112,5 +149,7 @@ export function toClientPayload(v: ClientFormValues, practitioner_id: string) {
     weight_kg: v.weight_kg ? Number(v.weight_kg) : null,
     primary_sport: v.primary_sport.trim() || null,
     competition_level: v.competition_level || null,
+    has_previous_injury: v.has_previous_injury,
+    injury_notes: v.has_previous_injury ? (v.injury_notes.trim() || null) : null,
   };
 }
