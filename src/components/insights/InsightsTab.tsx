@@ -1,13 +1,13 @@
 import { forwardRef, useMemo, useState } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
 import { AlertTriangle, Sparkles, FileText } from 'lucide-react';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import { Button } from '@/components/ui/button';
-import { computeRisk, mobilityStability, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
+import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -32,7 +32,7 @@ interface SfmaWithBreakouts extends Partial<SfmaFormValues> {
 
 interface Props {
   fmsHistory: FmsAssessmentRow[];
-  ybtLatest?: YbtRow | null;
+  ybtHistory?: YbtRow[];
   fcsMetrics?: FcsMetrics | null;
   sfmaLatest?: SfmaWithBreakouts | null;
   client?: ClientLite | null;
@@ -48,11 +48,12 @@ function ratioToScore(value: number | null, target: number): number {
 const abs = (a: number | null, b: number | null) =>
   a !== null && b !== null ? Math.abs(a - b) : null;
 
-export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
+export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
   const latestFms = fmsHistory[0] ?? null;
+  const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
   const risk = useMemo(
-    () => computeRisk(latestFms, ybtLatest ?? null, sfmaLatest ?? null),
+    () => computeRisk(latestFms, ybtLatest, sfmaLatest ?? null),
     [latestFms, ybtLatest, sfmaLatest],
   );
 
