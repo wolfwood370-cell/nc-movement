@@ -12,6 +12,7 @@ import {
   computePatterns, computeTotal, emptyFmsScores, FmsScores, primaryCorrective, Score, scoreColor,
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
+import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSelector';
 import FmsClientReport from '@/components/fms/FmsClientReport';
 import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -99,6 +100,8 @@ export default function FmsAssessment() {
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
+  const [ankleClearingLeft, setAnkleClearingLeft] = useState<Stoplight>(null);
+  const [ankleClearingRight, setAnkleClearingRight] = useState<Stoplight>(null);
 
   useEffect(() => {
     (async () => {
@@ -339,6 +342,22 @@ export default function FmsAssessment() {
           <div>
             <div className="font-display font-semibold">Ankle Clearing</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Sinistro</div>
+            <StoplightSelector
+              value={ankleClearingLeft}
+              onChange={setAnkleClearingLeft}
+              disabled={readOnly}
+            />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Destro</div>
+            <StoplightSelector
+              value={ankleClearingRight}
+              onChange={setAnkleClearingRight}
+              disabled={readOnly}
+            />
           </div>
           <PainToggle
           disabled={readOnly}
