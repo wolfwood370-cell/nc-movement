@@ -171,7 +171,7 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} />
+          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtLatest={latestYbt} sfmaLatest={latestSfma} />
         </TabsContent>
       </Tabs>
     </div>
