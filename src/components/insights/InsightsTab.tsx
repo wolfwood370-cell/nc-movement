@@ -5,11 +5,16 @@ import {
 } from 'recharts';
 import RiskGauge from './RiskGauge';
 import { computeRisk, mobilityStability, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
+import type { computeFcsMetrics } from '@/lib/fcs';
+
+type FcsMetrics = ReturnType<typeof computeFcsMetrics>;
 
 interface Props {
   fmsHistory: FmsAssessmentRow[];
   /** Mocked until YBT entry UI exists. */
   ybtLatest?: YbtRow | null;
+  /** Latest FCS computed metrics (from computeFcsMetrics). */
+  fcsMetrics?: FcsMetrics | null;
 }
 
 // --- Mock data fallbacks ------------------------------------------------------
@@ -27,9 +32,26 @@ const MOCK_FCS = [
   { axis: 'Impatto',   score: 70, fullMark: 100 },
 ];
 
-export default function InsightsTab({ fmsHistory, ybtLatest }: Props) {
+/** Convert a 0..1+ ratio against its target into a 0..100 score (capped at 100). */
+function ratioToScore(value: number | null, target: number): number {
+  if (value == null || target <= 0) return 0;
+  return Math.min(100, Math.round((value / target) * 100));
+}
+
+export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics }: Props) {
   const ybt = ybtLatest ?? MOCK_YBT;
   const ybtIsMock = !ybtLatest;
+
+  const fcsRadar = useMemo(() => {
+    if (!fcsMetrics) return MOCK_FCS;
+    return [
+      { axis: 'Motorio',   score: ratioToScore(fcsMetrics.forwardReachSymmetry.value, fcsMetrics.forwardReachSymmetry.target), fullMark: 100 },
+      { axis: 'Posturale', score: ratioToScore(fcsMetrics.carryLoadRatio.value, fcsMetrics.carryLoadRatio.target), fullMark: 100 },
+      { axis: 'Esplosivo', score: ratioToScore(fcsMetrics.explosiveSymmetry.value, fcsMetrics.explosiveSymmetry.target), fullMark: 100 },
+      { axis: 'Impatto',   score: ratioToScore(fcsMetrics.impactSymmetry.value, fcsMetrics.impactSymmetry.target), fullMark: 100 },
+    ];
+  }, [fcsMetrics]);
+  const fcsIsMock = !fcsMetrics;
 
   const latestFms = fmsHistory[0] ?? null;
   const risk = useMemo(() => computeRisk(latestFms, ybt), [latestFms, ybt]);
@@ -110,11 +132,11 @@ export default function InsightsTab({ fmsHistory, ybtLatest }: Props) {
           <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">
             FCS — Capacità Fondamentali
           </h3>
-          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">demo</span>
+          {fcsIsMock && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">demo</span>}
         </div>
         <div className="h-64">
           <ResponsiveContainer>
-            <RadarChart data={MOCK_FCS} outerRadius="75%">
+            <RadarChart data={fcsRadar} outerRadius="75%">
               <PolarGrid stroke="hsl(var(--border))" />
               <PolarAngleAxis dataKey="axis" tick={axisStyle} />
               <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />

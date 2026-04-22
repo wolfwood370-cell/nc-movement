@@ -29,6 +29,14 @@ export default function Auth() {
     navigate('/', { replace: true });
   };
 
+  if (loading || session) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background grid place-items-center px-4">
       <div className="w-full max-w-sm space-y-6 animate-fade-in">
