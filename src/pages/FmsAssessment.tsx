@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   computePatterns, computeTotal, emptyFmsScores, FmsScores, primaryCorrective, Score, scoreColor,
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
+import FmsClientReport from '@/components/fms/FmsClientReport';
 
 interface PatternDef {
   key: string;
