@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,9 +68,18 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
-        <Plus className="w-5 h-5 mr-2" /> Nuova valutazione FMS
-      </Button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
+          <Plus className="w-5 h-5 mr-2" /> Nuova FMS
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/assessments/fcs/new?clientId=${client.id}`)}
+          className="w-full tap-target h-14 rounded-2xl"
+        >
+          <Gauge className="w-5 h-5 mr-2" /> Nuova FCS
+        </Button>
+      </div>
 
       <Tabs defaultValue="history" className="w-full">
         <TabsList className="grid grid-cols-2 w-full">
