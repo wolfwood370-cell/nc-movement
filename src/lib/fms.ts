@@ -63,8 +63,8 @@ export function computePatterns(s: FmsScores): PatternResult[] {
     if (l === null || r === null) return null;
     return (Math.min(l, r) as Score);
   };
-  const sm_l: Score = s.clearing_shoulder_pain ? 0 : s.shoulder_mobility_left;
-  const sm_r: Score = s.clearing_shoulder_pain ? 0 : s.shoulder_mobility_right;
+  const sm_l: Score = (s.clearing_shoulder_pain || s.clearing_shoulder_left_pain) ? 0 : s.shoulder_mobility_left;
+  const sm_r: Score = (s.clearing_shoulder_pain || s.clearing_shoulder_right_pain) ? 0 : s.shoulder_mobility_right;
   const tspu: Score = s.clearing_spinal_extension_pain ? 0 : s.trunk_stability_pushup_score;
   const rs_l: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_left;
   const rs_r: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_right;
