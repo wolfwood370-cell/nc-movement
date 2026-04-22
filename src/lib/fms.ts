@@ -34,6 +34,8 @@ export const emptyFmsScores = (): FmsScores => ({
   trunk_stability_pushup_score: null,
   rotary_stability_left: null, rotary_stability_right: null,
   clearing_shoulder_pain: false,
+  clearing_shoulder_left_pain: false,
+  clearing_shoulder_right_pain: false,
   clearing_spinal_extension_pain: false,
   clearing_spinal_flexion_pain: false,
 });
