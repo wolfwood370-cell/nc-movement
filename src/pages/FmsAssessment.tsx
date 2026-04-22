@@ -351,7 +351,7 @@ export default function FmsAssessment() {
             className="w-full h-14 rounded-2xl text-base shadow-elevated tap-target"
           >
             <Save className="w-5 h-5 mr-2" />
-            {saving ? 'Salvataggio…' : total === null ? 'Compila tutti i pattern per salvare' : `Salva valutazione · ${total}/21`}
+            {saving ? 'Salvataggio…' : `Salva valutazione${total !== null ? ` · ${total}/21` : ''}`}
           </Button>
         </div>
       )}
