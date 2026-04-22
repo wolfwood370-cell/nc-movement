@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NC Movement — design system aligned with the NC Nutrition ecosystem.
+/* NC Performance — design system aligned with the NC Nutrition ecosystem.
    All colors HSL. */
 
 @layer base {
@@ -18,7 +18,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 25% 12%;
 
-    --primary: 204 66% 39%;
+    --primary: 0 72% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 18% 93%;
@@ -27,26 +27,26 @@
     --muted: 210 14% 90%;
     --muted-foreground: 210 10% 45%;
 
-    --accent: 204 45% 90%;
-    --accent-foreground: 204 66% 30%;
+    --accent: 0 70% 94%;
+    --accent-foreground: 0 72% 32%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 210 14% 87%;
     --input: 210 14% 87%;
-    --ring: 204 66% 39%;
+    --ring: 0 72% 42%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 210 18% 96%;
     --sidebar-foreground: 210 10% 40%;
-    --sidebar-primary: 204 66% 39%;
+    --sidebar-primary: 0 72% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 204 45% 92%;
-    --sidebar-accent-foreground: 204 66% 30%;
+    --sidebar-accent: 0 70% 95%;
+    --sidebar-accent-foreground: 0 72% 32%;
     --sidebar-border: 210 14% 89%;
-    --sidebar-ring: 204 66% 39%;
+    --sidebar-ring: 0 72% 42%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 15%;
@@ -65,9 +65,9 @@
     --glass-bg: hsla(0, 0%, 100%, 0.75);
     --glass-border: hsla(210, 14%, 80%, 0.5);
 
-    --gradient-primary: linear-gradient(135deg, hsl(204 66% 45%), hsl(204 66% 30%));
+    --gradient-primary: linear-gradient(135deg, hsl(0 75% 50%), hsl(0 72% 32%));
     --shadow-card: 0 1px 2px hsl(210 25% 12% / 0.04), 0 8px 24px -10px hsl(210 25% 12% / 0.08);
-    --shadow-elevated: 0 10px 40px -12px hsl(204 66% 39% / 0.35);
+    --shadow-elevated: 0 10px 40px -12px hsl(0 72% 42% / 0.35);
   }
 
   .dark {
@@ -80,7 +80,7 @@
     --popover: 220 18% 11%;
     --popover-foreground: 210 15% 90%;
 
-    --primary: 204 66% 50%;
+    --primary: 0 72% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 16% 16%;
@@ -89,24 +89,24 @@
     --muted: 220 14% 18%;
     --muted-foreground: 210 10% 55%;
 
-    --accent: 204 30% 18%;
-    --accent-foreground: 204 50% 70%;
+    --accent: 0 40% 22%;
+    --accent-foreground: 0 70% 80%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 14% 18%;
     --input: 220 14% 18%;
-    --ring: 204 66% 50%;
+    --ring: 0 72% 55%;
 
     --sidebar-background: 220 18% 10%;
     --sidebar-foreground: 210 10% 60%;
-    --sidebar-primary: 204 66% 50%;
+    --sidebar-primary: 0 72% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 204 30% 16%;
-    --sidebar-accent-foreground: 204 50% 70%;
+    --sidebar-accent: 0 40% 18%;
+    --sidebar-accent-foreground: 0 70% 80%;
     --sidebar-border: 220 14% 15%;
-    --sidebar-ring: 204 66% 50%;
+    --sidebar-ring: 0 72% 55%;
 
     --warning: 38 80% 55%;
     --warning-foreground: 38 80% 15%;
@@ -120,9 +120,9 @@
     --glass-bg: hsla(220, 18%, 11%, 0.8);
     --glass-border: hsla(220, 14%, 22%, 0.6);
 
-    --gradient-primary: linear-gradient(135deg, hsl(204 66% 55%), hsl(204 66% 38%));
+    --gradient-primary: linear-gradient(135deg, hsl(0 75% 60%), hsl(0 72% 40%));
     --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 12px 32px -14px hsl(0 0% 0% / 0.55);
-    --shadow-elevated: 0 16px 48px -14px hsl(204 66% 50% / 0.45);
+    --shadow-elevated: 0 16px 48px -14px hsl(0 72% 55% / 0.45);
   }
 }
 
