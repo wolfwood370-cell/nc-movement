@@ -157,7 +157,7 @@ export default function YbtAssessment() {
       if (id && id !== 'new') {
         const { data } = await supabase
           .from('ybt_assessments')
-          .select('*, clients(full_name)')
+          .select('*, clients(full_name, gender, primary_sport)')
           .eq('id', id)
           .maybeSingle();
         if (!cancelled && data) {
@@ -170,17 +170,23 @@ export default function YbtAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
-          const joined = (data as { clients?: { full_name?: string } | null }).clients;
+          const joined = (data as { clients?: { full_name?: string; gender?: string | null; primary_sport?: string | null } | null }).clients;
           setClientName(joined?.full_name ?? '');
+          setClientGender(joined?.gender ?? null);
+          setClientSport(joined?.primary_sport ?? null);
           setReadOnly(true);
         }
       } else if (clientIdParam) {
         const { data } = await supabase
           .from('clients')
-          .select('full_name')
+          .select('full_name, gender, primary_sport')
           .eq('id', clientIdParam)
           .maybeSingle();
-        if (!cancelled && data) setClientName(data.full_name ?? '');
+        if (!cancelled && data) {
+          setClientName(data.full_name ?? '');
+          setClientGender(data.gender ?? null);
+          setClientSport(data.primary_sport ?? null);
+        }
       }
       if (!cancelled) setLoading(false);
     })();
