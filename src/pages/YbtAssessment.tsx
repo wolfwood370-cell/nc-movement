@@ -366,7 +366,7 @@ export default function YbtAssessment() {
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <div className="text-xs">
               <div className="font-semibold">Bandiera rossa</div>
-              Asimmetria anteriore &gt; {ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm: rischio infortunio aumentato.
+              Asimmetria {labels.reach1.title.toLowerCase()} &gt; {ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm: rischio infortunio aumentato.
             </div>
           </div>
         )}
