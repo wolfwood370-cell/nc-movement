@@ -422,7 +422,7 @@ export function hasCriticalRedFlags(scores: Partial<FmsScores> | null | undefine
 export const scoreColor = (s: Score): string => {
   if (s === null) return 'bg-muted text-muted-foreground';
   if (s === 0) return 'bg-pain text-destructive-foreground';
-  if (s === 1) return 'bg-dysfunction text-warning-foreground';
+  if (s === 1) return 'bg-dysfunction text-white';
   if (s === 2) return 'bg-warning text-warning-foreground';
   return 'bg-functional text-success-foreground';
 };
