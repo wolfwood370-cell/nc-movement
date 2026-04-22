@@ -26,6 +26,7 @@ import {
   type BreakoutResults,
 } from '@/lib/breakouts';
 import BreakoutHub from '@/components/sfma/BreakoutHub';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { triggerHapticFeedback } from '@/lib/haptics';
 
 // Color classes per score, using design system tokens (HSL via Tailwind config).
@@ -77,6 +78,7 @@ export default function SfmaAssessment() {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [breakoutResults, setBreakoutResults] = useState<BreakoutResults>({});
   const [savingBreakout, setSavingBreakout] = useState(false);
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   // Wizard state
   const [step, setStep] = useState(0); // 0..SFMA_PATTERNS.length-1, then "review"
@@ -113,6 +115,7 @@ export default function SfmaAssessment() {
           reset(next);
           setClientId((data as { client_id: string }).client_id);
           setAssessmentId((data as { id: string }).id);
+          setAssessedAt((data as { assessed_at?: string | null }).assessed_at ?? null);
           setBreakoutResults(
             parseBreakoutResults((data as { breakout_results?: unknown }).breakout_results)
           );
@@ -179,6 +182,7 @@ export default function SfmaAssessment() {
       ...data,
       practitioner_id: user.id,
       client_id: clientId,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data: saved, error } = await supabase
       .from('sfma_assessments')
