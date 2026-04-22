@@ -163,7 +163,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
 export const scoreColor = (s: Score): string => {
   if (s === null) return 'bg-muted text-muted-foreground';
   if (s === 0) return 'bg-pain text-destructive-foreground';
-  if (s === 1) return 'bg-warning text-warning-foreground';
-  if (s === 2) return 'bg-dysfunction text-warning-foreground';
+  if (s === 1) return 'bg-dysfunction text-warning-foreground';
+  if (s === 2) return 'bg-warning text-warning-foreground';
   return 'bg-functional text-success-foreground';
 };
