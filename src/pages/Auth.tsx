@@ -71,7 +71,7 @@ export default function Auth() {
           </div>
           <div>
             <h1 className="font-display font-bold text-2xl text-primary">NC Movement</h1>
-            <p className="text-sm text-muted-foreground mt-1">Practitioner Studio</p>
+            <p className="text-sm text-muted-foreground mt-1">Practitioner Studio · Accesso riservato</p>
           </div>
         </div>
 
@@ -98,64 +98,29 @@ export default function Auth() {
             </Button>
           </form>
         ) : (
-          <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="space-y-4">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="signin">Accedi</TabsTrigger>
-              <TabsTrigger value="signup">Registrati</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={signIn} className="surface-card p-6 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-in">Email</Label>
-                  <Input id="email-in" type="email" autoComplete="email" required
-                    value={email} onChange={e => setEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pw-in">Password</Label>
-                  <Input id="pw-in" type="password" autoComplete="current-password" required
-                    value={password} onChange={e => setPassword(e.target.value)} />
-                </div>
-                <Button type="submit" disabled={submitting} className="w-full h-12 rounded-xl tap-target">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {submitting ? 'Accesso…' : 'Accedi'}
-                </Button>
-                <button type="button" onClick={() => setMode('forgot')}
-                  className="block w-full text-xs text-primary hover:underline text-center pt-1">
-                  Password dimenticata?
-                </button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={signUp} className="surface-card p-6 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name-up">Nome</Label>
-                  <Input id="name-up" type="text" autoComplete="name"
-                    placeholder="Es. Mario Rossi"
-                    value={displayName} onChange={e => setDisplayName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email-up">Email</Label>
-                  <Input id="email-up" type="email" autoComplete="email" required
-                    value={email} onChange={e => setEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pw-up">Password</Label>
-                  <Input id="pw-up" type="password" autoComplete="new-password" required minLength={8}
-                    value={password} onChange={e => setPassword(e.target.value)} />
-                  <p className="text-[11px] text-muted-foreground">Minimo 8 caratteri.</p>
-                </div>
-                <Button type="submit" disabled={submitting} className="w-full h-12 rounded-xl tap-target">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  {submitting ? 'Registrazione…' : 'Crea account'}
-                </Button>
-                <p className="text-[11px] text-muted-foreground text-center pt-1">
-                  Riceverai un'email di conferma per attivare l'account.
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <form onSubmit={signIn} className="surface-card p-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-in">Email</Label>
+              <Input id="email-in" type="email" autoComplete="email" required
+                value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pw-in">Password</Label>
+              <Input id="pw-in" type="password" autoComplete="current-password" required
+                value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={submitting} className="w-full h-12 rounded-xl tap-target">
+              <LogIn className="w-4 h-4 mr-2" />
+              {submitting ? 'Accesso…' : 'Accedi'}
+            </Button>
+            <button type="button" onClick={() => setMode('forgot')}
+              className="block w-full text-xs text-primary hover:underline text-center pt-1">
+              Password dimenticata?
+            </button>
+            <p className="text-[11px] text-muted-foreground text-center pt-1">
+              Le registrazioni sono disabilitate. Accesso riservato al titolare.
+            </p>
+          </form>
         )}
       </div>
     </div>
