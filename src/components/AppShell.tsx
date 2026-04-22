@@ -29,7 +29,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <Activity className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-gradient-primary">NC Movement</div>
+              <div className="font-display font-bold text-sm text-gradient-primary">NC Performance</div>
               <div className="text-[10px] text-muted-foreground -mt-0.5">Practitioner Studio</div>
             </div>
           </button>
