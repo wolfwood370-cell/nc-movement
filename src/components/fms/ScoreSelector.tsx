@@ -28,7 +28,7 @@ export default function ScoreSelector({ value, onChange, disabled }: Props) {
             className={`tap-target h-14 rounded-xl font-display font-bold text-2xl transition-all border-2 ${
               active
                 ? `${colorClass} border-transparent shadow-elevated scale-[1.02]`
-                : `${colorClass} opacity-40 border-border hover:opacity-100`
+                : 'bg-background text-foreground border-border hover:border-primary/40'
             } ${disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
             aria-label={`Score ${n}`}
             aria-pressed={active}
