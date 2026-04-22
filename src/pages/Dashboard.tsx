@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Users, Activity, ChevronRight, ClipboardList, Target, Compass, Gauge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const [{ data: c }, { data: r }] = await Promise.all([
       supabase.from('clients').select('id, full_name, created_at').order('created_at', { ascending: false }),
@@ -44,9 +44,9 @@ export default function Dashboard() {
     setClients(c ?? []);
     setRecent((r ?? []) as RecentAssessment[]);
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const createClient = async (v: ClientFormValues) => {
     if (!user) return;
