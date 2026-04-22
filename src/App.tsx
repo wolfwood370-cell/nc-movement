@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Assessments from "./pages/Assessments";
 import FmsAssessment from "./pages/FmsAssessment";
+import FcsAssessment from "./pages/FcsAssessment";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/clients/:id" element={<Shell><ClientDetail /></Shell>} />
             <Route path="/assessments" element={<Shell><Assessments /></Shell>} />
             <Route path="/assessments/fms/:id" element={<Shell><FmsAssessment /></Shell>} />
+            <Route path="/assessments/fcs/:id" element={<Shell><FcsAssessment /></Shell>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
