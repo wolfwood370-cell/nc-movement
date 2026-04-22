@@ -359,6 +359,66 @@ function buildClientExplanation(
   return '';
 }
 
+// =============================================================================
+// Clinical Safety Locks — Red Flag Detection
+// =============================================================================
+
+export interface RedFlagReport {
+  hasFlags: boolean;
+  hasPain: boolean;
+  hasCriticalAsymmetry: boolean;
+  hasClearingPain: boolean;
+  reasons: string[];
+}
+
+/**
+ * Returns true if the FMS contains clinical red flags that should LOCK
+ * downstream dynamic capacity testing (FCS / YBT).
+ *
+ * Red flags include:
+ *  - Any pattern scored 0 (pain)
+ *  - Any positive clearing test (shoulder, spinal, ankle)
+ *  - Critical L/R asymmetry: a "1" on one side with "2" or "3" on the other
+ *    (a true 1/2 or 1/3 split that demands SFMA before loading)
+ */
+export function hasCriticalRedFlags(scores: Partial<FmsScores> | null | undefined): RedFlagReport {
+  const empty: RedFlagReport = {
+    hasFlags: false, hasPain: false, hasCriticalAsymmetry: false, hasClearingPain: false, reasons: [],
+  };
+  if (!scores) return empty;
+
+  const reasons: string[] = [];
+  const full = { ...emptyFmsScores(), ...scores } as FmsScores;
+  const patterns = computePatterns(full);
+
+  const painful = patterns.filter(p => p.final === 0);
+  const hasPain = painful.length > 0;
+  if (hasPain) reasons.push(`Dolore (0) in: ${painful.map(p => p.label).join(', ')}`);
+
+  const hasClearingPain =
+    !!full.clearing_shoulder_pain ||
+    !!full.clearing_shoulder_left_pain ||
+    !!full.clearing_shoulder_right_pain ||
+    !!full.clearing_spinal_extension_pain ||
+    !!full.clearing_spinal_flexion_pain ||
+    !!full.ankle_clearing_left_pain ||
+    !!full.ankle_clearing_right_pain;
+  if (hasClearingPain) reasons.push('Clearing test positivo');
+
+  // Critical asymmetry: 1 on one side and 2 or 3 on the other
+  const criticalAsym = patterns.find(p => {
+    if (!p.bilateral || p.left === null || p.right === null) return false;
+    const lo = Math.min(p.left, p.right);
+    const hi = Math.max(p.left, p.right);
+    return lo === 1 && hi >= 2;
+  });
+  const hasCriticalAsymmetry = !!criticalAsym;
+  if (criticalAsym) reasons.push(`Asimmetria critica in ${criticalAsym.label} (${criticalAsym.left}/${criticalAsym.right})`);
+
+  const hasFlags = hasPain || hasClearingPain || hasCriticalAsymmetry;
+  return { hasFlags, hasPain, hasCriticalAsymmetry, hasClearingPain, reasons };
+}
+
 export const scoreColor = (s: Score): string => {
   if (s === null) return 'bg-muted text-muted-foreground';
   if (s === 0) return 'bg-pain text-destructive-foreground';
