@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, LogIn, UserPlus, KeyRound, ArrowLeft } from 'lucide-react';
+import { Activity, LogIn, KeyRound, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
-type Mode = 'signin' | 'signup' | 'forgot';
+type Mode = 'signin' | 'forgot';
 
 export default function Auth() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('signin');
-  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -41,35 +39,6 @@ export default function Auth() {
       return;
     }
     navigate('/', { replace: true });
-  };
-
-  const signUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    if (password.length < 8) {
-      toast.error('La password deve essere di almeno 8 caratteri.');
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { display_name: displayName || email.split('@')[0] },
-      },
-    });
-    setSubmitting(false);
-    if (error) {
-      if (error.message.toLowerCase().includes('registered')) {
-        toast.error('Email già registrata. Accedi o recupera la password.');
-      } else {
-        toast.error(error.message);
-      }
-      return;
-    }
-    toast.success('Registrazione completata! Controlla la tua email per confermare l\'account.');
-    setMode('signin');
   };
 
   const forgot = async (e: React.FormEvent) => {
