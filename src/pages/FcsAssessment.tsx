@@ -22,6 +22,7 @@ import {
 } from '@/lib/fcs';
 import NumPadInput from '@/components/fcs/NumPadInput';
 import SymmetryBadge from '@/components/fcs/SymmetryBadge';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 
 // ---------- Small UI helpers (module scope to keep input focus stable) ------
 
@@ -127,6 +128,7 @@ export default function FcsAssessment() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('motor');
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   const form = useForm<FcsFormValues>({
     resolver: zodResolver(fcsSchema),
@@ -159,6 +161,7 @@ export default function FcsAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
+          setAssessedAt((data as { assessed_at?: string | null }).assessed_at ?? null);
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
@@ -198,6 +201,7 @@ export default function FcsAssessment() {
       ...data,
       practitioner_id: user.id,
       client_id: clientId,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data: saved, error } = await supabase
       .from('fcs_assessments')
@@ -231,6 +235,10 @@ export default function FcsAssessment() {
           {clientName ? <>Cliente: <span className="text-foreground">{clientName}</span></> : 'Cliente'}
         </p>
       </header>
+
+      {!readOnly && (
+        <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+      )}
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="grid grid-cols-4 w-full h-11">
