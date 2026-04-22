@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import NumPadInput from '@/components/fcs/NumPadInput';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 
 import {
   YBT_DEFAULTS,
@@ -140,6 +141,7 @@ export default function YbtAssessment() {
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   const form = useForm<YbtFormValues>({
     resolver: zodResolver(ybtSchema),
