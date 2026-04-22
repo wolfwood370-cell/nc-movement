@@ -17,8 +17,15 @@ import {
   SFMA_PATTERNS,
   sfmaSchema,
   type SfmaFormValues,
+  type SfmaPatternKey,
   type SfmaScore,
 } from '@/lib/sfma';
+import {
+  parseBreakoutResults,
+  type BreakoutOutcome,
+  type BreakoutResults,
+} from '@/lib/breakouts';
+import BreakoutHub from '@/components/sfma/BreakoutHub';
 
 // Color classes per score, using design system tokens (HSL via Tailwind config).
 const SCORE_STYLES: Record<SfmaScore, { active: string; idle: string; chip: string; full: string; subtitle: string }> = {
@@ -66,6 +73,9 @@ export default function SfmaAssessment() {
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [breakoutResults, setBreakoutResults] = useState<BreakoutResults>({});
+  const [savingBreakout, setSavingBreakout] = useState(false);
 
   // Wizard state
   const [step, setStep] = useState(0); // 0..SFMA_PATTERNS.length-1, then "review"
@@ -101,6 +111,10 @@ export default function SfmaAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
+          setAssessmentId((data as { id: string }).id);
+          setBreakoutResults(
+            parseBreakoutResults((data as { breakout_results?: unknown }).breakout_results)
+          );
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
@@ -178,6 +192,26 @@ export default function SfmaAssessment() {
     navigate(`/assessments/sfma/${saved!.id}`, { replace: true });
   };
 
+  const handleSaveBreakout = async (patternKey: SfmaPatternKey, outcome: BreakoutOutcome) => {
+    if (!assessmentId) {
+      toast.error('Salva prima la valutazione SFMA.');
+      return;
+    }
+    const next: BreakoutResults = { ...breakoutResults, [patternKey]: outcome };
+    setSavingBreakout(true);
+    const { error } = await supabase
+      .from('sfma_assessments')
+      .update({ breakout_results: next as never })
+      .eq('id', assessmentId);
+    setSavingBreakout(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setBreakoutResults(next);
+    toast.success(`Breakout salvato: ${outcome.diagnosis}`);
+  };
+
   if (loading) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
 
   const progressPct = reviewing ? 100 : Math.round(((step) / total) * 100);
@@ -200,6 +234,12 @@ export default function SfmaAssessment() {
           </p>
         </header>
         <ResultsPanel analysis={analysis} values={values} />
+        <BreakoutHub
+          values={values}
+          results={breakoutResults}
+          onSave={handleSaveBreakout}
+          saving={savingBreakout}
+        />
         {values.clinical_notes && (
           <div className="surface-card p-4 space-y-1">
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Note cliniche</div>

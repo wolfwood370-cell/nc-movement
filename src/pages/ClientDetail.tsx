@@ -8,6 +8,7 @@ import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
+import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
 
 interface Client {
   id: string; full_name: string;
@@ -27,6 +28,7 @@ export default function ClientDetail() {
   const [client, setClient] = useState<Client | null>(null);
   const [fms, setFms] = useState<FmsAssessmentRow[]>([]);
   const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
+  const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function ClientDetail() {
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
       setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
+      setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
     })();
   }, [id]);
@@ -89,6 +92,26 @@ export default function ClientDetail() {
             <div className="text-muted-foreground">
               {sfmaAlert.painPatterns.length} pattern doloros{sfmaAlert.painPatterns.length === 1 ? 'o' : 'i'} nell'ultima valutazione.
             </div>
+          </div>
+        </div>
+      )}
+
+      {Object.keys(latestSfmaBreakouts).length > 0 && (
+        <div className="surface-card p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-primary" />
+            <div className="text-xs font-semibold">Diagnosi SFMA (ultimo breakout)</div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(latestSfmaBreakouts).map(([key, outcome]) => (
+              <span
+                key={key}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${DIAGNOSIS_META[outcome.diagnosis].chip}`}
+                title={`${key}: ${DIAGNOSIS_META[outcome.diagnosis].full}`}
+              >
+                {outcome.diagnosis}
+              </span>
+            ))}
           </div>
         </div>
       )}
