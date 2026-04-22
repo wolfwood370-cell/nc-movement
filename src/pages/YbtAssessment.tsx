@@ -297,20 +297,31 @@ export default function YbtAssessment() {
       <div className="surface-card p-4">
         <div className="font-display font-semibold mb-3">Composite Score</div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-muted/40 p-4 text-center">
+          <div className={`rounded-xl p-4 text-center border ${metrics.compositeRisk.right === 'high' ? 'bg-pain/10 border-pain/40' : metrics.compositeRisk.right === 'low' ? 'bg-success/10 border-success/40' : 'bg-muted/40 border-transparent'}`}>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Destra</div>
             <div className="font-display font-bold text-3xl mt-1">{fmtPct(metrics.composite.right)}</div>
+            {metrics.compositeRisk.right !== 'unknown' && (
+              <div className={`text-[10px] uppercase tracking-wider mt-1 font-semibold ${metrics.compositeRisk.right === 'high' ? 'text-pain' : 'text-success'}`}>
+                {metrics.compositeRisk.right === 'high' ? 'Sotto soglia' : 'OK'}
+              </div>
+            )}
           </div>
-          <div className="rounded-xl bg-muted/40 p-4 text-center">
+          <div className={`rounded-xl p-4 text-center border ${metrics.compositeRisk.left === 'high' ? 'bg-pain/10 border-pain/40' : metrics.compositeRisk.left === 'low' ? 'bg-success/10 border-success/40' : 'bg-muted/40 border-transparent'}`}>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sinistra</div>
             <div className="font-display font-bold text-3xl mt-1">{fmtPct(metrics.composite.left)}</div>
+            {metrics.compositeRisk.left !== 'unknown' && (
+              <div className={`text-[10px] uppercase tracking-wider mt-1 font-semibold ${metrics.compositeRisk.left === 'high' ? 'text-pain' : 'text-success'}`}>
+                {metrics.compositeRisk.left === 'high' ? 'Sotto soglia' : 'OK'}
+              </div>
+            )}
           </div>
         </div>
-        {metrics.compositeAsym != null && (
-          <div className="text-[11px] text-muted-foreground mt-3 text-center">
-            Differenza composita: {metrics.compositeAsym.toFixed(1)}%
-          </div>
-        )}
+        <div className="text-[11px] text-muted-foreground mt-3 text-center space-y-0.5">
+          <div>Soglia di rischio: <span className="font-semibold text-foreground">{metrics.threshold.cutoff}%</span> · {metrics.threshold.profile}</div>
+          {metrics.compositeAsym != null && (
+            <div>Differenza composita: {metrics.compositeAsym.toFixed(1)}%</div>
+          )}
+        </div>
         {metrics.anteriorRisk && (
           <div className="mt-4 flex items-start gap-2 rounded-xl bg-pain/10 border border-pain/40 p-3 text-pain">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
