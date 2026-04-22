@@ -182,11 +182,11 @@ export default function FmsAssessment() {
 
   // ---- Reusable pieces ---------------------------------------------------
 
-  const renderPattern = (p: PatternDef) => {
+  const renderPatternBody = (p: PatternDef) => {
     const result = patterns[p.index];
     const cleared = result.cleared;
     return (
-      <div key={p.key} className="surface-card p-4 space-y-3">
+      <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="font-display font-semibold">{p.label}</div>
@@ -236,6 +236,14 @@ export default function FmsAssessment() {
       </div>
     );
   };
+
+  const renderPattern = (p: PatternDef) => (
+    <div key={p.key} className="surface-card p-4">
+      {renderPatternBody(p)}
+    </div>
+  );
+
+  const Divider = () => <div className="h-px bg-border my-4" />;
 
   const get = (key: string) => PATTERNS.find(p => p.key === key)!;
 
