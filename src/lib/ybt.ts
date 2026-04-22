@@ -5,12 +5,20 @@ const num = z.preprocess(
   z.number().positive().nullable(),
 );
 
+export const YBT_TEST_TYPES = ['LQ', 'UQ'] as const;
+export type YbtTestType = (typeof YBT_TEST_TYPES)[number];
+
 export const ybtSchema = z.object({
+  test_type: z.enum(YBT_TEST_TYPES).default('LQ'),
+  // Reference length: leg length for LQ, arm length for UQ.
   limb_length_cm: num,
+  // Reach 1: anterior (LQ) / medial (UQ)
   anterior_right_cm: num,
   anterior_left_cm: num,
+  // Reach 2: posteromedial (LQ) / inferolateral (UQ)
   posteromedial_right_cm: num,
   posteromedial_left_cm: num,
+  // Reach 3: posterolateral (LQ) / superolateral (UQ)
   posterolateral_right_cm: num,
   posterolateral_left_cm: num,
   notes: z.string().nullable().optional(),
@@ -19,6 +27,7 @@ export const ybtSchema = z.object({
 export type YbtFormValues = z.infer<typeof ybtSchema>;
 
 export const YBT_DEFAULTS: YbtFormValues = {
+  test_type: 'LQ',
   limb_length_cm: null,
   anterior_right_cm: null,
   anterior_left_cm: null,
@@ -33,14 +42,39 @@ export const YBT_DEFAULTS: YbtFormValues = {
 export const ANTERIOR_ASYMMETRY_THRESHOLD_CM = 4;
 
 // =============================================================================
+// LQ / UQ labelling
+// =============================================================================
+
+export interface YbtLabels {
+  limbLabel: string;
+  limbHint: string;
+  reach1: { title: string; hint?: string };
+  reach2: { title: string; hint?: string };
+  reach3: { title: string; hint?: string };
+}
+
+export function getYbtLabels(testType: YbtTestType): YbtLabels {
+  if (testType === 'UQ') {
+    return {
+      limbLabel: 'Lunghezza arto superiore',
+      limbHint: 'C7 → punta del 3° dito (cm) — usata per i punteggi compositi.',
+      reach1: { title: 'Mediale', hint: `Asimmetria > ${ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm = rischio elevato` },
+      reach2: { title: 'Inferolaterale' },
+      reach3: { title: 'Superolaterale' },
+    };
+  }
+  return {
+    limbLabel: 'Lunghezza arto inferiore',
+    limbHint: 'SIAS → malleolo mediale (cm). Usata per i punteggi compositi.',
+    reach1: { title: 'Anteriore', hint: `Asimmetria > ${ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm = rischio elevato` },
+    reach2: { title: 'Posteromediale' },
+    reach3: { title: 'Posterolaterale' },
+  };
+}
+
+// =============================================================================
 // Composite-score risk thresholds (population-specific)
 // =============================================================================
-// Cut-offs are derived from Plisky et al. and the YBT manual: athletes in
-// high-demand cutting/jumping sports (soccer, basketball, gymnastics, etc.)
-// require a higher composite to be considered low-risk than recreational or
-// inactive subjects. Female athletes also tend to operate at slightly higher
-// targets in the literature.
-// These percentages refer to (sum of three reaches) / (3 × limb length) × 100.
 
 const HIGH_DEMAND_SPORTS = new Set([
   'soccer', 'football', 'basketball', 'volleyball', 'gymnastics',
@@ -56,16 +90,10 @@ export interface CompositeContext {
 }
 
 export interface CompositeThreshold {
-  /** Cut-off below which composite is considered HIGH risk (%). */
   cutoff: number;
-  /** Human label of the population profile applied. */
   profile: string;
 }
 
-/**
- * Determine the composite-score cutoff for a given client demographic.
- * Higher cutoff = stricter requirement to be considered "low risk".
- */
 export function getCompositeThreshold(ctx: CompositeContext = {}): CompositeThreshold {
   const sport = (ctx.primarySport ?? '').toLowerCase().trim();
   const isActive = sport.length > 0 && HIGH_DEMAND_SPORTS.has(sport);
@@ -94,13 +122,11 @@ export function classifyComposite(
 
 export interface YbtMetrics {
   asym: { anterior: number | null; posteromedial: number | null; posterolateral: number | null };
-  /** Anterior asymmetry > 4cm → absolute red flag (pop-independent). */
+  /** Reach #1 asymmetry > 4cm → absolute red flag (pop-independent). */
   anteriorRisk: boolean;
   composite: { right: number | null; left: number | null };
   compositeAsym: number | null;
-  /** Population-specific cut-off context applied to the composite scores. */
   threshold: CompositeThreshold;
-  /** Per-side composite risk classification. */
   compositeRisk: { right: CompositeRisk; left: CompositeRisk };
 }
 
