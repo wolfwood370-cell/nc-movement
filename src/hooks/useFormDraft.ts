@@ -18,8 +18,13 @@ export function useFormDraft<T>(key: string | null, value: T, options?: { deboun
   const loadedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load existing draft once.
+  // Load existing draft whenever the key (or enabled flag) changes.
+  // Reset `loadedRef` first so the write-effect doesn't fire before
+  // the new key has had a chance to rehydrate.
   useEffect(() => {
+    loadedRef.current = false;
+    setDraft(null);
+    setHasDraft(false);
     if (!key || !enabled) return;
     try {
       const raw = localStorage.getItem(key);

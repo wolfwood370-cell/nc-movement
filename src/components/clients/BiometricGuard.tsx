@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Ruler, Scale, Footprints } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,14 @@ export default function BiometricGuard({ open, onOpenChange, clientId, initial, 
   const [w, setW] = useState(initial.weight_kg != null ? String(initial.weight_kg) : '');
   const [f, setF] = useState(initial.foot_length_cm != null ? String(initial.foot_length_cm) : '');
   const [busy, setBusy] = useState(false);
+
+  // Re-sync local fields when the dialog opens with fresh `initial` values.
+  useEffect(() => {
+    if (!open) return;
+    setH(initial.height_cm != null ? String(initial.height_cm) : '');
+    setW(initial.weight_kg != null ? String(initial.weight_kg) : '');
+    setF(initial.foot_length_cm != null ? String(initial.foot_length_cm) : '');
+  }, [open, initial.height_cm, initial.weight_kg, initial.foot_length_cm]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
