@@ -34,8 +34,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               className="w-9 h-9 rounded-xl shadow-elevated object-cover"
             />
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC Movement</div>
-              <div className="text-[10px] text-muted-foreground -mt-0.5">Practitioner Studio</div>
+              <div className="font-display font-bold text-sm text-primary">NC Personal Trainer</div>
             </div>
           </button>
           <button onClick={onSignOut}
