@@ -119,7 +119,9 @@ export type Database = {
           aslr_left: number | null
           aslr_right: number | null
           assessed_at: string
+          clearing_shoulder_left_pain: boolean
           clearing_shoulder_pain: boolean
+          clearing_shoulder_right_pain: boolean
           clearing_spinal_extension_pain: boolean
           clearing_spinal_flexion_pain: boolean
           client_id: string
@@ -149,7 +151,9 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
+          clearing_shoulder_right_pain?: boolean
           clearing_spinal_extension_pain?: boolean
           clearing_spinal_flexion_pain?: boolean
           client_id: string
@@ -179,7 +183,9 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
+          clearing_shoulder_right_pain?: boolean
           clearing_spinal_extension_pain?: boolean
           clearing_spinal_flexion_pain?: boolean
           client_id?: string
