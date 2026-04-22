@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,10 @@ import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
 import { hasCriticalRedFlags } from '@/lib/fms';
 import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
+import EditClientDialog from '@/components/clients/EditClientDialog';
+import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
+import DeleteAssessmentButton from '@/components/assessments/DeleteAssessmentButton';
+import BiometricGuard from '@/components/clients/BiometricGuard';
 
 interface Client {
   id: string; full_name: string;
