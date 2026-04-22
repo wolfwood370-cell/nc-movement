@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   computePatterns, computeTotal, emptyFmsScores, FmsScores, primaryCorrective, Score, scoreColor,
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
+import FmsClientReport from '@/components/fms/FmsClientReport';
 
 interface PatternDef {
   key: string;
@@ -93,6 +95,8 @@ export default function FmsAssessment() {
   const [readOnly, setReadOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -111,6 +115,7 @@ export default function FmsAssessment() {
           });
           setScores(s);
           setClientId(data.client_id);
+          setAssessedAt(data.assessed_at ?? null);
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
@@ -229,13 +234,36 @@ export default function FmsAssessment() {
         <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
-      <header className="space-y-1">
+      <header className="space-y-2">
         <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS</p>
-        <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
-        <p className="text-sm text-muted-foreground">
-          {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
+            <p className="text-sm text-muted-foreground">
+              {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
+            </p>
+          </div>
+          {total !== null && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReportOpen(true)}
+              className="shrink-0"
+            >
+              <FileText className="w-4 h-4 mr-1.5" /> Report
+            </Button>
+          )}
+        </div>
       </header>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Report cliente FMS</DialogTitle>
+          </DialogHeader>
+          <FmsClientReport clientName={clientName || 'Cliente'} assessedAt={assessedAt} scores={scores} />
+        </DialogContent>
+      </Dialog>
 
       {/* Live total + corrective */}
       <div className="surface-card p-5 flex items-center gap-4">
