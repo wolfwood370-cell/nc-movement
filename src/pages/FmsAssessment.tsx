@@ -294,6 +294,10 @@ export default function FmsAssessment() {
         </DialogContent>
       </Dialog>
 
+      {!readOnly && (
+        <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+      )}
+
       {/* Live total + corrective */}
       <div className="surface-card p-5 flex items-center gap-4">
         <div className="text-center shrink-0">
