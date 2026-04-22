@@ -334,6 +334,7 @@ export type Database = {
         Row: {
           arms_down_deep_squat: Database["public"]["Enums"]["sfma_score"] | null
           assessed_at: string
+          breakout_results: Json
           cervical_extension: Database["public"]["Enums"]["sfma_score"] | null
           cervical_flexion: Database["public"]["Enums"]["sfma_score"] | null
           cervical_rotation_l: Database["public"]["Enums"]["sfma_score"] | null
@@ -376,6 +377,7 @@ export type Database = {
             | Database["public"]["Enums"]["sfma_score"]
             | null
           assessed_at?: string
+          breakout_results?: Json
           cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
           cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
           cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
@@ -418,6 +420,7 @@ export type Database = {
             | Database["public"]["Enums"]["sfma_score"]
             | null
           assessed_at?: string
+          breakout_results?: Json
           cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
           cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
           cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
