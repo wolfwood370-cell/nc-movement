@@ -260,7 +260,8 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
           <NumberInput
-          disabled={readOnly}            value={scores.tibia_length_cm}
+          disabled={readOnly}
+            value={scores.tibia_length_cm}
             onChange={(v) => setField('tibia_length_cm', v)}
             placeholder="es. 42.5"
           />
@@ -279,12 +280,14 @@ export default function FmsAssessment() {
             <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
           </div>
           <PainToggle
-          disabled={readOnly}            label="Lato Sinistro"
+          disabled={readOnly}
+            label="Lato Sinistro"
             checked={scores.ankle_clearing_left_pain}
             onCheckedChange={(v) => setField('ankle_clearing_left_pain', v)}
           />
           <PainToggle
-          disabled={readOnly}            label="Lato Destro"
+          disabled={readOnly}
+            label="Lato Destro"
             checked={scores.ankle_clearing_right_pain}
             onCheckedChange={(v) => setField('ankle_clearing_right_pain', v)}
           />
@@ -300,12 +303,14 @@ export default function FmsAssessment() {
             <div className="text-[11px] text-muted-foreground mt-0.5">Positivo → Shoulder Mobility forzata a 0 sul lato corrispondente.</div>
           </div>
           <PainToggle
-          disabled={readOnly}            label="Lato Sinistro"
+          disabled={readOnly}
+            label="Lato Sinistro"
             checked={scores.clearing_shoulder_left_pain}
             onCheckedChange={(v) => setField('clearing_shoulder_left_pain', v)}
           />
           <PainToggle
-          disabled={readOnly}            label="Lato Destro"
+          disabled={readOnly}
+            label="Lato Destro"
             checked={scores.clearing_shoulder_right_pain}
             onCheckedChange={(v) => setField('clearing_shoulder_right_pain', v)}
           />
@@ -315,7 +320,8 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Mano (cm)</div>
           <NumberInput
-          disabled={readOnly}            value={scores.hand_length_cm}
+          disabled={readOnly}
+            value={scores.hand_length_cm}
             onChange={(v) => setField('hand_length_cm', v)}
             placeholder="es. 19.0"
           />
@@ -329,7 +335,8 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
           <PainToggle
-          disabled={readOnly}            label="Test di estensione spinale"
+          disabled={readOnly}
+            label="Test di estensione spinale"
             checked={scores.clearing_spinal_extension_pain}
             onCheckedChange={(v) => setField('clearing_spinal_extension_pain', v)}
           />
@@ -341,7 +348,8 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
           <PainToggle
-          disabled={readOnly}            label="Test di flessione spinale"
+          disabled={readOnly}
+            label="Test di flessione spinale"
             checked={scores.clearing_spinal_flexion_pain}
             onCheckedChange={(v) => setField('clearing_spinal_flexion_pain', v)}
           />
