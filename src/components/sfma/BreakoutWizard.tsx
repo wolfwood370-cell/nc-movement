@@ -8,6 +8,14 @@ import {
   type BreakoutOutcome,
   type BreakoutSchema,
 } from '@/lib/breakouts';
+import { triggerHapticFeedback, type HapticType } from '@/lib/haptics';
+
+const TONE_HAPTIC: Record<BreakoutOption['tone'], HapticType> = {
+  success: 'success',
+  warning: 'neutral',
+  pain: 'alert',
+  neutral: 'neutral',
+};
 
 const TONE_STYLES: Record<BreakoutOption['tone'], string> = {
   success: 'border-success/40 text-success hover:bg-success/10',
@@ -34,6 +42,7 @@ export default function BreakoutWizard({ schema, initial, onSave, onCancel, savi
   const progress = outcome ? 100 : Math.round((path.length / (totalNodes + 1)) * 100);
 
   const pick = (opt: BreakoutOption) => {
+    triggerHapticFeedback(TONE_HAPTIC[opt.tone]);
     if (opt.outcome) {
       setOutcome(opt.outcome);
       return;
