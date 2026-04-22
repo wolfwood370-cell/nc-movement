@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Activity, Users, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import logoUrl from '@/assets/logo.png';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -25,9 +26,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 glass-card border-b border-border rounded-none">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-primary grid place-items-center shadow-elevated">
-              <Activity className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
-            </div>
+            <img
+              src={logoUrl}
+              alt="NC Movement logo"
+              width={36}
+              height={36}
+              className="w-9 h-9 rounded-xl shadow-elevated object-cover"
+            />
             <div className="text-left leading-tight">
               <div className="font-display font-bold text-sm text-primary">NC Movement</div>
               <div className="text-[10px] text-muted-foreground -mt-0.5">Practitioner Studio</div>

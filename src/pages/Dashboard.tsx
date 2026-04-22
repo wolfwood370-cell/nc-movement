@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
+import ClientAvatar from '@/components/ClientAvatar';
 
 interface Client { id: string; full_name: string; created_at: string }
 interface RecentAssessment {
@@ -132,9 +133,7 @@ export default function Dashboard() {
               <Link key={c.id} to={`/clients/${c.id}`}
                 className="flex items-center justify-between p-4 hover:bg-accent/40 transition-colors tap-target">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground font-display font-bold shrink-0">
-                    {c.full_name.charAt(0).toUpperCase()}
-                  </div>
+                  <ClientAvatar fullName={c.full_name} className="w-10 h-10 text-sm font-display" />
                   <div className="min-w-0">
                     <div className="font-medium truncate">{c.full_name}</div>
                     <div className="text-xs text-muted-foreground">Aggiunto il {new Date(c.created_at).toLocaleDateString('it-IT')}</div>
@@ -200,9 +199,7 @@ export default function Dashboard() {
                 <button key={c.id}
                   onClick={() => pickTestOpen && startTest(pickTestOpen, c.id)}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-accent/40 tap-target text-left">
-                  <div className="w-9 h-9 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground font-bold text-sm">
-                    {c.full_name.charAt(0).toUpperCase()}
-                  </div>
+                  <ClientAvatar fullName={c.full_name} className="w-9 h-9 text-sm" />
                   <span className="font-medium">{c.full_name}</span>
                 </button>
               ))}

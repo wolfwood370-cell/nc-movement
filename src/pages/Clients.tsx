@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import ClientForm, { toClientPayload } from '@/components/clients/ClientForm';
+import ClientAvatar from '@/components/ClientAvatar';
 import { calcAge, computeRisk, riskTone, type FmsAssessmentRow } from '@/lib/insights';
 
 interface Client {
@@ -102,9 +103,7 @@ export default function Clients() {
             return (
               <Link key={c.id} to={`/clients/${c.id}`} className="flex items-center justify-between p-4 hover:bg-accent/40 tap-target">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground font-bold shrink-0">
-                    {c.full_name.charAt(0).toUpperCase()}
-                  </div>
+                  <ClientAvatar fullName={c.full_name} className="w-10 h-10 text-sm" />
                   <div className="min-w-0">
                     <div className="font-medium truncate">{c.full_name}</div>
                     <div className="text-xs text-muted-foreground truncate">
