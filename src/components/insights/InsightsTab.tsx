@@ -48,12 +48,15 @@ function ratioToScore(value: number | null, target: number): number {
 const abs = (a: number | null, b: number | null) =>
   a !== null && b !== null ? Math.abs(a - b) : null;
 
-export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLatest }: Props) {
+export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
   const latestFms = fmsHistory[0] ?? null;
+  const [referralOpen, setReferralOpen] = useState(false);
   const risk = useMemo(
     () => computeRisk(latestFms, ybtLatest ?? null, sfmaLatest ?? null),
     [latestFms, ybtLatest, sfmaLatest],
   );
+
+  const referralEligible = risk.level === 'critical';
 
   // ---- FCS radar ----------------------------------------------------------
   const fcsRadar = useMemo(() => {
