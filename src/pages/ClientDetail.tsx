@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
+import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
 
 interface Client {
   id: string; full_name: string;
