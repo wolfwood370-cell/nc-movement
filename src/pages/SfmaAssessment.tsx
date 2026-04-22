@@ -73,6 +73,9 @@ export default function SfmaAssessment() {
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [breakoutResults, setBreakoutResults] = useState<BreakoutResults>({});
+  const [savingBreakout, setSavingBreakout] = useState(false);
 
   // Wizard state
   const [step, setStep] = useState(0); // 0..SFMA_PATTERNS.length-1, then "review"
@@ -108,6 +111,10 @@ export default function SfmaAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
+          setAssessmentId((data as { id: string }).id);
+          setBreakoutResults(
+            parseBreakoutResults((data as { breakout_results?: unknown }).breakout_results)
+          );
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
