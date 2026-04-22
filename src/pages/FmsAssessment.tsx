@@ -234,13 +234,36 @@ export default function FmsAssessment() {
         <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
-      <header className="space-y-1">
+      <header className="space-y-2">
         <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS</p>
-        <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
-        <p className="text-sm text-muted-foreground">
-          {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
+            <p className="text-sm text-muted-foreground">
+              {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
+            </p>
+          </div>
+          {total !== null && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReportOpen(true)}
+              className="shrink-0"
+            >
+              <FileText className="w-4 h-4 mr-1.5" /> Report
+            </Button>
+          )}
+        </div>
       </header>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Report cliente FMS</DialogTitle>
+          </DialogHeader>
+          <FmsClientReport clientName={clientName || 'Cliente'} assessedAt={assessedAt} scores={scores} />
+        </DialogContent>
+      </Dialog>
 
       {/* Live total + corrective */}
       <div className="surface-card p-5 flex items-center gap-4">
