@@ -47,7 +47,9 @@ export default function DeleteAssessmentButton({ table, id, label, onDeleted }: 
       <AlertDialogTrigger asChild>
         <button
           type="button"
-          onClick={(e) => { stop(e); setOpen(true); }}
+          // Let Radix toggle `open` via the trigger; we only stop the click
+          // from bubbling to the parent <Link>.
+          onClick={stop}
           aria-label="Elimina valutazione"
           className="tap-target h-9 w-9 grid place-items-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >

@@ -66,7 +66,8 @@ export default function EditClientDialog({
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Modifica cliente</DialogTitle></DialogHeader>
-        <ClientForm initial={initial} onSubmit={submit} submitting={busy} submitLabel="Salva modifiche" />
+        {/* Re-mount the form on each open so it picks up the latest `client` snapshot. */}
+        <ClientForm key={open ? 'open' : 'closed'} initial={initial} onSubmit={submit} submitting={busy} submitLabel="Salva modifiche" />
       </DialogContent>
     </Dialog>
   );
