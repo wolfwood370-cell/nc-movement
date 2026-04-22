@@ -27,24 +27,29 @@ export default function ClientDetail() {
   const [client, setClient] = useState<Client | null>(null);
   const [fms, setFms] = useState<FmsAssessmentRow[]>([]);
   const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
+  const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const [{ data: c }, { data: a }, { data: s }] = await Promise.all([
+      const [{ data: c }, { data: a }, { data: s }, { data: f }] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).maybeSingle(),
         supabase.from('fms_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }),
         supabase.from('sfma_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('fcs_assessments').select('*')
+          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
       setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
+      setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
     })();
   }, [id]);
 
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
+  const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
 
   if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
   const age = calcAge(client.date_of_birth);
