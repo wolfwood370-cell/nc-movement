@@ -63,6 +63,8 @@ export default function Dashboard() {
 
   const startTest = (testKey: string, clientId: string) => {
     if (testKey === 'fms') navigate(`/assessments/fms/new?clientId=${clientId}`);
+    else if (testKey === 'fcs') navigate(`/assessments/fcs/new?clientId=${clientId}`);
+    else if (testKey === 'sfma') navigate(`/assessments/sfma/new?clientId=${clientId}`);
     else toast.info(`Modulo ${testKey.toUpperCase()} in arrivo.`);
     setPickTestOpen(null);
   };
