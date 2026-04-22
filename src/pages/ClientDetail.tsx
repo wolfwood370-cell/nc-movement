@@ -39,39 +39,54 @@ export default function ClientDetail() {
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
-  useEffect(() => {
+  const loadAll = useCallback(async () => {
     if (!id) return;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const profilePromise = user
-        ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
-        : Promise.resolve({ data: null });
+    const { data: { user } } = await supabase.auth.getUser();
+    const profilePromise = user
+      ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
+      : Promise.resolve({ data: null });
 
-      const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
-        supabase.from('clients').select('*').eq('id', id).maybeSingle(),
-        supabase.from('fms_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }),
-        supabase.from('sfma_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('fcs_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('ybt_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }),
-        profilePromise,
-      ]);
-      setClient((c ?? null) as Client | null);
-      setFms((a ?? []) as unknown as FmsAssessmentRow[]);
-      setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
-      setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
-      setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
-      setYbtHistory((y ?? []) as unknown as YbtRow[]);
-      setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
-    })();
+    const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
+      supabase.from('clients').select('*').eq('id', id).maybeSingle(),
+      supabase.from('fms_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
+      supabase.from('sfma_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('fcs_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('ybt_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
+      profilePromise,
+    ]);
+    setClient((c ?? null) as Client | null);
+    setFms((a ?? []) as unknown as FmsAssessmentRow[]);
+    setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
+    setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
+    setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
+    setYbtHistory((y ?? []) as unknown as YbtRow[]);
+    setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
   }, [id]);
+
+  useEffect(() => { void loadAll(); }, [loadAll]);
 
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
   const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
+
+  // ---- FCS biometric pre-flight ------------------------------------------
+  const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
+  const launchFcs = (extra?: { foot_length_cm: number }) => {
+    if (!client) return;
+    const missing = !client.height_cm || !client.weight_kg
+      || (!extra && !(latestFcs && (latestFcs as { foot_length_cm?: number | null }).foot_length_cm));
+    if (missing) {
+      setBiometricGuardOpen(true);
+      return;
+    }
+    const params = new URLSearchParams({ clientId: client.id });
+    if (extra?.foot_length_cm) params.set('foot', String(extra.foot_length_cm));
+    navigate(`/assessments/fcs/new?${params.toString()}`);
+  };
 
   if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
   const age = calcAge(client.date_of_birth);
