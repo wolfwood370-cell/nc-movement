@@ -107,7 +107,7 @@ export default function ClientDetail() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-primary grid place-items-center text-primary-foreground font-display font-bold text-xl shrink-0">
           {client.full_name.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
           <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
           {(client.height_cm || client.weight_kg) && (
@@ -115,6 +115,10 @@ export default function ClientDetail() {
               {client.height_cm ? `${client.height_cm} cm` : ''} {client.weight_kg ? `· ${client.weight_kg} kg` : ''}
             </p>
           )}
+        </div>
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <EditClientDialog client={client} onSaved={loadAll} />
+          <DeleteClientDialog clientId={client.id} clientName={client.full_name} navigateAfter />
         </div>
       </div>
 
@@ -186,7 +190,7 @@ export default function ClientDetail() {
                 <Button
                   variant="secondary"
                   disabled={redFlags.hasFlags}
-                  onClick={() => navigate(`/assessments/fcs/new?clientId=${client.id}`)}
+                  onClick={() => launchFcs()}
                   className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
                 >
                   {redFlags.hasFlags ? <Lock className="w-5 h-5 mr-2" /> : <Gauge className="w-5 h-5 mr-2" />}
@@ -239,16 +243,24 @@ export default function ClientDetail() {
           ) : (
             <div className="surface-card divide-y divide-border overflow-hidden">
               {fms.map(a => (
-                <Link key={a.id} to={`/assessments/fms/${a.id}`} className="flex items-center justify-between p-4 hover:bg-accent/40 tap-target">
-                  <div className="min-w-0">
-                    <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
-                    <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
-                  </div>
-                  <div className="text-right shrink-0 ml-3">
-                    <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
-                  </div>
-                </Link>
+                <div key={a.id} className="flex items-center justify-between p-2 pl-4 hover:bg-accent/40">
+                  <Link to={`/assessments/fms/${a.id}`} className="flex items-center justify-between flex-1 min-w-0 py-2 tap-target">
+                    <div className="min-w-0">
+                      <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
+                      <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
+                    </div>
+                  </Link>
+                  <DeleteAssessmentButton
+                    table="fms_assessments"
+                    id={a.id}
+                    label={`FMS ${new Date(a.assessed_at).toLocaleDateString('it-IT')}`}
+                    onDeleted={loadAll}
+                  />
+                </div>
               ))}
             </div>
           )}
