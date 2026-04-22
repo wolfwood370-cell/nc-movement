@@ -182,11 +182,11 @@ export default function FmsAssessment() {
 
   // ---- Reusable pieces ---------------------------------------------------
 
-  const renderPattern = (p: PatternDef) => {
+  const renderPatternBody = (p: PatternDef) => {
     const result = patterns[p.index];
     const cleared = result.cleared;
     return (
-      <div key={p.key} className="surface-card p-4 space-y-3">
+      <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="font-display font-semibold">{p.label}</div>
@@ -236,6 +236,14 @@ export default function FmsAssessment() {
       </div>
     );
   };
+
+  const renderPattern = (p: PatternDef) => (
+    <div key={p.key} className="surface-card p-4">
+      {renderPatternBody(p)}
+    </div>
+  );
+
+  const Divider = () => <div className="h-px bg-border my-4" />;
 
   const get = (key: string) => PATTERNS.find(p => p.key === key)!;
 
@@ -320,87 +328,85 @@ export default function FmsAssessment() {
         {/* Deep Squat */}
         {renderPattern(get('deep_squat'))}
 
-        {/* Tibia length */}
+        {/* Lunghezza Tibia + Hurdle Step */}
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
           <NumberInput
-          disabled={readOnly}
+            disabled={readOnly}
             value={scores.tibia_length_cm}
             onChange={(v) => setField('tibia_length_cm', v)}
             placeholder="es. 42.5"
           />
+          <Divider />
+          {renderPatternBody(get('hurdle_step'))}
         </div>
 
-        {/* Hurdle Step */}
-        {renderPattern(get('hurdle_step'))}
-
-        {/* Inline Lunge (moved here) */}
-        {renderPattern(get('inline_lunge'))}
-
-        {/* Ankle Clearing (moved below Inline Lunge) */}
-        <div className="surface-card p-4 space-y-3">
-          <div>
-            <div className="font-display font-semibold">Ankle Clearing</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Sinistro</div>
-            <StoplightSelector
-              value={ankleClearingLeft}
-              onChange={setAnkleClearingLeft}
-              disabled={readOnly}
-            />
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Destro</div>
-            <StoplightSelector
-              value={ankleClearingRight}
-              onChange={setAnkleClearingRight}
-              disabled={readOnly}
-            />
-          </div>
-          <PainToggle
-          disabled={readOnly}
-            label="Lato Sinistro"
-            checked={scores.ankle_clearing_left_pain}
-            onCheckedChange={(v) => setField('ankle_clearing_left_pain', v)}
-          />
-          <PainToggle
-          disabled={readOnly}
-            label="Lato Destro"
-            checked={scores.ankle_clearing_right_pain}
-            onCheckedChange={(v) => setField('ankle_clearing_right_pain', v)}
-          />
-        </div>
-
-        {/* Shoulder Mobility */}
-        {renderPattern(get('shoulder_mobility'))}
-
-        {/* Shoulder Clearing — L/R like Ankle Clearing */}
-        <div className="surface-card p-4 space-y-3">
-          <div>
-            <div className="font-display font-semibold">Shoulder Impingement Clearing</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Positivo → Shoulder Mobility forzata a 0 sul lato corrispondente.</div>
-          </div>
-          <PainToggle
-          disabled={readOnly}
-            label="Lato Sinistro"
-            checked={scores.clearing_shoulder_left_pain}
-            onCheckedChange={(v) => setField('clearing_shoulder_left_pain', v)}
-          />
-          <PainToggle
-          disabled={readOnly}
-            label="Lato Destro"
-            checked={scores.clearing_shoulder_right_pain}
-            onCheckedChange={(v) => setField('clearing_shoulder_right_pain', v)}
-          />
-        </div>
-
-        {/* Hand length */}
+        {/* Inline Lunge + Ankle Clearing */}
         <div className="surface-card p-4">
+          {renderPatternBody(get('inline_lunge'))}
+          <Divider />
+          <div className="space-y-3">
+            <div>
+              <div className="font-display font-semibold">Ankle Clearing</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Sinistro</div>
+              <StoplightSelector
+                value={ankleClearingLeft}
+                onChange={setAnkleClearingLeft}
+                disabled={readOnly}
+              />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Destro</div>
+              <StoplightSelector
+                value={ankleClearingRight}
+                onChange={setAnkleClearingRight}
+                disabled={readOnly}
+              />
+            </div>
+            <PainToggle
+              disabled={readOnly}
+              label="Lato Sinistro"
+              checked={scores.ankle_clearing_left_pain}
+              onCheckedChange={(v) => setField('ankle_clearing_left_pain', v)}
+            />
+            <PainToggle
+              disabled={readOnly}
+              label="Lato Destro"
+              checked={scores.ankle_clearing_right_pain}
+              onCheckedChange={(v) => setField('ankle_clearing_right_pain', v)}
+            />
+          </div>
+        </div>
+
+        {/* Shoulder Mobility + Shoulder Impingement Clearing + Lunghezza Mano */}
+        <div className="surface-card p-4">
+          {renderPatternBody(get('shoulder_mobility'))}
+          <Divider />
+          <div className="space-y-3">
+            <div>
+              <div className="font-display font-semibold">Shoulder Impingement Clearing</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Positivo → Shoulder Mobility forzata a 0 sul lato corrispondente.</div>
+            </div>
+            <PainToggle
+              disabled={readOnly}
+              label="Lato Sinistro"
+              checked={scores.clearing_shoulder_left_pain}
+              onCheckedChange={(v) => setField('clearing_shoulder_left_pain', v)}
+            />
+            <PainToggle
+              disabled={readOnly}
+              label="Lato Destro"
+              checked={scores.clearing_shoulder_right_pain}
+              onCheckedChange={(v) => setField('clearing_shoulder_right_pain', v)}
+            />
+          </div>
+          <Divider />
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Mano (cm)</div>
           <NumberInput
-          disabled={readOnly}
+            disabled={readOnly}
             value={scores.hand_length_cm}
             onChange={(v) => setField('hand_length_cm', v)}
             placeholder="es. 19.0"
@@ -410,12 +416,13 @@ export default function FmsAssessment() {
         {/* ASLR */}
         {renderPattern(get('aslr'))}
 
-        {/* Trunk Stability Push-Up + Extension Clearing */}
-        {renderPattern(get('tspu'))}
+        {/* Trunk Stability Push-Up + Spinal Extension Clearing */}
         <div className="surface-card p-4">
+          {renderPatternBody(get('tspu'))}
+          <Divider />
           <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
           <PainToggle
-          disabled={readOnly}
+            disabled={readOnly}
             label="Test di estensione spinale"
             checked={scores.clearing_spinal_extension_pain}
             onCheckedChange={(v) => setField('clearing_spinal_extension_pain', v)}
@@ -423,12 +430,13 @@ export default function FmsAssessment() {
           <p className="text-[11px] text-muted-foreground mt-2">Positivo → Trunk Stability Push-Up forzato a 0.</p>
         </div>
 
-        {/* Rotary Stability + Flexion Clearing */}
-        {renderPattern(get('rotary_stability'))}
+        {/* Rotary Stability + Spinal Flexion Clearing */}
         <div className="surface-card p-4">
+          {renderPatternBody(get('rotary_stability'))}
+          <Divider />
           <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
           <PainToggle
-          disabled={readOnly}
+            disabled={readOnly}
             label="Test di flessione spinale"
             checked={scores.clearing_spinal_flexion_pain}
             onCheckedChange={(v) => setField('clearing_spinal_flexion_pain', v)}
