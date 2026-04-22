@@ -65,40 +65,106 @@ export type Database = {
       fcs_assessments: {
         Row: {
           assessed_at: string
+          bodyweight_kg: number | null
           client_id: string
           created_at: string
           explosive_score: number | null
+          explosive_single_leg_jump_l: number | null
+          explosive_single_leg_jump_r: number | null
+          foot_length_cm: number | null
+          height_cm: number | null
           id: string
+          impact_212_bound_l: number | null
+          impact_212_bound_r: number | null
           impact_score: number | null
+          mcs_ankle_clearing_l:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_clearing_r:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_pain_l: boolean
+          mcs_ankle_pain_r: boolean
+          mcs_forward_reach_l: number | null
+          mcs_forward_reach_r: number | null
           motor_score: number | null
           notes: string | null
+          postural_carry_distance_m: number | null
+          postural_carry_load_kg: number | null
+          postural_carry_time_sec: number | null
           postural_score: number | null
+          power_broad_jump_cm: number | null
+          power_broad_jump_hands_hips_cm: number | null
           practitioner_id: string
           updated_at: string
         }
         Insert: {
           assessed_at?: string
+          bodyweight_kg?: number | null
           client_id: string
           created_at?: string
           explosive_score?: number | null
+          explosive_single_leg_jump_l?: number | null
+          explosive_single_leg_jump_r?: number | null
+          foot_length_cm?: number | null
+          height_cm?: number | null
           id?: string
+          impact_212_bound_l?: number | null
+          impact_212_bound_r?: number | null
           impact_score?: number | null
+          mcs_ankle_clearing_l?:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_clearing_r?:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_pain_l?: boolean
+          mcs_ankle_pain_r?: boolean
+          mcs_forward_reach_l?: number | null
+          mcs_forward_reach_r?: number | null
           motor_score?: number | null
           notes?: string | null
+          postural_carry_distance_m?: number | null
+          postural_carry_load_kg?: number | null
+          postural_carry_time_sec?: number | null
           postural_score?: number | null
+          power_broad_jump_cm?: number | null
+          power_broad_jump_hands_hips_cm?: number | null
           practitioner_id: string
           updated_at?: string
         }
         Update: {
           assessed_at?: string
+          bodyweight_kg?: number | null
           client_id?: string
           created_at?: string
           explosive_score?: number | null
+          explosive_single_leg_jump_l?: number | null
+          explosive_single_leg_jump_r?: number | null
+          foot_length_cm?: number | null
+          height_cm?: number | null
           id?: string
+          impact_212_bound_l?: number | null
+          impact_212_bound_r?: number | null
           impact_score?: number | null
+          mcs_ankle_clearing_l?:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_clearing_r?:
+            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | null
+          mcs_ankle_pain_l?: boolean
+          mcs_ankle_pain_r?: boolean
+          mcs_forward_reach_l?: number | null
+          mcs_forward_reach_r?: number | null
           motor_score?: number | null
           notes?: string | null
+          postural_carry_distance_m?: number | null
+          postural_carry_load_kg?: number | null
+          postural_carry_time_sec?: number | null
           postural_score?: number | null
+          power_broad_jump_cm?: number | null
+          power_broad_jump_hands_hips_cm?: number | null
           practitioner_id?: string
           updated_at?: string
         }
@@ -313,7 +379,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      ankle_clearing_position: "Beyond" | "Within" | "Behind"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -440,6 +506,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ankle_clearing_position: ["Beyond", "Within", "Behind"],
+    },
   },
 } as const
