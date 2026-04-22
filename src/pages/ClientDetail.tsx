@@ -270,6 +270,21 @@ export default function ClientDetail() {
           <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
         </TabsContent>
       </Tabs>
+
+      <BiometricGuard
+        open={biometricGuardOpen}
+        onOpenChange={setBiometricGuardOpen}
+        clientId={client.id}
+        initial={{
+          height_cm: client.height_cm,
+          weight_kg: client.weight_kg,
+          foot_length_cm: (latestFcs as { foot_length_cm?: number | null } | null)?.foot_length_cm ?? null,
+        }}
+        onComplete={async ({ foot_length_cm }) => {
+          await loadAll();
+          launchFcs({ foot_length_cm });
+        }}
+      />
     </div>
   );
 }
