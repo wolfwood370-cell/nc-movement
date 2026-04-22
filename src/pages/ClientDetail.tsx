@@ -46,6 +46,7 @@ export default function ClientDetail() {
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
       setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
+      setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
     })();
   }, [id]);
