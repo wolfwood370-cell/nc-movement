@@ -75,7 +75,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <section>
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Benvenuto</p>
-        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Practitioner Studio</h1>
+        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Nicolò Castello</h1>
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
