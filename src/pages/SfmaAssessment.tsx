@@ -1,85 +1,58 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronLeft, Save, AlertTriangle, ListChecks } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, ListChecks, CheckCircle2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 
 import {
   analyzeSfma,
   SFMA_DEFAULTS,
   SFMA_PATTERNS,
-  SFMA_SCORES,
   sfmaSchema,
   type SfmaFormValues,
   type SfmaScore,
 } from '@/lib/sfma';
 
 // Color classes per score, using design system tokens (HSL via Tailwind config).
-const SCORE_STYLES: Record<SfmaScore, { active: string; idle: string; chip: string; full: string }> = {
+const SCORE_STYLES: Record<SfmaScore, { active: string; idle: string; chip: string; full: string; subtitle: string }> = {
   FN: {
     active: 'bg-success text-success-foreground border-success',
     idle: 'border-success/40 text-success hover:bg-success/10',
     chip: 'bg-success text-success-foreground',
     full: 'Functional Non-Painful',
+    subtitle: 'Funzionale · Indolore',
   },
   DN: {
     active: 'bg-warning text-warning-foreground border-warning',
     idle: 'border-warning/40 text-warning hover:bg-warning/10',
     chip: 'bg-warning text-warning-foreground',
     full: 'Dysfunctional Non-Painful',
+    subtitle: 'Disfunzionale · Indolore',
   },
   FP: {
     active: 'bg-dysfunction text-white border-dysfunction',
     idle: 'border-dysfunction/40 text-dysfunction hover:bg-dysfunction/10',
     chip: 'bg-dysfunction text-white',
     full: 'Functional Painful',
+    subtitle: 'Funzionale · Doloroso',
   },
   DP: {
     active: 'bg-pain text-white border-pain',
     idle: 'border-pain/40 text-pain hover:bg-pain/10',
     chip: 'bg-pain text-white',
     full: 'Dysfunctional Painful',
+    subtitle: 'Disfunzionale · Doloroso',
   },
 };
 
-function ScoreButtons({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: SfmaScore | null | undefined;
-  onChange: (v: SfmaScore) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {SFMA_SCORES.map((s) => {
-        const active = value === s;
-        const style = SCORE_STYLES[s];
-        return (
-          <button
-            key={s}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(s)}
-            className={`tap-target h-14 rounded-xl border-2 font-display font-bold text-lg transition-all ${
-              active ? style.active + ' shadow-elevated scale-[1.02]' : 'bg-background ' + style.idle
-            } ${disabled ? 'opacity-60' : ''}`}
-            aria-label={style.full}
-          >
-            {s}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const SCORE_ORDER: SfmaScore[] = ['FN', 'DN', 'FP', 'DP'];
 
 export default function SfmaAssessment() {
   const { id } = useParams();
@@ -94,7 +67,9 @@ export default function SfmaAssessment() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Wizard state
+  const [step, setStep] = useState(0); // 0..SFMA_PATTERNS.length-1, then "review"
+  const [reviewing, setReviewing] = useState(false);
 
   const form = useForm<SfmaFormValues>({
     resolver: zodResolver(sfmaSchema),
@@ -102,7 +77,7 @@ export default function SfmaAssessment() {
     mode: 'onBlur',
   });
 
-  const { control, handleSubmit, reset, watch } = form;
+  const { control, handleSubmit, reset, watch, setValue } = form;
   const values = watch();
   const analysis = useMemo(() => analyzeSfma(values), [values]);
 
@@ -129,6 +104,7 @@ export default function SfmaAssessment() {
           const joined = (data as { clients?: { full_name?: string } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setReadOnly(true);
+          setReviewing(true);
         }
       } else if (clientIdParam) {
         const { data } = await supabase
@@ -145,14 +121,35 @@ export default function SfmaAssessment() {
     };
   }, [id, clientIdParam, reset]);
 
-  const focusNext = (currentKey: string) => {
-    const idx = SFMA_PATTERNS.findIndex((p) => p.key === currentKey);
-    const nextPattern = SFMA_PATTERNS[idx + 1];
-    if (!nextPattern) return;
-    const el = cardRefs.current[nextPattern.key];
-    if (el) {
-      // Slight delay so the active class repaints first
-      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  const total = SFMA_PATTERNS.length;
+  const currentPattern = SFMA_PATTERNS[step];
+
+  const handlePick = (score: SfmaScore) => {
+    if (!currentPattern) return;
+    setValue(currentPattern.key, score, { shouldDirty: true, shouldValidate: true });
+    // Auto-advance
+    setTimeout(() => {
+      if (step < total - 1) {
+        setStep(step + 1);
+      } else {
+        setReviewing(true);
+      }
+    }, 140);
+  };
+
+  const goBackStep = () => {
+    if (reviewing) {
+      setReviewing(false);
+      return;
+    }
+    if (step > 0) setStep(step - 1);
+  };
+
+  const editPattern = (key: string) => {
+    const idx = SFMA_PATTERNS.findIndex((p) => p.key === key);
+    if (idx >= 0) {
+      setStep(idx);
+      setReviewing(false);
     }
   };
 
@@ -183,6 +180,37 @@ export default function SfmaAssessment() {
 
   if (loading) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
 
+  const progressPct = reviewing ? 100 : Math.round(((step) / total) * 100);
+
+  // ============ READ-ONLY / RESULTS VIEW ============
+  if (readOnly) {
+    return (
+      <div className="space-y-5 pb-10">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-muted-foreground tap-target"
+        >
+          <ChevronLeft className="w-4 h-4" /> Indietro
+        </button>
+        <header>
+          <h1 className="font-display font-bold text-2xl">SFMA — Risultati</h1>
+          <p className="text-sm text-muted-foreground">
+            {clientName ? <>Cliente: <span className="text-foreground">{clientName}</span></> : 'Cliente'}
+          </p>
+        </header>
+        <ResultsPanel analysis={analysis} values={values} />
+        {values.clinical_notes && (
+          <div className="surface-card p-4 space-y-1">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Note cliniche</div>
+            <div className="text-sm whitespace-pre-wrap">{values.clinical_notes}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============ WIZARD VIEW ============
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-32">
       <button
@@ -193,17 +221,190 @@ export default function SfmaAssessment() {
         <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
-      <header>
+      <header className="space-y-2">
         <h1 className="font-display font-bold text-2xl">SFMA — Top-Tier</h1>
         <p className="text-sm text-muted-foreground">
           {clientName ? <>Cliente: <span className="text-foreground">{clientName}</span></> : 'Cliente'}
         </p>
-        <div className="mt-2 text-xs text-muted-foreground">
-          {analysis.completed} / {analysis.total} pattern valutati
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{reviewing ? 'Revisione' : `Step ${step + 1} di ${total}`}</span>
+            <span>{analysis.completed}/{total} valutati</span>
+          </div>
+          <Progress value={progressPct} className="h-1.5" />
         </div>
       </header>
 
-      {/* High-priority alert */}
+      {!reviewing && currentPattern && (
+        <section className="space-y-5">
+          <div className="surface-card p-6 text-center space-y-2">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Pattern {step + 1} / {total}
+            </div>
+            <h2 className="font-display font-bold text-2xl leading-tight">{currentPattern.label}</h2>
+            {values[currentPattern.key] && (
+              <div className="pt-1">
+                <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${SCORE_STYLES[values[currentPattern.key] as SfmaScore].chip}`}>
+                  Selezionato: {values[currentPattern.key]}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <Controller
+            control={control}
+            name={currentPattern.key}
+            render={() => (
+              <div className="grid grid-cols-1 gap-3">
+                {SCORE_ORDER.map((s) => {
+                  const style = SCORE_STYLES[s];
+                  const active = values[currentPattern.key] === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handlePick(s)}
+                      className={`tap-target w-full rounded-2xl border-2 px-5 py-5 flex items-center justify-between gap-4 transition-all ${
+                        active
+                          ? style.active + ' shadow-elevated scale-[1.01]'
+                          : 'bg-background ' + style.idle
+                      }`}
+                      aria-label={style.full}
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <span className="font-display font-bold text-3xl w-12 text-left">{s}</span>
+                        <span className="flex flex-col items-start text-left min-w-0">
+                          <span className="font-display font-semibold text-sm leading-tight">{style.full}</span>
+                          <span className={`text-[11px] ${active ? 'opacity-90' : 'text-muted-foreground'}`}>{style.subtitle}</span>
+                        </span>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 shrink-0 ${active ? '' : 'opacity-40'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          />
+
+          <div className="flex items-center justify-between pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={goBackStep}
+              disabled={step === 0}
+              className="tap-target"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Precedente
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReviewing(true)}
+              disabled={analysis.completed === 0}
+              className="tap-target"
+            >
+              Vai al riepilogo
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {reviewing && (
+        <section className="space-y-5">
+          <div className="surface-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+              <div className="font-display font-semibold">Riepilogo punteggi</div>
+            </div>
+            <ul className="divide-y divide-border/60">
+              {SFMA_PATTERNS.map((p, idx) => {
+                const v = values[p.key] as SfmaScore | null | undefined;
+                return (
+                  <li key={p.key} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground w-6 shrink-0">{idx + 1}.</span>
+                      <span className="text-sm truncate">{p.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {v ? (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${SCORE_STYLES[v].chip}`}>
+                          {v}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground italic">—</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => editPattern(p.key)}
+                        className="tap-target text-muted-foreground hover:text-foreground"
+                        aria-label={`Modifica ${p.label}`}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <ResultsPanel analysis={analysis} values={values} />
+
+          <div className="surface-card p-4 space-y-2">
+            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Note cliniche</label>
+            <Controller
+              control={control}
+              name="clinical_notes"
+              render={({ field }) => (
+                <Textarea
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  placeholder="Osservazioni, asimmetrie, contesto del test…"
+                  className="min-h-[100px]"
+                />
+              )}
+            />
+          </div>
+
+          <div className="fixed inset-x-0 bottom-0 z-30 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
+            <div className="max-w-2xl mx-auto flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { setReviewing(false); setStep(Math.max(0, analysis.completed - 1)); }}
+                className="tap-target h-14 rounded-2xl"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving || analysis.completed === 0}
+                className="flex-1 tap-target h-14 rounded-2xl text-base"
+              >
+                <Save className="w-5 h-5 mr-2" />
+                {saving ? 'Salvataggio…' : `Salva SFMA (${analysis.completed}/${total})`}
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+    </form>
+  );
+}
+
+// ============ RESULTS PANEL (shared between review & read-only) ============
+function ResultsPanel({
+  analysis,
+  values,
+}: {
+  analysis: ReturnType<typeof analyzeSfma>;
+  values: SfmaFormValues;
+}) {
+  const painBreakouts = analysis.breakouts.filter((b) => b.score === 'FP' || b.score === 'DP');
+  const dysfunctionBreakouts = analysis.breakouts.filter((b) => b.score === 'DN');
+
+  return (
+    <div className="space-y-4">
       {analysis.hasPain && (
         <div className="surface-card border-pain/40 bg-pain/5 p-4 flex gap-3">
           <AlertTriangle className="w-5 h-5 text-pain shrink-0 mt-0.5" />
@@ -211,115 +412,71 @@ export default function SfmaAssessment() {
             <div className="font-display font-semibold text-pain">Allerta clinica — Dolore rilevato</div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {analysis.painPatterns.length} pattern doloros{analysis.painPatterns.length === 1 ? 'o' : 'i'}.
-              Considerare immediato approfondimento clinico.
+              Approfondimento clinico immediato consigliato.
             </div>
-            <ul className="mt-2 space-y-1">
-              {analysis.painPatterns.map((p) => (
-                <li key={p.key} className="text-xs flex items-center gap-2">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${SCORE_STYLES[p.score].chip}`}>
-                    {p.score}
-                  </span>
-                  <span>{p.label}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       )}
 
-      {/* Pattern cards */}
-      <div className="space-y-3">
-        {SFMA_PATTERNS.map((p) => (
-          <div
-            key={p.key}
-            ref={(el) => { cardRefs.current[p.key] = el; }}
-            className="surface-card p-4 space-y-3"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-display font-semibold text-sm">{p.label}</div>
-              {values[p.key] && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SCORE_STYLES[values[p.key] as SfmaScore].chip}`}>
-                  {values[p.key]}
-                </span>
-              )}
-            </div>
-            <Controller
-              control={control}
-              name={p.key}
-              render={({ field }) => (
-                <ScoreButtons
-                  value={field.value}
-                  disabled={readOnly}
-                  onChange={(v) => {
-                    field.onChange(v);
-                    if (!readOnly) focusNext(p.key);
-                  }}
-                />
-              )}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Breakouts required */}
-      {analysis.breakouts.length > 0 && (
-        <div className="surface-card p-4 space-y-3">
+      {painBreakouts.length > 0 && (
+        <div className="surface-card border-pain/40 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <ListChecks className="w-4 h-4 text-primary" />
-            <div className="font-display font-semibold">Breakout consigliati</div>
+            <AlertTriangle className="w-4 h-4 text-pain" />
+            <div className="font-display font-semibold text-pain">Red Flags — Pain (Breakout urgente)</div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {analysis.breakouts.map((b) => (
-              <span
-                key={b.key}
-                className={`text-xs px-2.5 py-1 rounded-lg border ${
-                  b.score === 'DP' || b.score === 'FP'
-                    ? 'border-pain/40 text-pain bg-pain/5'
-                    : 'border-warning/40 text-warning bg-warning/5'
-                }`}
-              >
-                {b.breakout}
-              </span>
+          <ul className="space-y-2">
+            {painBreakouts.map((b) => (
+              <li key={b.key} className="flex items-center justify-between gap-3 text-sm">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{b.label}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{b.breakout}</div>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SCORE_STYLES[b.score].chip}`}>
+                  {b.score}
+                </span>
+              </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {dysfunctionBreakouts.length > 0 && (
+        <div className="surface-card border-warning/40 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-warning" />
+            <div className="font-display font-semibold text-warning">Disfunzioni di movimento (Breakout DN)</div>
           </div>
+          <ul className="space-y-2">
+            {dysfunctionBreakouts.map((b) => (
+              <li key={b.key} className="flex items-center justify-between gap-3 text-sm">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{b.label}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{b.breakout}</div>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SCORE_STYLES[b.score].chip}`}>
+                  {b.score}
+                </span>
+              </li>
+            ))}
+          </ul>
           <p className="text-[11px] text-muted-foreground">
-            Ogni pattern non-FN richiede un breakout dedicato per identificare la fonte (mobilità vs stabilità).
+            Identificare se la causa è di mobilità o controllo motorio.
           </p>
         </div>
       )}
 
-      {/* Notes */}
-      <div className="surface-card p-4 space-y-2">
-        <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Note cliniche</label>
-        <Controller
-          control={control}
-          name="clinical_notes"
-          render={({ field }) => (
-            <Textarea
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              disabled={readOnly}
-              placeholder="Osservazioni, asimmetrie, contesto del test…"
-              className="min-h-[100px]"
-            />
-          )}
-        />
-      </div>
-
-      {!readOnly && (
-        <div className="fixed inset-x-0 bottom-0 z-30 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
-          <div className="max-w-2xl mx-auto">
-            <Button
-              type="submit"
-              disabled={saving || analysis.completed === 0}
-              className="w-full tap-target h-14 rounded-2xl text-base"
-            >
-              <Save className="w-5 h-5 mr-2" />
-              {saving ? 'Salvataggio…' : `Salva SFMA (${analysis.completed}/${analysis.total})`}
-            </Button>
+      {analysis.breakouts.length === 0 && analysis.completed === analysis.total && (
+        <div className="surface-card border-success/40 bg-success/5 p-4 flex gap-3">
+          <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+          <div>
+            <div className="font-display font-semibold text-success">Tutti i pattern FN</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Nessun breakout richiesto.</div>
           </div>
         </div>
       )}
-    </form>
+
+      {/* values reference suppresses unused warning in some setups */}
+      <span className="hidden">{Object.keys(values).length}</span>
+    </div>
   );
 }
