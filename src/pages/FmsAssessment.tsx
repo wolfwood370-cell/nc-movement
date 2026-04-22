@@ -15,7 +15,6 @@ import ScoreSelector from '@/components/fms/ScoreSelector';
 interface PatternDef {
   key: string;
   index: number;            // index in computePatterns output
-  number: string;           // display order label
   label: string;
   bilateral: boolean;
   scoreField?: keyof FmsScores;
@@ -27,19 +26,59 @@ interface PatternDef {
 
 // Display order requested by the practitioner.
 const PATTERNS: PatternDef[] = [
-  { key: 'deep_squat',        index: 0, number: '1', label: 'Deep Squat',                bilateral: false, scoreField: 'deep_squat_score' },
-  { key: 'hurdle_step',       index: 1, number: '2', label: 'Hurdle Step',               bilateral: true,  leftField: 'hurdle_step_left',       rightField: 'hurdle_step_right' },
-  // Ankle Clearing rendered between Hurdle Step (#2) and Shoulder Mobility (#4) — see JSX.
-  { key: 'shoulder_mobility', index: 3, number: '4', label: 'Shoulder Mobility',         bilateral: true,  leftField: 'shoulder_mobility_left', rightField: 'shoulder_mobility_right',
+  { key: 'deep_squat',        index: 0, label: 'Deep Squat',                bilateral: false, scoreField: 'deep_squat_score' },
+  { key: 'hurdle_step',       index: 1, label: 'Hurdle Step',               bilateral: true,  leftField: 'hurdle_step_left',       rightField: 'hurdle_step_right' },
+  { key: 'shoulder_mobility', index: 3, label: 'Shoulder Mobility',         bilateral: true,  leftField: 'shoulder_mobility_left', rightField: 'shoulder_mobility_right',
     clearedBy: 'clearing_shoulder_pain', clearedNote: 'Shoulder Impingement Clearing +' },
-  { key: 'aslr',              index: 4, number: '5', label: 'Active Straight-Leg Raise', bilateral: true,  leftField: 'aslr_left',              rightField: 'aslr_right' },
-  { key: 'tspu',              index: 5, number: '6', label: 'Trunk Stability Push-Up',   bilateral: false, scoreField: 'trunk_stability_pushup_score',
+  { key: 'aslr',              index: 4, label: 'Active Straight-Leg Raise', bilateral: true,  leftField: 'aslr_left',              rightField: 'aslr_right' },
+  { key: 'tspu',              index: 5, label: 'Trunk Stability Push-Up',   bilateral: false, scoreField: 'trunk_stability_pushup_score',
     clearedBy: 'clearing_spinal_extension_pain', clearedNote: 'Spinal Extension Clearing +' },
-  { key: 'rotary_stability',  index: 6, number: '7', label: 'Rotary Stability',          bilateral: true,  leftField: 'rotary_stability_left',  rightField: 'rotary_stability_right',
+  { key: 'rotary_stability',  index: 6, label: 'Rotary Stability',          bilateral: true,  leftField: 'rotary_stability_left',  rightField: 'rotary_stability_right',
     clearedBy: 'clearing_spinal_flexion_pain', clearedNote: 'Spinal Flexion Clearing +' },
-  // Inline Lunge kept at the end (still scored, not in the requested ordering header).
-  { key: 'inline_lunge',      index: 2, number: '8', label: 'Inline Lunge',              bilateral: true,  leftField: 'inline_lunge_left',      rightField: 'inline_lunge_right' },
+  { key: 'inline_lunge',      index: 2, label: 'Inline Lunge',              bilateral: true,  leftField: 'inline_lunge_left',      rightField: 'inline_lunge_right' },
 ];
+
+/**
+ * Stable input components — declared at module scope so they keep focus across re-renders
+ * (defining them inside the page component recreates the type on every keystroke).
+ */
+function NumberInput({ value, onChange, placeholder, disabled }: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  return (
+    <Input
+      type="number"
+      inputMode="decimal"
+      step="0.1"
+      min="0"
+      placeholder={placeholder}
+      value={value ?? ''}
+      disabled={disabled}
+      onChange={(e) => {
+        const raw = e.target.value;
+        onChange(raw === '' ? null : Number(raw));
+      }}
+      className="h-12 rounded-xl"
+    />
+  );
+}
+
+function PainToggle({ checked, onCheckedChange, label, disabled }: {
+  checked: boolean; onCheckedChange: (v: boolean) => void; label: string; disabled?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors ${checked ? 'bg-pain/10 border border-pain/40' : 'bg-muted/40 border border-transparent'}`}>
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-[11px] text-muted-foreground">{checked ? 'Dolore presente' : 'Nessun dolore'}</div>
+      </div>
+      <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} aria-label={label} />
+    </div>
+  );
+}
 
 export default function FmsAssessment() {
   const { id } = useParams();
@@ -126,39 +165,6 @@ export default function FmsAssessment() {
   const Icon = correctiveIcon;
 
   // ---- Reusable pieces ---------------------------------------------------
-
-  const NumberInput = ({ value, onChange, placeholder }: {
-    value: number | null;
-    onChange: (v: number | null) => void;
-    placeholder: string;
-  }) => (
-    <Input
-      type="number"
-      inputMode="decimal"
-      step="0.1"
-      min="0"
-      placeholder={placeholder}
-      value={value ?? ''}
-      disabled={readOnly}
-      onChange={(e) => {
-        const raw = e.target.value;
-        onChange(raw === '' ? null : Number(raw));
-      }}
-      className="h-12 rounded-xl"
-    />
-  );
-
-  const PainToggle = ({ checked, onCheckedChange, label }: {
-    checked: boolean; onCheckedChange: (v: boolean) => void; label: string;
-  }) => (
-    <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors ${checked ? 'bg-pain/10 border border-pain/40' : 'bg-muted/40 border border-transparent'}`}>
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-[11px] text-muted-foreground">{checked ? 'Dolore presente' : 'Nessun dolore'}</div>
-      </div>
-      <Switch checked={checked} disabled={readOnly} onCheckedChange={onCheckedChange} aria-label={label} />
-    </div>
-  );
 
   const renderPattern = (p: PatternDef) => {
     const result = patterns[p.index];
@@ -254,6 +260,7 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
           <NumberInput
+          disabled={readOnly}
             value={scores.tibia_length_cm}
             onChange={(v) => setField('tibia_length_cm', v)}
             placeholder="es. 42.5"
@@ -273,11 +280,13 @@ export default function FmsAssessment() {
             <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
           </div>
           <PainToggle
+          disabled={readOnly}
             label="Lato Sinistro"
             checked={scores.ankle_clearing_left_pain}
             onCheckedChange={(v) => setField('ankle_clearing_left_pain', v)}
           />
           <PainToggle
+          disabled={readOnly}
             label="Lato Destro"
             checked={scores.ankle_clearing_right_pain}
             onCheckedChange={(v) => setField('ankle_clearing_right_pain', v)}
@@ -294,11 +303,13 @@ export default function FmsAssessment() {
             <div className="text-[11px] text-muted-foreground mt-0.5">Positivo → Shoulder Mobility forzata a 0 sul lato corrispondente.</div>
           </div>
           <PainToggle
+          disabled={readOnly}
             label="Lato Sinistro"
             checked={scores.clearing_shoulder_left_pain}
             onCheckedChange={(v) => setField('clearing_shoulder_left_pain', v)}
           />
           <PainToggle
+          disabled={readOnly}
             label="Lato Destro"
             checked={scores.clearing_shoulder_right_pain}
             onCheckedChange={(v) => setField('clearing_shoulder_right_pain', v)}
@@ -309,6 +320,7 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Lunghezza Mano (cm)</div>
           <NumberInput
+          disabled={readOnly}
             value={scores.hand_length_cm}
             onChange={(v) => setField('hand_length_cm', v)}
             placeholder="es. 19.0"
@@ -323,6 +335,7 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
           <PainToggle
+          disabled={readOnly}
             label="Test di estensione spinale"
             checked={scores.clearing_spinal_extension_pain}
             onCheckedChange={(v) => setField('clearing_spinal_extension_pain', v)}
@@ -335,6 +348,7 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
           <PainToggle
+          disabled={readOnly}
             label="Test di flessione spinale"
             checked={scores.clearing_spinal_flexion_pain}
             onCheckedChange={(v) => setField('clearing_spinal_flexion_pain', v)}

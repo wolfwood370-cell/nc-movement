@@ -46,10 +46,12 @@ export function computeRisk(latestFms?: FmsAssessmentRow | null, latestYbt?: Ybt
   const patterns = computePatterns(scores);
   const total = computeTotal(patterns) ?? latestFms.total_score;
 
-  // CRITICAL: any 0 or any clearing test positive
+  // CRITICAL: any 0 or any clearing test positive (shoulder L/R, spinal ext/flex)
   const anyPain = patterns.some(p => p.final === 0);
   const anyClearing =
     !!scores.clearing_shoulder_pain ||
+    !!scores.clearing_shoulder_left_pain ||
+    !!scores.clearing_shoulder_right_pain ||
     !!scores.clearing_spinal_extension_pain ||
     !!scores.clearing_spinal_flexion_pain;
   if (anyPain || anyClearing) {

@@ -16,9 +16,9 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const Shell = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><AppShell>{children}</AppShell></ProtectedRoute>
-);
+function Shell({ children }: { children: React.ReactNode }) {
+  return <ProtectedRoute><AppShell>{children}</AppShell></ProtectedRoute>;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
