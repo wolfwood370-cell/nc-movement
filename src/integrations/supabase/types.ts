@@ -458,7 +458,15 @@ export type Database = {
             | Database["public"]["Enums"]["sfma_score"]
             | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sfma_assessments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ybt_assessments: {
         Row: {

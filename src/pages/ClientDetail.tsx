@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,10 @@ import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
 import { hasCriticalRedFlags } from '@/lib/fms';
 import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
+import EditClientDialog from '@/components/clients/EditClientDialog';
+import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
+import DeleteAssessmentButton from '@/components/assessments/DeleteAssessmentButton';
+import BiometricGuard from '@/components/clients/BiometricGuard';
 
 interface Client {
   id: string; full_name: string;
@@ -35,39 +39,54 @@ export default function ClientDetail() {
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
-  useEffect(() => {
+  const loadAll = useCallback(async () => {
     if (!id) return;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const profilePromise = user
-        ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
-        : Promise.resolve({ data: null });
+    const { data: { user } } = await supabase.auth.getUser();
+    const profilePromise = user
+      ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
+      : Promise.resolve({ data: null });
 
-      const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
-        supabase.from('clients').select('*').eq('id', id).maybeSingle(),
-        supabase.from('fms_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }),
-        supabase.from('sfma_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('fcs_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('ybt_assessments').select('*')
-          .eq('client_id', id).order('assessed_at', { ascending: false }),
-        profilePromise,
-      ]);
-      setClient((c ?? null) as Client | null);
-      setFms((a ?? []) as unknown as FmsAssessmentRow[]);
-      setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
-      setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
-      setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
-      setYbtHistory((y ?? []) as unknown as YbtRow[]);
-      setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
-    })();
+    const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
+      supabase.from('clients').select('*').eq('id', id).maybeSingle(),
+      supabase.from('fms_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
+      supabase.from('sfma_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('fcs_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('ybt_assessments').select('*')
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
+      profilePromise,
+    ]);
+    setClient((c ?? null) as Client | null);
+    setFms((a ?? []) as unknown as FmsAssessmentRow[]);
+    setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
+    setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
+    setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
+    setYbtHistory((y ?? []) as unknown as YbtRow[]);
+    setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
   }, [id]);
+
+  useEffect(() => { void loadAll(); }, [loadAll]);
 
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
   const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
+
+  // ---- FCS biometric pre-flight ------------------------------------------
+  const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
+  const launchFcs = (extra?: { foot_length_cm: number }) => {
+    if (!client) return;
+    const missing = !client.height_cm || !client.weight_kg
+      || (!extra && !(latestFcs && (latestFcs as { foot_length_cm?: number | null }).foot_length_cm));
+    if (missing) {
+      setBiometricGuardOpen(true);
+      return;
+    }
+    const params = new URLSearchParams({ clientId: client.id });
+    if (extra?.foot_length_cm) params.set('foot', String(extra.foot_length_cm));
+    navigate(`/assessments/fcs/new?${params.toString()}`);
+  };
 
   if (!client) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
   const age = calcAge(client.date_of_birth);
@@ -88,7 +107,7 @@ export default function ClientDetail() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-primary grid place-items-center text-primary-foreground font-display font-bold text-xl shrink-0">
           {client.full_name.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
           <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
           {(client.height_cm || client.weight_kg) && (
@@ -96,6 +115,10 @@ export default function ClientDetail() {
               {client.height_cm ? `${client.height_cm} cm` : ''} {client.weight_kg ? `· ${client.weight_kg} kg` : ''}
             </p>
           )}
+        </div>
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <EditClientDialog client={client} onSaved={loadAll} />
+          <DeleteClientDialog clientId={client.id} clientName={client.full_name} navigateAfter />
         </div>
       </div>
 
@@ -167,7 +190,7 @@ export default function ClientDetail() {
                 <Button
                   variant="secondary"
                   disabled={redFlags.hasFlags}
-                  onClick={() => navigate(`/assessments/fcs/new?clientId=${client.id}`)}
+                  onClick={() => launchFcs()}
                   className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
                 >
                   {redFlags.hasFlags ? <Lock className="w-5 h-5 mr-2" /> : <Gauge className="w-5 h-5 mr-2" />}
@@ -220,16 +243,24 @@ export default function ClientDetail() {
           ) : (
             <div className="surface-card divide-y divide-border overflow-hidden">
               {fms.map(a => (
-                <Link key={a.id} to={`/assessments/fms/${a.id}`} className="flex items-center justify-between p-4 hover:bg-accent/40 tap-target">
-                  <div className="min-w-0">
-                    <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
-                    <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
-                  </div>
-                  <div className="text-right shrink-0 ml-3">
-                    <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
-                    <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
-                  </div>
-                </Link>
+                <div key={a.id} className="flex items-center justify-between p-2 pl-4 hover:bg-accent/40">
+                  <Link to={`/assessments/fms/${a.id}`} className="flex items-center justify-between flex-1 min-w-0 py-2 tap-target">
+                    <div className="min-w-0">
+                      <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
+                      <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
+                    </div>
+                  </Link>
+                  <DeleteAssessmentButton
+                    table="fms_assessments"
+                    id={a.id}
+                    label={`FMS ${new Date(a.assessed_at).toLocaleDateString('it-IT')}`}
+                    onDeleted={loadAll}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -239,6 +270,21 @@ export default function ClientDetail() {
           <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
         </TabsContent>
       </Tabs>
+
+      <BiometricGuard
+        open={biometricGuardOpen}
+        onOpenChange={setBiometricGuardOpen}
+        clientId={client.id}
+        initial={{
+          height_cm: client.height_cm,
+          weight_kg: client.weight_kg,
+          foot_length_cm: (latestFcs as { foot_length_cm?: number | null } | null)?.foot_length_cm ?? null,
+        }}
+        onComplete={async ({ foot_length_cm }) => {
+          await loadAll();
+          launchFcs({ foot_length_cm });
+        }}
+      />
     </div>
   );
 }

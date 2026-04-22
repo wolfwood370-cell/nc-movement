@@ -13,6 +13,7 @@ import {
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import FmsClientReport from '@/components/fms/FmsClientReport';
+import { useFormDraft } from '@/hooks/useFormDraft';
 
 interface PatternDef {
   key: string;
@@ -128,6 +129,10 @@ export default function FmsAssessment() {
     })();
   }, [id, clientIdParam]);
 
+  // ---- Auto-save draft (per-field) — only for new assessments -----------
+  const draftKey = id === 'new' && clientIdParam ? `nc:fms:new:${clientIdParam}` : null;
+  const { draft, hasDraft, clear: clearDraft, dismiss: dismissDraft } = useFormDraft<FmsScores>(draftKey, scores);
+
   const patterns = useMemo(() => computePatterns(scores), [scores]);
   const total = useMemo(() => computeTotal(patterns), [patterns]);
   const corrective = useMemo(() => primaryCorrective(patterns), [patterns]);
@@ -149,6 +154,7 @@ export default function FmsAssessment() {
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    clearDraft();
     toast.success('Valutazione salvata');
     navigate(`/assessments/fms/${data!.id}`, { replace: true });
   };
@@ -255,6 +261,19 @@ export default function FmsAssessment() {
           )}
         </div>
       </header>
+
+      {hasDraft && draft && !readOnly && (
+        <div className="surface-card border-warning/40 bg-warning/5 p-3 flex items-center justify-between gap-3">
+          <div className="text-xs">
+            <div className="font-semibold text-warning-foreground">Bozza non salvata trovata</div>
+            <div className="text-muted-foreground">Vuoi recuperare i punteggi inseriti in precedenza?</div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="ghost" onClick={() => { dismissDraft(); clearDraft(); }}>Scarta</Button>
+            <Button size="sm" onClick={() => { setScores(draft); dismissDraft(); }}>Recupera</Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
