@@ -25,6 +25,8 @@ export function useFormDraft<T>(key: string | null, value: T, options?: { deboun
     loadedRef.current = false;
     setDraft(null);
     setHasDraft(false);
+    // Cancel any pending write from the previous key so it doesn't leak across.
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     if (!key || !enabled) return;
     try {
       const raw = localStorage.getItem(key);

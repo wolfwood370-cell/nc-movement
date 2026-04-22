@@ -45,7 +45,7 @@ function AsymBadge({ value, danger }: { value: number | null; danger?: boolean }
   const formatted = value.toFixed(1);
   if (danger) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-pain text-pain-foreground px-2.5 py-1 text-[11px] font-bold">
+      <span className="inline-flex items-center gap-1 rounded-full bg-pain text-destructive-foreground px-2.5 py-1 text-[11px] font-bold">
         <AlertTriangle className="w-3 h-3" />
         Δ {formatted} cm
       </span>
