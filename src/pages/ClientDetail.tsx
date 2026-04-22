@@ -104,9 +104,7 @@ export default function ClientDetail() {
       </button>
 
       <div className="surface-card p-5 flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-primary grid place-items-center text-primary-foreground font-display font-bold text-xl shrink-0">
-          {client.full_name.charAt(0).toUpperCase()}
-        </div>
+        <ClientAvatar fullName={client.full_name} className="w-14 h-14 text-xl font-display" />
         <div className="min-w-0 flex-1">
           <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
           <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
