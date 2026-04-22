@@ -166,39 +166,6 @@ export default function FmsAssessment() {
 
   // ---- Reusable pieces ---------------------------------------------------
 
-  const NumberInput = ({ value, onChange, placeholder }: {
-    value: number | null;
-    onChange: (v: number | null) => void;
-    placeholder: string;
-  }) => (
-    <Input
-      type="number"
-      inputMode="decimal"
-      step="0.1"
-      min="0"
-      placeholder={placeholder}
-      value={value ?? ''}
-      disabled={readOnly}
-      onChange={(e) => {
-        const raw = e.target.value;
-        onChange(raw === '' ? null : Number(raw));
-      }}
-      className="h-12 rounded-xl"
-    />
-  );
-
-  const PainToggle = ({ checked, onCheckedChange, label }: {
-    checked: boolean; onCheckedChange: (v: boolean) => void; label: string;
-  }) => (
-    <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors ${checked ? 'bg-pain/10 border border-pain/40' : 'bg-muted/40 border border-transparent'}`}>
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-[11px] text-muted-foreground">{checked ? 'Dolore presente' : 'Nessun dolore'}</div>
-      </div>
-      <Switch checked={checked} disabled={readOnly} onCheckedChange={onCheckedChange} aria-label={label} />
-    </div>
-  );
-
   const renderPattern = (p: PatternDef) => {
     const result = patterns[p.index];
     const cleared = result.cleared;
