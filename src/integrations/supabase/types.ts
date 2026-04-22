@@ -312,6 +312,133 @@ export type Database = {
         }
         Relationships: []
       }
+      sfma_assessments: {
+        Row: {
+          arms_down_deep_squat: Database["public"]["Enums"]["sfma_score"] | null
+          assessed_at: string
+          cervical_extension: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_flexion: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_r: Database["public"]["Enums"]["sfma_score"] | null
+          client_id: string
+          clinical_notes: string | null
+          created_at: string
+          id: string
+          multi_segmental_extension:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_flexion:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_l:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_r:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          practitioner_id: string
+          single_leg_stance_l: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_r: Database["public"]["Enums"]["sfma_score"] | null
+          updated_at: string
+          upper_extremity_pattern_1_l:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_1_r:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_l:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_r:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+        }
+        Insert: {
+          arms_down_deep_squat?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          assessed_at?: string
+          cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_r?: Database["public"]["Enums"]["sfma_score"] | null
+          client_id: string
+          clinical_notes?: string | null
+          created_at?: string
+          id?: string
+          multi_segmental_extension?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_flexion?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          practitioner_id: string
+          single_leg_stance_l?: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_r?: Database["public"]["Enums"]["sfma_score"] | null
+          updated_at?: string
+          upper_extremity_pattern_1_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_1_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+        }
+        Update: {
+          arms_down_deep_squat?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          assessed_at?: string
+          cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_rotation_r?: Database["public"]["Enums"]["sfma_score"] | null
+          client_id?: string
+          clinical_notes?: string | null
+          created_at?: string
+          id?: string
+          multi_segmental_extension?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_flexion?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          multi_segmental_rotation_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          practitioner_id?: string
+          single_leg_stance_l?: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_r?: Database["public"]["Enums"]["sfma_score"] | null
+          updated_at?: string
+          upper_extremity_pattern_1_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_1_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_l?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+          upper_extremity_pattern_2_r?:
+            | Database["public"]["Enums"]["sfma_score"]
+            | null
+        }
+        Relationships: []
+      }
       ybt_assessments: {
         Row: {
           anterior_left_cm: number | null
@@ -380,6 +507,7 @@ export type Database = {
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
+      sfma_score: "FN" | "DN" | "FP" | "DP"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -508,6 +636,7 @@ export const Constants = {
   public: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
+      sfma_score: ["FN", "DN", "FP", "DP"],
     },
   },
 } as const
