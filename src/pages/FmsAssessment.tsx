@@ -13,6 +13,7 @@ import {
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import FmsClientReport from '@/components/fms/FmsClientReport';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { useFormDraft } from '@/hooks/useFormDraft';
 
 interface PatternDef {
@@ -150,6 +151,7 @@ export default function FmsAssessment() {
       ...scores,
       total_score: total,
       primary_corrective: corrective.label,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
@@ -291,6 +293,10 @@ export default function FmsAssessment() {
           <FmsClientReport clientName={clientName || 'Cliente'} assessedAt={assessedAt} scores={scores} />
         </DialogContent>
       </Dialog>
+
+      {!readOnly && (
+        <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+      )}
 
       {/* Live total + corrective */}
       <div className="surface-card p-5 flex items-center gap-4">

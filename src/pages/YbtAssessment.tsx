@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import NumPadInput from '@/components/fcs/NumPadInput';
+import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 
 import {
   YBT_DEFAULTS,
@@ -140,6 +141,7 @@ export default function YbtAssessment() {
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assessedAt, setAssessedAt] = useState<string | null>(null);
 
   const form = useForm<YbtFormValues>({
     resolver: zodResolver(ybtSchema),
@@ -175,6 +177,7 @@ export default function YbtAssessment() {
           });
           reset(next);
           setClientId((data as { client_id: string }).client_id);
+          setAssessedAt((data as { assessed_at?: string | null }).assessed_at ?? null);
           const joined = (data as { clients?: { full_name?: string; gender?: string | null; primary_sport?: string | null } | null }).clients;
           setClientName(joined?.full_name ?? '');
           setClientGender(joined?.gender ?? null);
@@ -211,6 +214,7 @@ export default function YbtAssessment() {
       test_type: testType,
       practitioner_id: user.id,
       client_id: clientId,
+      assessed_at: assessedAt ?? new Date().toISOString(),
     };
     const { data: saved, error } = await supabase
       .from('ybt_assessments')
@@ -245,6 +249,10 @@ export default function YbtAssessment() {
         <h1 className="font-display font-bold text-2xl mt-1">Y-Balance Test</h1>
         {clientName && <p className="text-sm text-muted-foreground mt-1">{clientName}</p>}
       </header>
+
+      {!readOnly && (
+        <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+      )}
 
       {/* Test type toggle: Lower Quarter (legs) vs Upper Quarter (shoulders) */}
       <div className="surface-card p-3">
