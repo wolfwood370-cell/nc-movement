@@ -46,71 +46,9 @@ export interface BreakoutSchema {
   nodes: Record<string, BreakoutNode>;
 }
 
-// ---------------- Cervical Flexion (proof-of-concept) ----------------
-
-const cervicalFlexion: BreakoutSchema = {
-  patternKey: 'cervical_flexion',
-  title: 'Cervical Flexion Breakout',
-  startNodeId: 'active_supine',
-  nodes: {
-    active_supine: {
-      id: 'active_supine',
-      prompt: 'Active Supine Cervical Flexion',
-      hint: 'Il paziente in posizione supina porta attivamente il mento al petto.',
-      options: [
-        {
-          label: 'FN',
-          subtitle: 'Funzionale · Indolore',
-          tone: 'success',
-          outcome: {
-            diagnosis: 'SMCD',
-            detail:
-              'Mobilità attiva integra in scarico: dysfunction in carico → controllo motorio / stabilizzazione cervicale.',
-          },
-        },
-        {
-          label: 'DN / DP',
-          subtitle: 'Disfunzionale o doloroso',
-          tone: 'pain',
-          next: 'passive_supine',
-        },
-      ],
-    },
-    passive_supine: {
-      id: 'passive_supine',
-      prompt: 'Passive Supine Cervical Flexion',
-      hint: 'Il clinico assiste passivamente il movimento.',
-      options: [
-        {
-          label: 'FN',
-          subtitle: 'Funzionale · Indolore',
-          tone: 'success',
-          outcome: {
-            diagnosis: 'SMCD',
-            qualifier: 'Postural',
-            detail:
-              'Mobilità passiva piena: deficit di controllo posturale / catena anteriore.',
-          },
-        },
-        {
-          label: 'DN / DP',
-          subtitle: 'Disfunzionale o doloroso',
-          tone: 'pain',
-          outcome: {
-            diagnosis: 'JMD',
-            qualifier: 'o TED',
-            detail:
-              'Restrizione anche passiva → ipotesi articolare (JMD) o tissutale (TED). Approfondire con test segmentari.',
-          },
-        },
-      ],
-    },
-  },
-};
-
-export const BREAKOUT_SCHEMAS: Partial<Record<SfmaPatternKey, BreakoutSchema>> = {
-  cervical_flexion: cervicalFlexion,
-};
+// Schemas live in `sfmaBreakouts.ts` (centralized dictionary). Re-export here
+// so existing imports of BREAKOUT_SCHEMAS keep working.
+export { SFMA_BREAKOUTS as BREAKOUT_SCHEMAS } from './sfmaBreakouts';
 
 // ---------------- Persistence helpers ----------------
 
