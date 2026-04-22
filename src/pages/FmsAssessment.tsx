@@ -247,15 +247,12 @@ export default function FmsAssessment() {
 
       {/* Patterns in the requested order */}
       <section className="space-y-3">
-        {/* 1. Deep Squat */}
+        {/* Deep Squat */}
         {renderPattern(get('deep_squat'))}
 
-        {/* 1.b Tibia length */}
+        {/* Tibia length */}
         <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">
-            <span className="text-xs text-muted-foreground font-bold mr-2">1.b</span>
-            Lunghezza Tibia (cm)
-          </div>
+          <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
           <NumberInput
             value={scores.tibia_length_cm}
             onChange={(v) => setField('tibia_length_cm', v)}
@@ -263,16 +260,16 @@ export default function FmsAssessment() {
           />
         </div>
 
-        {/* 2. Hurdle Step */}
+        {/* Hurdle Step */}
         {renderPattern(get('hurdle_step'))}
 
-        {/* 3. Ankle Clearing */}
+        {/* Inline Lunge (moved here) */}
+        {renderPattern(get('inline_lunge'))}
+
+        {/* Ankle Clearing (moved below Inline Lunge) */}
         <div className="surface-card p-4 space-y-3">
           <div>
-            <div className="font-display font-semibold flex items-baseline gap-2">
-              <span className="text-xs text-muted-foreground font-bold">3.</span>
-              <span>Ankle Clearing</span>
-            </div>
+            <div className="font-display font-semibold">Ankle Clearing</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Solo informativo · non altera i punteggi</div>
           </div>
           <PainToggle
@@ -287,27 +284,30 @@ export default function FmsAssessment() {
           />
         </div>
 
-        {/* 4. Shoulder Mobility (with shoulder clearing inline) */}
+        {/* Shoulder Mobility */}
         {renderPattern(get('shoulder_mobility'))}
-        <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">
-            <span className="text-xs text-muted-foreground font-bold mr-2">4.a</span>
-            Shoulder Impingement Clearing
+
+        {/* Shoulder Clearing — L/R like Ankle Clearing */}
+        <div className="surface-card p-4 space-y-3">
+          <div>
+            <div className="font-display font-semibold">Shoulder Impingement Clearing</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Positivo → Shoulder Mobility forzata a 0 sul lato corrispondente.</div>
           </div>
           <PainToggle
-            label="Test di impingement spalla"
-            checked={scores.clearing_shoulder_pain}
-            onCheckedChange={(v) => setField('clearing_shoulder_pain', v)}
+            label="Lato Sinistro"
+            checked={scores.clearing_shoulder_left_pain}
+            onCheckedChange={(v) => setField('clearing_shoulder_left_pain', v)}
           />
-          <p className="text-[11px] text-muted-foreground mt-2">Positivo → Shoulder Mobility forzata a 0.</p>
+          <PainToggle
+            label="Lato Destro"
+            checked={scores.clearing_shoulder_right_pain}
+            onCheckedChange={(v) => setField('clearing_shoulder_right_pain', v)}
+          />
         </div>
 
-        {/* 4.b Hand length */}
+        {/* Hand length */}
         <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">
-            <span className="text-xs text-muted-foreground font-bold mr-2">4.b</span>
-            Lunghezza Mano (cm)
-          </div>
+          <div className="font-display font-semibold text-sm mb-2">Lunghezza Mano (cm)</div>
           <NumberInput
             value={scores.hand_length_cm}
             onChange={(v) => setField('hand_length_cm', v)}
@@ -315,16 +315,13 @@ export default function FmsAssessment() {
           />
         </div>
 
-        {/* 5. ASLR */}
+        {/* ASLR */}
         {renderPattern(get('aslr'))}
 
-        {/* 6. Trunk Stability Push-Up + Extension Clearing */}
+        {/* Trunk Stability Push-Up + Extension Clearing */}
         {renderPattern(get('tspu'))}
         <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">
-            <span className="text-xs text-muted-foreground font-bold mr-2">6.b</span>
-            Spinal Extension Clearing
-          </div>
+          <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
           <PainToggle
             label="Test di estensione spinale"
             checked={scores.clearing_spinal_extension_pain}
@@ -333,13 +330,10 @@ export default function FmsAssessment() {
           <p className="text-[11px] text-muted-foreground mt-2">Positivo → Trunk Stability Push-Up forzato a 0.</p>
         </div>
 
-        {/* 7. Rotary Stability + Flexion Clearing */}
+        {/* Rotary Stability + Flexion Clearing */}
         {renderPattern(get('rotary_stability'))}
         <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">
-            <span className="text-xs text-muted-foreground font-bold mr-2">7.b</span>
-            Spinal Flexion Clearing
-          </div>
+          <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
           <PainToggle
             label="Test di flessione spinale"
             checked={scores.clearing_spinal_flexion_pain}
@@ -347,9 +341,6 @@ export default function FmsAssessment() {
           />
           <p className="text-[11px] text-muted-foreground mt-2">Positivo → Rotary Stability forzata a 0.</p>
         </div>
-
-        {/* 8. Inline Lunge */}
-        {renderPattern(get('inline_lunge'))}
       </section>
 
       {!readOnly && (
