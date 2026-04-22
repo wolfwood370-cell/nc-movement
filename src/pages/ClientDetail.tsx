@@ -15,6 +15,7 @@ import EditClientDialog from '@/components/clients/EditClientDialog';
 import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
 import DeleteAssessmentButton from '@/components/assessments/DeleteAssessmentButton';
 import BiometricGuard from '@/components/clients/BiometricGuard';
+import ClientAvatar from '@/components/ClientAvatar';
 
 interface Client {
   id: string; full_name: string;
