@@ -17,8 +17,15 @@ import {
   SFMA_PATTERNS,
   sfmaSchema,
   type SfmaFormValues,
+  type SfmaPatternKey,
   type SfmaScore,
 } from '@/lib/sfma';
+import {
+  parseBreakoutResults,
+  type BreakoutOutcome,
+  type BreakoutResults,
+} from '@/lib/breakouts';
+import BreakoutHub from '@/components/sfma/BreakoutHub';
 
 // Color classes per score, using design system tokens (HSL via Tailwind config).
 const SCORE_STYLES: Record<SfmaScore, { active: string; idle: string; chip: string; full: string; subtitle: string }> = {
