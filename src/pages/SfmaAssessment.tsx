@@ -281,6 +281,8 @@ export default function SfmaAssessment() {
         </div>
       </header>
 
+      <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
+
       {!reviewing && currentPattern && (
         <section className="space-y-5">
           <div className="surface-card p-6 text-center space-y-2">
