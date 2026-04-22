@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { forwardRef, useMemo } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -207,10 +207,9 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics, sfmaLat
   );
 }
 
-function EmptyChart({ label }: { label: string }) {
-  return (
-    <div className="h-40 grid place-items-center text-center px-6">
-      <p className="text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
+const EmptyChart = forwardRef<HTMLDivElement, { label: string }>(({ label }, ref) => (
+  <div ref={ref} className="h-40 grid place-items-center text-center px-6">
+    <p className="text-sm text-muted-foreground">{label}</p>
+  </div>
+));
+EmptyChart.displayName = 'EmptyChart';
