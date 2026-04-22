@@ -132,11 +132,11 @@ export default function InsightsTab({ fmsHistory, ybtLatest, fcsMetrics }: Props
           <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">
             FCS — Capacità Fondamentali
           </h3>
-          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">demo</span>
+          {fcsIsMock && <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">demo</span>}
         </div>
         <div className="h-64">
           <ResponsiveContainer>
-            <RadarChart data={MOCK_FCS} outerRadius="75%">
+            <RadarChart data={fcsRadar} outerRadius="75%">
               <PolarGrid stroke="hsl(var(--border))" />
               <PolarAngleAxis dataKey="axis" tick={axisStyle} />
               <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
