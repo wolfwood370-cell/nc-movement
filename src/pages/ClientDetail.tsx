@@ -29,15 +29,21 @@ export default function ClientDetail() {
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [fms, setFms] = useState<FmsAssessmentRow[]>([]);
-  const [latestSfma, setLatestSfma] = useState<SfmaFormValues | null>(null);
+  const [latestSfma, setLatestSfma] = useState<(SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null>(null);
   const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
   const [latestYbt, setLatestYbt] = useState<YbtRow | null>(null);
+  const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }] = await Promise.all([
+      const { data: { user } } = await supabase.auth.getUser();
+      const profilePromise = user
+        ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
+        : Promise.resolve({ data: null });
+
+      const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).maybeSingle(),
         supabase.from('fms_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }),
@@ -47,13 +53,15 @@ export default function ClientDetail() {
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('ybt_assessments').select('*')
           .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+        profilePromise,
       ]);
       setClient((c ?? null) as Client | null);
       setFms((a ?? []) as unknown as FmsAssessmentRow[]);
-      setLatestSfma((s ?? null) as unknown as SfmaFormValues | null);
+      setLatestSfma((s ?? null) as never);
       setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
       setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
       setLatestYbt((y ?? null) as unknown as YbtRow | null);
+      setPractitioner((p ?? null) as never);
     })();
   }, [id]);
 
@@ -228,7 +236,7 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtLatest={latestYbt} sfmaLatest={latestSfma} />
+          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtLatest={latestYbt} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
         </TabsContent>
       </Tabs>
     </div>
