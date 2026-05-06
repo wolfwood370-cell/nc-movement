@@ -378,16 +378,16 @@ export default function FmsAssessment() {
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Sinistro</div>
               <StoplightSelector
-                value={ankleClearingLeft}
-                onChange={setAnkleClearingLeft}
+                value={scores.ankle_clearing_left as Stoplight}
+                onChange={(v) => setField('ankle_clearing_left', v)}
                 disabled={readOnly}
               />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Destro</div>
               <StoplightSelector
-                value={ankleClearingRight}
-                onChange={setAnkleClearingRight}
+                value={scores.ankle_clearing_right as Stoplight}
+                onChange={(v) => setField('ankle_clearing_right', v)}
                 disabled={readOnly}
               />
             </div>
