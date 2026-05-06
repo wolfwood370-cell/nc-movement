@@ -51,13 +51,30 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: c }, { data: r }] = await Promise.all([
+    const [{ data: c }, { data: r }, fms, fcs, sfma, ybt] = await Promise.all([
       supabase.from('clients').select('id, full_name, created_at').order('created_at', { ascending: false }),
       supabase.from('fms_assessments')
         .select('id, assessed_at, total_score, primary_corrective, client_id, clients(full_name)')
         .order('assessed_at', { ascending: false }).limit(5),
+      supabase.from('fms_assessments').select('client_id, assessed_at'),
+      supabase.from('fcs_assessments').select('client_id, assessed_at'),
+      supabase.from('sfma_assessments').select('client_id, assessed_at'),
+      supabase.from('ybt_assessments').select('client_id, assessed_at'),
     ]);
-    setClients(c ?? []);
+    const lastByClient = new Map<string, number>();
+    for (const rows of [fms.data, fcs.data, sfma.data, ybt.data]) {
+      for (const a of (rows ?? []) as { client_id: string; assessed_at: string }[]) {
+        const t = new Date(a.assessed_at).getTime();
+        const prev = lastByClient.get(a.client_id) ?? 0;
+        if (t > prev) lastByClient.set(a.client_id, t);
+      }
+    }
+    const sorted = [...(c ?? [])].sort((a, b) => {
+      const ta = lastByClient.get(a.id) ?? new Date(a.created_at).getTime();
+      const tb = lastByClient.get(b.id) ?? new Date(b.created_at).getTime();
+      return tb - ta;
+    });
+    setClients(sorted);
     setRecent((r ?? []) as RecentAssessment[]);
     setLoading(false);
   }, []);
