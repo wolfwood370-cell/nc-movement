@@ -19,11 +19,17 @@ export interface ExerciseRow {
 export type SeverityBand = 'severe' | 'moderate' | 'none';
 
 /**
- * Severity rule:
- * - score === 1 (or 0 / red flag) → severe → unloaded ground-based postures (1..5)
- * - score === 2 with asymmetry    → moderate → loaded standing/split (6..12)
- * - everything else               → none (no prescription needed)
+ * Neurodevelopmental phase → posture-level bands
+ *   Reset       → 1..3  (Supine, Prone, Side Lying)
+ *   Reactivate  → 4..8  (Quadruped → Open Half Kneeling)
+ *   Reinforce   → 9..12 (Split Stance → Standing)
  */
+const PHASE_BANDS: Record<CorrectivePhase, [number, number]> = {
+  Reset:      [1, 3],
+  Reactivate: [4, 8],
+  Reinforce:  [9, 12],
+};
+
 function detectSeverity(scores: Partial<FmsScores>, patternKey: string): SeverityBand {
   if (!patternKey || patternKey === 'none' || patternKey === 'pain') {
     return patternKey === 'pain' ? 'severe' : 'none';
@@ -32,7 +38,6 @@ function detectSeverity(scores: Partial<FmsScores>, patternKey: string): Severit
   const p = patterns.find(pp => pp.key === patternKey);
   if (!p) return 'none';
   if (p.final === 0 || p.final === 1) return 'severe';
-  if (p.final === 2 && p.asymmetric) return 'moderate';
   if (p.final === 2) return 'moderate';
   return 'none';
 }
@@ -45,8 +50,10 @@ interface Result {
 }
 
 /**
- * Fetches one exercise per phase (Reset / Reactivate / Reinforce) from the
- * dynamic library, filtering by the severity-derived posture range.
+ * Fetches one exercise per phase from the dynamic library.
+ * Severe scores bias selection toward the lower end of each phase band
+ * (more regressed); moderate scores allow the full band. One exercise
+ * per phase is randomly selected so prescriptions vary visit-to-visit.
  */
 export function useCorrectiveExercises(scores: Partial<FmsScores> | null | undefined): Result {
   const [loading, setLoading] = useState(false);
@@ -64,26 +71,39 @@ export function useCorrectiveExercises(scores: Partial<FmsScores> | null | undef
       const patternKey = priority.patternKey;
       const sev = detectSeverity(scores, patternKey);
       setSeverity(sev);
-      if (sev === 'none' || patternKey === 'none') return;
-      const range: [number, number] = sev === 'severe' ? [1, 5] : [6, 12];
-      setPostureRange(range);
+      if (sev === 'none' || patternKey === 'none' || patternKey === 'pain') return;
+
+      // Overall posture range surfaced in UI (full clinical span).
+      setPostureRange([1, 12]);
 
       setLoading(true);
       const { data, error } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('pattern', patternKey)
-        .gte('posture_level', range[0])
-        .lte('posture_level', range[1])
         .order('posture_level', { ascending: true });
       setLoading(false);
       if (cancelled || error || !data) return;
 
-      // Pick one exercise per phase, lowest posture_level first within the band.
+      const rows = data as ExerciseRow[];
       const byPhase: Result['exercises'] = {};
-      for (const row of data as ExerciseRow[]) {
-        if (!byPhase[row.phase]) byPhase[row.phase] = row;
-      }
+
+      (Object.keys(PHASE_BANDS) as CorrectivePhase[]).forEach(phase => {
+        const [lo, hi] = PHASE_BANDS[phase];
+        // For severe cases, bias to the lower half of the band.
+        const cap = sev === 'severe' ? Math.max(lo, Math.floor((lo + hi) / 2)) : hi;
+        let pool = rows.filter(r =>
+          r.phase === phase && r.posture_level >= lo && r.posture_level <= cap,
+        );
+        // Fallback: if biased pool is empty, take the full band.
+        if (pool.length === 0) {
+          pool = rows.filter(r => r.phase === phase && r.posture_level >= lo && r.posture_level <= hi);
+        }
+        if (pool.length > 0) {
+          byPhase[phase] = pool[Math.floor(Math.random() * pool.length)];
+        }
+      });
+
       setExercises(byPhase);
     }
     run();
