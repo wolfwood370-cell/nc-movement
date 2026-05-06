@@ -108,8 +108,8 @@ export default function CorrectivePlanCard({ fms }: Props) {
   // ---- Dynamic prescription from exercises_library -----------------------
   const fallback = getCorrectiveProtocol(priority.patternKey);
   const severityLabel =
-    severity === 'severe' ? 'Severo · Posture 1–5'
-    : severity === 'moderate' ? 'Moderato · Posture 6–12'
+    severity === 'severe' ? 'Severo · Regressione posturale'
+    : severity === 'moderate' ? 'Moderato · Progressione completa'
     : '';
 
   return (
