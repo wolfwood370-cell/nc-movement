@@ -100,8 +100,6 @@ export default function FmsAssessment() {
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
-  const [ankleClearingLeft, setAnkleClearingLeft] = useState<Stoplight>(null);
-  const [ankleClearingRight, setAnkleClearingRight] = useState<Stoplight>(null);
 
   useEffect(() => {
     (async () => {
@@ -126,8 +124,24 @@ export default function FmsAssessment() {
           setReadOnly(true);
         }
       } else if (clientIdParam) {
-        const { data } = await supabase.from('clients').select('full_name').eq('id', clientIdParam).maybeSingle();
-        setClientName(data?.full_name ?? '');
+        const { data: clientData } = await supabase.from('clients')
+          .select('full_name').eq('id', clientIdParam).maybeSingle();
+        setClientName(clientData?.full_name ?? '');
+        // Pre-fill anthropometric measurements from the most recent assessment
+        // for this client (Tibia/Hand length should persist across sessions).
+        const { data: lastAssessment } = await supabase.from('fms_assessments')
+          .select('tibia_length_cm, hand_length_cm')
+          .eq('client_id', clientIdParam)
+          .order('assessed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastAssessment) {
+          setScores((prev) => ({
+            ...prev,
+            tibia_length_cm: lastAssessment.tibia_length_cm ?? prev.tibia_length_cm,
+            hand_length_cm: lastAssessment.hand_length_cm ?? prev.hand_length_cm,
+          }));
+        }
       }
       setLoading(false);
     })();
@@ -144,6 +158,8 @@ export default function FmsAssessment() {
   const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
     setScores(p => ({ ...p, [k]: v }));
 
+  const isExisting = !!id && id !== 'new';
+
   const save = async () => {
     if (!user || !clientId) { toast.error('Cliente mancante'); return; }
     if (total === null) { toast.error('Compila tutti i pattern prima di salvare.'); return; }
@@ -156,6 +172,15 @@ export default function FmsAssessment() {
       primary_corrective: corrective.label,
       assessed_at: assessedAt ?? new Date().toISOString(),
     };
+    if (isExisting) {
+      const { error } = await supabase.from('fms_assessments')
+        .update(payload).eq('id', id!);
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success('Modifiche salvate');
+      setReadOnly(true);
+      return;
+    }
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
