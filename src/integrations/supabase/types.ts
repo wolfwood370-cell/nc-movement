@@ -79,8 +79,11 @@ export type Database = {
           phase: Database["public"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
+          progression: string | null
           rationale: string | null
+          regression: string | null
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           created_at?: string
@@ -92,8 +95,11 @@ export type Database = {
           phase: Database["public"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
+          progression?: string | null
           rationale?: string | null
+          regression?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           created_at?: string
@@ -105,8 +111,11 @@ export type Database = {
           phase?: Database["public"]["Enums"]["corrective_phase"]
           posture_level?: number
           posture_name?: string
+          progression?: string | null
           rationale?: string | null
+          regression?: string | null
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
