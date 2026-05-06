@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText } from 'lucide-react';
+import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText, Pencil, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -100,8 +100,6 @@ export default function FmsAssessment() {
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
-  const [ankleClearingLeft, setAnkleClearingLeft] = useState<Stoplight>(null);
-  const [ankleClearingRight, setAnkleClearingRight] = useState<Stoplight>(null);
 
   useEffect(() => {
     (async () => {
@@ -126,8 +124,24 @@ export default function FmsAssessment() {
           setReadOnly(true);
         }
       } else if (clientIdParam) {
-        const { data } = await supabase.from('clients').select('full_name').eq('id', clientIdParam).maybeSingle();
-        setClientName(data?.full_name ?? '');
+        const { data: clientData } = await supabase.from('clients')
+          .select('full_name').eq('id', clientIdParam).maybeSingle();
+        setClientName(clientData?.full_name ?? '');
+        // Pre-fill anthropometric measurements from the most recent assessment
+        // for this client (Tibia/Hand length should persist across sessions).
+        const { data: lastAssessment } = await supabase.from('fms_assessments')
+          .select('tibia_length_cm, hand_length_cm')
+          .eq('client_id', clientIdParam)
+          .order('assessed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastAssessment) {
+          setScores((prev) => ({
+            ...prev,
+            tibia_length_cm: lastAssessment.tibia_length_cm ?? prev.tibia_length_cm,
+            hand_length_cm: lastAssessment.hand_length_cm ?? prev.hand_length_cm,
+          }));
+        }
       }
       setLoading(false);
     })();
@@ -144,6 +158,8 @@ export default function FmsAssessment() {
   const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
     setScores(p => ({ ...p, [k]: v }));
 
+  const isExisting = !!id && id !== 'new';
+
   const save = async () => {
     if (!user || !clientId) { toast.error('Cliente mancante'); return; }
     if (total === null) { toast.error('Compila tutti i pattern prima di salvare.'); return; }
@@ -156,6 +172,15 @@ export default function FmsAssessment() {
       primary_corrective: corrective.label,
       assessed_at: assessedAt ?? new Date().toISOString(),
     };
+    if (isExisting) {
+      const { error } = await supabase.from('fms_assessments')
+        .update(payload).eq('id', id!);
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success('Modifiche salvate');
+      setReadOnly(true);
+      return;
+    }
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -259,19 +284,39 @@ export default function FmsAssessment() {
           <div className="min-w-0">
             <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
             <p className="text-sm text-muted-foreground">
-              {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
+              {readOnly ? 'Sola lettura — tocca Modifica per aggiornare i punteggi' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
             </p>
           </div>
-          {total !== null && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReportOpen(true)}
-              className="shrink-0"
-            >
-              <FileText className="w-4 h-4 mr-1.5" /> Report
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {isExisting && (
+              readOnly ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setReadOnly(false)}
+                >
+                  <Pencil className="w-4 h-4 mr-1.5" /> Modifica
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setReadOnly(true)}
+                >
+                  <X className="w-4 h-4 mr-1.5" /> Annulla
+                </Button>
+              )
+            )}
+            {total !== null && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReportOpen(true)}
+              >
+                <FileText className="w-4 h-4 mr-1.5" /> Report
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -353,16 +398,16 @@ export default function FmsAssessment() {
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Sinistro</div>
               <StoplightSelector
-                value={ankleClearingLeft}
-                onChange={setAnkleClearingLeft}
+                value={scores.ankle_clearing_left as Stoplight}
+                onChange={(v) => setField('ankle_clearing_left', v)}
                 disabled={readOnly}
               />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Lato Destro</div>
               <StoplightSelector
-                value={ankleClearingRight}
-                onChange={setAnkleClearingRight}
+                value={scores.ankle_clearing_right as Stoplight}
+                onChange={(v) => setField('ankle_clearing_right', v)}
                 disabled={readOnly}
               />
             </div>
@@ -453,7 +498,7 @@ export default function FmsAssessment() {
             className="w-full h-14 rounded-2xl text-base shadow-elevated tap-target"
           >
             <Save className="w-5 h-5 mr-2" />
-            {saving ? 'Salvataggio…' : `Salva valutazione${total !== null ? ` · ${total}/21` : ''}`}
+            {saving ? 'Salvataggio…' : `${isExisting ? 'Salva modifiche' : 'Salva valutazione'}${total !== null ? ` · ${total}/21` : ''}`}
           </Button>
         </div>
       )}

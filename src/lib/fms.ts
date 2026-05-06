@@ -1,6 +1,7 @@
 // FMS scoring & Cook's Corrective Algorithm
 
 export type Score = 0 | 1 | 2 | 3 | null;
+export type AnkleClearing = 'green' | 'yellow' | 'red' | null;
 
 export interface FmsScores {
   deep_squat_score: Score;
@@ -9,6 +10,8 @@ export interface FmsScores {
   inline_lunge_left: Score; inline_lunge_right: Score;
   ankle_clearing_left_pain: boolean;
   ankle_clearing_right_pain: boolean;
+  ankle_clearing_left: AnkleClearing;
+  ankle_clearing_right: AnkleClearing;
   shoulder_mobility_left: Score; shoulder_mobility_right: Score;
   hand_length_cm: number | null;
   aslr_left: Score; aslr_right: Score;
@@ -28,6 +31,8 @@ export const emptyFmsScores = (): FmsScores => ({
   inline_lunge_left: null, inline_lunge_right: null,
   ankle_clearing_left_pain: false,
   ankle_clearing_right_pain: false,
+  ankle_clearing_left: null,
+  ankle_clearing_right: null,
   shoulder_mobility_left: null, shoulder_mobility_right: null,
   hand_length_cm: null,
   aslr_left: null, aslr_right: null,
