@@ -230,14 +230,22 @@
     color: #000000 !important;
   }
 
-  /* Hide everything except the printable referral. */
+  /* Universal hide-on-print utility. */
+  .no-print { display: none !important; }
+
+  /* Default: hide everything... */
   body * {
     visibility: hidden !important;
   }
-  #medical-referral-print, #medical-referral-print * {
+
+  /* ...then reveal the active printable region (medical referral OR take-home). */
+  #medical-referral-print, #medical-referral-print *,
+  #take-home-print, #take-home-print * {
     visibility: visible !important;
   }
-  #medical-referral-print {
+
+  #medical-referral-print,
+  #take-home-print {
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
@@ -247,10 +255,10 @@
     color: #000000 !important;
     box-shadow: none !important;
     border: 0 !important;
+    display: block !important;
   }
 
-  /* Neutralize Radix dialog wrappers ONLY when they contain the printable
-     referral, so other open dialogs (if any) keep their own layout. */
+  /* Neutralize Radix dialog wrappers ONLY when they contain a printable region. */
   [role="dialog"]:has(#medical-referral-print),
   [data-radix-popper-content-wrapper]:has(#medical-referral-print) {
     position: static !important;
