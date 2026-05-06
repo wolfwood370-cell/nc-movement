@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Library, Search } from 'lucide-react';
+import { Library, Search, PlayCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import ExerciseVideoDialog from '@/components/insights/ExerciseVideoDialog';
 import type { CorrectivePhase, ExerciseRow } from '@/hooks/useCorrectiveExercises';
 
 const PATTERNS: { key: string; label: string }[] = [
