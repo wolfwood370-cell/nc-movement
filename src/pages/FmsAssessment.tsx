@@ -284,7 +284,7 @@ export default function FmsAssessment() {
           <div className="min-w-0">
             <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
             <p className="text-sm text-muted-foreground">
-              {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
+              {readOnly ? 'Sola lettura — tocca Modifica per aggiornare i punteggi' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
