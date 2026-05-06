@@ -31,6 +31,8 @@ export const emptyFmsScores = (): FmsScores => ({
   inline_lunge_left: null, inline_lunge_right: null,
   ankle_clearing_left_pain: false,
   ankle_clearing_right_pain: false,
+  ankle_clearing_left: null,
+  ankle_clearing_right: null,
   shoulder_mobility_left: null, shoulder_mobility_right: null,
   hand_length_cm: null,
   aslr_left: null, aslr_right: null,
