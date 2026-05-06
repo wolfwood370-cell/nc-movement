@@ -136,6 +136,34 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
   return (
     <div className="space-y-5">
+      {/* Closed-loop Re-Test prompt */}
+      {retest && (
+        <section className="surface-card border-warning/40 border bg-warning/5 p-4 flex items-start gap-3 flex-wrap">
+          <CalendarClock className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-[220px]">
+            <h3 className="font-display font-bold text-sm text-warning mb-1">
+              Azione Clinica · Re-Test consigliato
+            </h3>
+            <p className="text-sm text-foreground">
+              Sono passati <strong>{retest.days} giorni</strong> dalla prescrizione di
+              correttivi per <strong>{retest.focus}</strong>. Si consiglia di rivalutare
+              il pattern con un nuovo FMS per chiudere il ciclo.
+            </p>
+          </div>
+          {clientId && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => navigate(`/assessments/fms/new?clientId=${clientId}`)}
+              className="tap-target"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Nuovo FMS
+            </Button>
+          )}
+        </section>
+      )}
+
       {/* Risk + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <RiskGauge risk={risk} />
