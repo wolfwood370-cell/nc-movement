@@ -35,6 +35,7 @@ export default function CorrectiveLibrary() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activePattern, setActivePattern] = useState(PATTERNS[0].key);
+  const [video, setVideo] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
