@@ -287,16 +287,36 @@ export default function FmsAssessment() {
               {readOnly ? 'Sola lettura — valutazione completata' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
             </p>
           </div>
-          {total !== null && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReportOpen(true)}
-              className="shrink-0"
-            >
-              <FileText className="w-4 h-4 mr-1.5" /> Report
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {isExisting && (
+              readOnly ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setReadOnly(false)}
+                >
+                  <Pencil className="w-4 h-4 mr-1.5" /> Modifica
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setReadOnly(true)}
+                >
+                  <X className="w-4 h-4 mr-1.5" /> Annulla
+                </Button>
+              )
+            )}
+            {total !== null && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReportOpen(true)}
+              >
+                <FileText className="w-4 h-4 mr-1.5" /> Report
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
