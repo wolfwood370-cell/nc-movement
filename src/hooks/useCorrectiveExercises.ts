@@ -14,6 +14,9 @@ export interface ExerciseRow {
   name: string;
   goal: string | null;
   dose: string | null;
+  video_url?: string | null;
+  progression?: string | null;
+  regression?: string | null;
 }
 
 export type SeverityBand = 'severe' | 'moderate' | 'none';
