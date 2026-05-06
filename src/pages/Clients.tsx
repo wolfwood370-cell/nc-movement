@@ -28,7 +28,7 @@ export default function Clients() {
     const { data: cs } = await supabase
       .from('clients')
       .select('id, full_name, created_at, date_of_birth, primary_sport')
-      .order('created_at', { ascending: false });
+      .order('full_name', { ascending: true });
     const list = (cs ?? []) as Client[];
     setClients(list);
 
