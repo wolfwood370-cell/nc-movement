@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises_library: {
+        Row: {
+          created_at: string
+          dose: string | null
+          goal: string | null
+          id: string
+          name: string
+          pattern: string
+          phase: Database["public"]["Enums"]["corrective_phase"]
+          posture_level: number
+          posture_name: string
+          rationale: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dose?: string | null
+          goal?: string | null
+          id?: string
+          name: string
+          pattern: string
+          phase: Database["public"]["Enums"]["corrective_phase"]
+          posture_level: number
+          posture_name: string
+          rationale?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dose?: string | null
+          goal?: string | null
+          id?: string
+          name?: string
+          pattern?: string
+          phase?: Database["public"]["Enums"]["corrective_phase"]
+          posture_level?: number
+          posture_name?: string
+          rationale?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fcs_assessments: {
         Row: {
           assessed_at: string
@@ -551,6 +593,7 @@ export type Database = {
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
+      corrective_phase: "Reset" | "Reactivate" | "Reinforce"
       sfma_score: "FN" | "DN" | "FP" | "DP"
       ybt_test_type: "LQ" | "UQ"
     }
@@ -681,6 +724,7 @@ export const Constants = {
   public: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
+      corrective_phase: ["Reset", "Reactivate", "Reinforce"],
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],
     },

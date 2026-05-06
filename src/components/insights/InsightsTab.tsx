@@ -3,12 +3,14 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, Sparkles, FileText } from 'lucide-react';
+import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
+import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -40,6 +42,8 @@ interface Props {
   sfmaLatest?: SfmaWithBreakouts | null;
   client?: ClientLite | null;
   practitioner?: PractitionerLite | null;
+  /** When provided, enables the closed-loop Re-Test banner CTA. */
+  clientId?: string;
 }
 
 /** Convert a 0..1+ ratio against its target into a 0..100 score (capped at 100). */
@@ -51,10 +55,23 @@ function ratioToScore(value: number | null, target: number): number {
 const abs = (a: number | null, b: number | null) =>
   a !== null && b !== null ? Math.abs(a - b) : null;
 
-export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLatest, client, practitioner }: Props) {
+export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLatest, client, practitioner, clientId }: Props) {
   const latestFms = fmsHistory[0] ?? null;
   const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // ---- Closed-loop Re-Test prompt ---------------------------------------
+  // If the latest FMS prescribed correctives (priority != optimal/incomplete)
+  // and is older than 14 days, surface a banner inviting a fresh re-test.
+  const retest = useMemo(() => {
+    if (!latestFms?.assessed_at) return null;
+    const priority = getCorrectivePriority(latestFms as FmsScores);
+    if (priority.level === 'optimal' || priority.level === 'incomplete') return null;
+    const days = Math.floor((Date.now() - new Date(latestFms.assessed_at).getTime()) / 86_400_000);
+    if (days < 14) return null;
+    return { days, focus: priority.focus };
+  }, [latestFms]);
   const risk = useMemo(
     () => computeRisk(latestFms, ybtLatest, sfmaLatest ?? null, { hasPreviousInjury: client?.has_previous_injury ?? false }),
     [latestFms, ybtLatest, sfmaLatest, client?.has_previous_injury],
@@ -119,6 +136,34 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
   return (
     <div className="space-y-5">
+      {/* Closed-loop Re-Test prompt */}
+      {retest && (
+        <section className="surface-card border-warning/40 border bg-warning/5 p-4 flex items-start gap-3 flex-wrap">
+          <CalendarClock className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-[220px]">
+            <h3 className="font-display font-bold text-sm text-warning mb-1">
+              Azione Clinica · Re-Test consigliato
+            </h3>
+            <p className="text-sm text-foreground">
+              Sono passati <strong>{retest.days} giorni</strong> dalla prescrizione di
+              correttivi per <strong>{retest.focus}</strong>. Si consiglia di rivalutare
+              il pattern con un nuovo FMS per chiudere il ciclo.
+            </p>
+          </div>
+          {clientId && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => navigate(`/assessments/fms/new?clientId=${clientId}`)}
+              className="tap-target"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Nuovo FMS
+            </Button>
+          )}
+        </section>
+      )}
+
       {/* Risk + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <RiskGauge risk={risk} />

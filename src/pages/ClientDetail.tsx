@@ -266,7 +266,7 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} />
+          <InsightsTab fmsHistory={fms} fcsMetrics={fcsMetrics} ybtHistory={ybtHistory} sfmaLatest={latestSfma} client={client} practitioner={practitioner} clientId={client.id} />
         </TabsContent>
       </Tabs>
 
