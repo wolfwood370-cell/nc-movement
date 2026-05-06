@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText } from 'lucide-react';
+import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText, Pencil, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
