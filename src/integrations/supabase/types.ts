@@ -204,7 +204,9 @@ export type Database = {
       }
       fms_assessments: {
         Row: {
+          ankle_clearing_left: string | null
           ankle_clearing_left_pain: boolean
+          ankle_clearing_right: string | null
           ankle_clearing_right_pain: boolean
           aslr_left: number | null
           aslr_right: number | null
@@ -236,7 +238,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ankle_clearing_left?: string | null
           ankle_clearing_left_pain?: boolean
+          ankle_clearing_right?: string | null
           ankle_clearing_right_pain?: boolean
           aslr_left?: number | null
           aslr_right?: number | null
@@ -268,7 +272,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ankle_clearing_left?: string | null
           ankle_clearing_left_pain?: boolean
+          ankle_clearing_right?: string | null
           ankle_clearing_right_pain?: boolean
           aslr_left?: number | null
           aslr_right?: number | null
