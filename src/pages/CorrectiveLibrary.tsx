@@ -126,24 +126,34 @@ export default function CorrectiveLibrary() {
                         <p className="text-sm text-muted-foreground py-2">Nessun esercizio.</p>
                       ) : (
                         <div className="grid gap-2">
-                          {list.map(ex => (
-                            <Card key={ex.id} className="border-border">
-                              <CardContent className="p-3 space-y-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <Badge variant="outline" className="text-[10px]">
-                                    L{ex.posture_level} · {ex.posture_name}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm font-medium leading-snug">{ex.name}</div>
-                                {ex.goal && (
-                                  <div className="text-xs text-muted-foreground">{ex.goal}</div>
-                                )}
-                                {ex.dose && (
-                                  <div className="text-xs text-muted-foreground italic">{ex.dose}</div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
+                          {list.map(ex => {
+                            const playable = !!ex.video_url;
+                            return (
+                              <Card
+                                key={ex.id}
+                                className={`border-border transition-colors ${playable ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                                onClick={playable ? () => setVideo({ url: ex.video_url!, title: ex.name }) : undefined}
+                              >
+                                <CardContent className="p-3 space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant="outline" className="text-[10px]">
+                                      L{ex.posture_level} · {ex.posture_name}
+                                    </Badge>
+                                    {playable && (
+                                      <PlayCircle className="w-4 h-4 text-primary ml-auto" />
+                                    )}
+                                  </div>
+                                  <div className="text-sm font-medium leading-snug">{ex.name}</div>
+                                  {ex.goal && (
+                                    <div className="text-xs text-muted-foreground">{ex.goal}</div>
+                                  )}
+                                  {ex.dose && (
+                                    <div className="text-xs text-muted-foreground italic">{ex.dose}</div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       )}
                     </AccordionContent>
@@ -154,6 +164,13 @@ export default function CorrectiveLibrary() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <ExerciseVideoDialog
+        open={!!video}
+        onClose={() => setVideo(null)}
+        url={video?.url ?? null}
+        title={video?.title ?? ''}
+      />
     </div>
   );
 }
