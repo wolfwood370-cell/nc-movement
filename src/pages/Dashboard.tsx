@@ -33,6 +33,21 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
+  const [practitionerName, setPractitionerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) { setPractitionerName(null); return; }
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setPractitionerName(data?.display_name ?? null);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,7 +90,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <section>
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Benvenuto</p>
-        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">Nicolò Castello</h1>
+        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">{practitionerName ?? 'Benvenuto'}</h1>
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
