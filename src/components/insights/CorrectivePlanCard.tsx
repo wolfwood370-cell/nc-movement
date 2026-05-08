@@ -282,6 +282,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
                     name={raise?.name ?? 'Assault Bike / Rower / Skipping'}
                     dose={doseFor(raise) ?? '3-5 Min · RPE 5-6'}
                     onPlay={raise?.video_url ? () => setVideo({ url: raise.video_url!, title: raise.name }) : undefined}
+                    safetyTag={raiseTag}
                   />
                 )}
 
