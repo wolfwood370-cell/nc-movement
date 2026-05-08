@@ -17,6 +17,10 @@ export interface ExerciseRow {
   video_url?: string | null;
   progression?: string | null;
   regression?: string | null;
+  default_sets?: string | null;
+  default_reps_time?: string | null;
+  ramp_category?: string | null;
+  workout_target?: string | null;
 }
 
 export type SeverityBand = 'severe' | 'moderate' | 'none';
