@@ -10,6 +10,10 @@ import {
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
+import logoFms from '@/assets/logo-fms.png';
+import logoSfma from '@/assets/logo-sfma.png';
+import logoFcs from '@/assets/logo-fcs.png';
+import logoYbt from '@/assets/logo-ybt.png';
 
 interface Client { id: string; full_name: string; created_at: string }
 interface RecentAssessment {
@@ -18,10 +22,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   icon: ClipboardList, enabled: true  },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    icon: Compass,       enabled: true  },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                icon: Target,        enabled: true  },
-  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         icon: Gauge,         enabled: true  },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   logo: logoFms, enabled: true  },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    logo: logoSfma, enabled: true  },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                logo: logoYbt, enabled: true  },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         logo: logoFcs, enabled: true  },
 ];
 
 export default function Dashboard() {
