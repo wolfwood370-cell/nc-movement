@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Users, LayoutDashboard, LogOut, Library, Flame } from 'lucide-react';
+import { Activity, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/logo.png';
@@ -9,7 +9,6 @@ const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/clients', label: 'Clienti', icon: Users, end: false },
   { to: '/assessments', label: 'Test', icon: Activity, end: false },
-  { to: '/daily-prep', label: 'Daily Prep', icon: Flame, end: false },
   { to: '/library', label: 'Libreria', icon: Library, end: false },
 ];
 
