@@ -213,8 +213,6 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
 
-      {/* Daily Prep & RAMP-6 — auto-detects weak link from latest FMS */}
-      <DailyPrepSection latestFms={latestFms} />
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
