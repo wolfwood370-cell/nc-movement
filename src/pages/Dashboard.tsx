@@ -126,8 +126,8 @@ export default function Dashboard() {
               disabled={!t.enabled && clients.length === 0}
               className="surface-card p-4 text-left tap-target hover:shadow-elevated transition-all relative overflow-hidden group"
             >
-              <div className="w-10 h-10 rounded-xl bg-accent grid place-items-center mb-3">
-                <t.icon className="w-5 h-5 text-accent-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden mb-3 bg-white grid place-items-center">
+                <img src={t.logo} alt={t.label} className="w-full h-full object-contain p-0.5" />
               </div>
               <div className="font-display font-bold text-lg">{t.label}</div>
               <div className="text-xs text-muted-foreground leading-snug">{t.desc}</div>
