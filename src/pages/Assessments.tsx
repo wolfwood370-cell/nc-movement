@@ -1,11 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ClipboardList, Compass, Target, Gauge } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
+import fmsLogo from '@/assets/test-logos/fms.png';
+import sfmaLogo from '@/assets/test-logos/sfma.png';
+import ybtLogo from '@/assets/test-logos/ybt.png';
+import fcsLogo from '@/assets/test-logos/fcs.png';
 
 const tests = [
-  { key: 'fms',  label: 'FMS — Functional Movement Screen', icon: ClipboardList, ready: true },
-  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', icon: Compass, ready: true },
-  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', icon: Gauge, ready: true },
-  { key: 'ybt',  label: 'YBT — Y-Balance Test', icon: Target, ready: true },
+  { key: 'fms',  label: 'FMS — Functional Movement Screen', logo: fmsLogo,  ready: true },
+  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', logo: sfmaLogo, ready: true },
+  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', logo: fcsLogo,  ready: true },
+  { key: 'ybt',  label: 'YBT — Y-Balance Test', logo: ybtLogo,  ready: true },
 ];
 
 export default function Assessments() {
