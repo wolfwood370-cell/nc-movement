@@ -224,9 +224,12 @@ export function deriveClinicalConstraints(
 const BAN_RAISE_LOWER = ['treadmill', 'tapis', 'run', 'corsa', 'skipping', 'jumping jack', 'sprint', 'salto', 'rope', 'corda'];
 const BAN_RAISE_UPPER = ['assault', 'rower', 'rowing', 'ski erg', 'skierg', 'remoerg'];
 
-const BAN_POT_LOWER = ['box jump', 'depth jump', 'sprint', 'plyo lunge', 'broad jump', 'tuck jump', 'jump squat'];
-const BAN_POT_UPPER = ['plyo push', 'plyo pushup', 'overhead', 'overhead throw', 'overhead slam', 'med ball throw'];
-const BAN_POT_SPINAL = ['kb swing', 'kettlebell swing', 'swing', 'slam', 'overhead'];
+// Lower-extremity impact ban: forbid all flight-phase plyometrics on the legs.
+const BAN_POT_LOWER = ['box jump', 'depth jump', 'sprint', 'plyo lunge', 'broad jump', 'tuck jump', 'jump squat', 'squat jump', 'vertical jump', 'vertical squat jump'];
+// Upper-extremity impact ban: forbid overhead/heavy upper-body plyos (incl. snatches).
+const BAN_POT_UPPER = ['plyo push', 'plyo pushup', 'overhead', 'overhead throw', 'overhead slam', 'med ball throw', 'snatch', 'dumbbell snatch'];
+// Spinal bracing ban: forbid explosive ballistic loads through the spine.
+const BAN_POT_SPINAL = ['kb swing', 'kettlebell swing', 'swing', 'slam', 'overhead', 'snatch', 'dumbbell snatch'];
 
 interface NamedRow { name: string }
 
