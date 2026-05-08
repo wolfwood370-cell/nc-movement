@@ -133,3 +133,158 @@ export function getCorrectiveProtocol(patternKey: string | undefined | null): Co
   if (!patternKey) return CORRECTIVE_PROTOCOLS.default;
   return CORRECTIVE_PROTOCOLS[patternKey] ?? CORRECTIVE_PROTOCOLS.default;
 }
+
+// =============================================================================
+// Clinical Constraints — RAMP-6 Safety Interceptor (Jeffreys × Cook)
+// =============================================================================
+//
+// Reads the raw FMS object and derives three independent "ban" axes that gate
+// which Raise (cardio) and Potentiate (plyometric / power) exercises may be
+// prescribed. Used to swap unsafe selections at the UI layer and surface a
+// "Modified for X Safety" badge so the coach knows the engine intervened.
+// =============================================================================
+
+export type ConstraintAxis = 'lower' | 'upper' | 'spinal';
+
+export interface ConstraintTag {
+  axis: ConstraintAxis;
+  /** Short coach-facing badge label. */
+  label: string;
+  /** Verbose reason for tooltips / logs. */
+  reason: string;
+}
+
+export interface ClinicalConstraints {
+  lower: ConstraintTag | null;
+  upper: ConstraintTag | null;
+  spinal: ConstraintTag | null;
+}
+
+const isRedYellow = (a: AnkleClearing) => a === 'red' || a === 'yellow';
+
+/** Build the constraint set from a (possibly partial) FMS record. */
+export function deriveClinicalConstraints(
+  scores: Partial<FmsScores> | null | undefined
+): ClinicalConstraints {
+  const empty: ClinicalConstraints = { lower: null, upper: null, spinal: null };
+  if (!scores) return empty;
+
+  const lo = (a: number | null | undefined, b: number | null | undefined) => {
+    if (a == null && b == null) return null;
+    if (a == null) return b ?? null;
+    if (b == null) return a;
+    return Math.min(a, b);
+  };
+
+  const ankleFlag =
+    !!scores.ankle_clearing_left_pain ||
+    !!scores.ankle_clearing_right_pain ||
+    isRedYellow(scores.ankle_clearing_left ?? null) ||
+    isRedYellow(scores.ankle_clearing_right ?? null);
+  const hurdle = lo(scores.hurdle_step_left ?? null, scores.hurdle_step_right ?? null);
+  const lunge  = lo(scores.inline_lunge_left ?? null, scores.inline_lunge_right ?? null);
+
+  const lowerTriggers: string[] = [];
+  if (ankleFlag) lowerTriggers.push('Ankle Clearing');
+  if (hurdle === 1) lowerTriggers.push('Hurdle Step = 1');
+  if (lunge === 1)  lowerTriggers.push('Inline Lunge = 1');
+
+  const shoulderPain =
+    !!scores.clearing_shoulder_pain ||
+    !!scores.clearing_shoulder_left_pain ||
+    !!scores.clearing_shoulder_right_pain;
+  const sm = lo(scores.shoulder_mobility_left ?? null, scores.shoulder_mobility_right ?? null);
+
+  const upperTriggers: string[] = [];
+  if (shoulderPain) upperTriggers.push('Shoulder Clearing');
+  if (sm === 1)     upperTriggers.push('Shoulder Mobility = 1');
+
+  const spinalTriggers: string[] = [];
+  if (scores.clearing_spinal_extension_pain) spinalTriggers.push('Spinal Extension');
+  if (scores.clearing_spinal_flexion_pain)   spinalTriggers.push('Spinal Flexion');
+  if (scores.trunk_stability_pushup_score === 1) spinalTriggers.push('TSPU = 1');
+
+  return {
+    lower: lowerTriggers.length
+      ? { axis: 'lower', label: 'Modificato · Sicurezza Caviglia/Arti Inferiori',
+          reason: lowerTriggers.join(' · ') }
+      : null,
+    upper: upperTriggers.length
+      ? { axis: 'upper', label: 'Modificato · Sicurezza Spalla',
+          reason: upperTriggers.join(' · ') }
+      : null,
+    spinal: spinalTriggers.length
+      ? { axis: 'spinal', label: 'Modificato · Sicurezza Rachide',
+          reason: spinalTriggers.join(' · ') }
+      : null,
+  };
+}
+
+// ---- Banned-keyword tables (case-insensitive substring match on `name`) ----
+const BAN_RAISE_LOWER = ['treadmill', 'tapis', 'run', 'corsa', 'skipping', 'jumping jack', 'sprint', 'salto', 'rope', 'corda'];
+const BAN_RAISE_UPPER = ['assault', 'rower', 'rowing', 'ski erg', 'skierg', 'remoerg'];
+
+const BAN_POT_LOWER = ['box jump', 'depth jump', 'sprint', 'plyo lunge', 'broad jump', 'tuck jump', 'jump squat'];
+const BAN_POT_UPPER = ['plyo push', 'plyo pushup', 'overhead', 'overhead throw', 'overhead slam', 'med ball throw'];
+const BAN_POT_SPINAL = ['kb swing', 'kettlebell swing', 'swing', 'slam', 'overhead'];
+
+interface NamedRow { name: string }
+
+function nameMatchesAny(name: string, bans: readonly string[]): boolean {
+  const n = name.toLowerCase();
+  return bans.some(b => n.includes(b));
+}
+
+export interface FilterResult<T> {
+  rows: T[];
+  /** Tag emitted when at least one row was rejected by constraints. */
+  appliedTag: ConstraintTag | null;
+}
+
+/** Filter Raise (RAMP cat A) candidates per Constraints A & B. */
+export function filterRaiseCandidates<T extends NamedRow>(
+  rows: T[],
+  c: ClinicalConstraints
+): FilterResult<T> {
+  let applied: ConstraintTag | null = null;
+  let out = rows;
+
+  if (c.lower) {
+    const filtered = out.filter(r => !nameMatchesAny(r.name, BAN_RAISE_LOWER));
+    if (filtered.length !== out.length) applied = c.lower;
+    out = filtered.length ? filtered : out;
+  }
+  if (c.upper) {
+    const filtered = out.filter(r => !nameMatchesAny(r.name, BAN_RAISE_UPPER));
+    if (filtered.length !== out.length) applied = applied ?? c.upper;
+    out = filtered.length ? filtered : out;
+  }
+  return { rows: out, appliedTag: applied };
+}
+
+/** Filter Potentiate (RAMP cat F) candidates per Constraints A, B & C. */
+export function filterPotentiateCandidates<T extends NamedRow>(
+  rows: T[],
+  c: ClinicalConstraints
+): FilterResult<T> {
+  let applied: ConstraintTag | null = null;
+  let out = rows;
+
+  if (c.lower) {
+    const filtered = out.filter(r => !nameMatchesAny(r.name, BAN_POT_LOWER));
+    if (filtered.length !== out.length) applied = c.lower;
+    out = filtered.length ? filtered : out;
+  }
+  if (c.upper) {
+    const filtered = out.filter(r => !nameMatchesAny(r.name, BAN_POT_UPPER));
+    if (filtered.length !== out.length) applied = applied ?? c.upper;
+    out = filtered.length ? filtered : out;
+  }
+  if (c.spinal) {
+    const filtered = out.filter(r => !nameMatchesAny(r.name, BAN_POT_SPINAL));
+    if (filtered.length !== out.length) applied = applied ?? c.spinal;
+    out = filtered.length ? filtered : out;
+  }
+  return { rows: out, appliedTag: applied };
+}
+
