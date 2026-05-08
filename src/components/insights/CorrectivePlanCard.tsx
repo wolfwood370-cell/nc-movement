@@ -197,6 +197,23 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
           <div className="pt-2 space-y-1">
             <div className="font-display font-bold text-base leading-tight">{priority.focus}</div>
             <p className="text-xs text-muted-foreground">{fallback.rationale}</p>
+            {constraintList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Vincoli clinici attivi:
+                </span>
+                {constraintList.map(t => (
+                  <span
+                    key={t.axis}
+                    title={t.reason}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-warning/15 text-warning text-[10px] font-semibold border border-warning/30"
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    {t.axis === 'lower' ? 'Arti Inferiori' : t.axis === 'upper' ? 'Spalla' : 'Rachide'}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
 
