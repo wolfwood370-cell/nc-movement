@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Activity, ChevronRight, ClipboardList, Target, Compass, Gauge } from 'lucide-react';
+import { Plus, Users, Activity, ChevronRight } from 'lucide-react';
+import fmsLogo from '@/assets/test-logos/fms.png';
+import sfmaLogo from '@/assets/test-logos/sfma.png';
+import ybtLogo from '@/assets/test-logos/ybt.png';
+import fcsLogo from '@/assets/test-logos/fcs.png';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
