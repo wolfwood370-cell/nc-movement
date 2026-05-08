@@ -71,6 +71,8 @@ export type Database = {
       exercises_library: {
         Row: {
           created_at: string
+          default_reps_time: string | null
+          default_sets: string | null
           dose: string | null
           goal: string | null
           id: string
@@ -80,13 +82,17 @@ export type Database = {
           posture_level: number
           posture_name: string
           progression: string | null
+          ramp_category: string | null
           rationale: string | null
           regression: string | null
           updated_at: string
           video_url: string | null
+          workout_target: string | null
         }
         Insert: {
           created_at?: string
+          default_reps_time?: string | null
+          default_sets?: string | null
           dose?: string | null
           goal?: string | null
           id?: string
@@ -96,13 +102,17 @@ export type Database = {
           posture_level: number
           posture_name: string
           progression?: string | null
+          ramp_category?: string | null
           rationale?: string | null
           regression?: string | null
           updated_at?: string
           video_url?: string | null
+          workout_target?: string | null
         }
         Update: {
           created_at?: string
+          default_reps_time?: string | null
+          default_sets?: string | null
           dose?: string | null
           goal?: string | null
           id?: string
@@ -112,10 +122,12 @@ export type Database = {
           posture_level?: number
           posture_name?: string
           progression?: string | null
+          ramp_category?: string | null
           rationale?: string | null
           regression?: string | null
           updated_at?: string
           video_url?: string | null
+          workout_target?: string | null
         }
         Relationships: []
       }
