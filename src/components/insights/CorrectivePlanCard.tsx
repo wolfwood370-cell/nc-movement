@@ -11,7 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
-import { getCorrectiveProtocol } from '@/lib/correctiveProtocols';
+import {
+  getCorrectiveProtocol,
+  deriveClinicalConstraints,
+  filterRaiseCandidates,
+  filterPotentiateCandidates,
+  type ConstraintTag,
+} from '@/lib/correctiveProtocols';
 import { useCorrectiveExercises, type ExerciseRow, type CorrectivePhase } from '@/hooks/useCorrectiveExercises';
 import ExerciseVideoDialog from './ExerciseVideoDialog';
 
@@ -72,10 +78,19 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
   const [potentiate, setPotentiate] = useState<ExerciseRow[]>([]);
   const [raise, setRaise] = useState<ExerciseRow | null>(null);
   const [rampLoading, setRampLoading] = useState(false);
+  // Tags emitted by the clinical interceptor when an unsafe candidate was filtered out.
+  const [raiseTag, setRaiseTag] = useState<ConstraintTag | null>(null);
+  const [potentiateTag, setPotentiateTag] = useState<ConstraintTag | null>(null);
 
   const [video, setVideo] = useState<{ url: string; title: string } | null>(null);
 
-  // Fetch RAMP D, F, and Raise (A) exercises by focus.
+  const constraints = useMemo(() => deriveClinicalConstraints(fms ?? null), [fms]);
+  const constraintList = useMemo(
+    () => [constraints.lower, constraints.upper, constraints.spinal].filter(Boolean) as ConstraintTag[],
+    [constraints],
+  );
+
+  // Fetch RAMP D, F, and Raise (A) exercises by focus + apply clinical constraints.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -86,14 +101,24 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
         supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
       ]);
       if (cancelled) return;
+
+      // Activate-extra (cat D) is focus-specific isolation; no impact constraints applied.
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-      const fAll = (fRows ?? []) as ExerciseRow[];
-      setPotentiate([...fAll].sort(() => Math.random() - 0.5).slice(0, 2));
-      setRaise(pickRandom((aRows ?? []) as ExerciseRow[]));
+
+      // Raise (cat A) — apply Constraints A & B.
+      const aSafe = filterRaiseCandidates((aRows ?? []) as ExerciseRow[], constraints);
+      setRaise(pickRandom(aSafe.rows));
+      setRaiseTag(aSafe.appliedTag);
+
+      // Potentiate (cat F) — apply Constraints A, B & C.
+      const fSafe = filterPotentiateCandidates((fRows ?? []) as ExerciseRow[], constraints);
+      setPotentiate([...fSafe.rows].sort(() => Math.random() - 0.5).slice(0, 2));
+      setPotentiateTag(fSafe.appliedTag);
+
       setRampLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [focus]);
+  }, [focus, constraints]);
 
   const display = useMemo(() => {
     const out: Partial<Record<CorrectivePhase, ExerciseRow>> = {};
@@ -172,6 +197,23 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
           <div className="pt-2 space-y-1">
             <div className="font-display font-bold text-base leading-tight">{priority.focus}</div>
             <p className="text-xs text-muted-foreground">{fallback.rationale}</p>
+            {constraintList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Vincoli clinici attivi:
+                </span>
+                {constraintList.map(t => (
+                  <span
+                    key={t.axis}
+                    title={t.reason}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-warning/15 text-warning text-[10px] font-semibold border border-warning/30"
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    {t.axis === 'lower' ? 'Arti Inferiori' : t.axis === 'upper' ? 'Spalla' : 'Rachide'}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -257,6 +299,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
                     name={raise?.name ?? 'Assault Bike / Rower / Skipping'}
                     dose={doseFor(raise) ?? '3-5 Min · RPE 5-6'}
                     onPlay={raise?.video_url ? () => setVideo({ url: raise.video_url!, title: raise.name }) : undefined}
+                    safetyTag={raiseTag}
                   />
                 )}
 
@@ -325,6 +368,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
                         name={ex.name}
                         dose={doseFor(ex)}
                         onPlay={ex.video_url ? () => setVideo({ url: ex.video_url!, title: ex.name }) : undefined}
+                        safetyTag={i === 0 ? potentiateTag : null}
                       />
                     ))
                   )}
@@ -392,7 +436,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 // ---- Reusable phase row -------------------------------------------------
 function PhaseRow({
   theme, Icon, sectionNum, sectionTitle, sectionHint, name, dose, meta,
-  onPlay, onRegression, onProgression, compact,
+  onPlay, onRegression, onProgression, compact, safetyTag,
 }: {
   theme: PhaseTheme;
   Icon: typeof Flame;
@@ -406,6 +450,7 @@ function PhaseRow({
   onRegression?: () => void;
   onProgression?: () => void;
   compact?: boolean;
+  safetyTag?: ConstraintTag | null;
 }) {
   return (
     <div className={`rounded-lg border border-l-4 ${theme.border} ${theme.bg} p-3 animate-fade-in`}>
@@ -430,6 +475,16 @@ function PhaseRow({
           <div className="text-sm font-semibold text-foreground truncate">{name}</div>
           {dose && <div className="text-xs text-muted-foreground mt-0.5">{dose}</div>}
           {meta && <div className="text-[10px] text-muted-foreground/80 mt-0.5">{meta}</div>}
+          {safetyTag && (
+            <div
+              className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-md bg-warning/15 text-warning text-[10px] font-semibold border border-warning/30"
+              title={safetyTag.reason}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              {safetyTag.label}
+            </div>
+          )}
+
           {(onRegression || onProgression) && (
             <div className="flex items-center gap-2 mt-2 no-print">
               {onRegression && (
