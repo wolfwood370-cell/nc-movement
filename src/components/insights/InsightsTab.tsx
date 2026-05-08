@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
+import DailyPrepSection from './DailyPrepSection';
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
@@ -211,6 +212,9 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
+
+      {/* Daily Prep & RAMP-6 — auto-detects weak link from latest FMS */}
+      <DailyPrepSection latestFms={latestFms} />
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
