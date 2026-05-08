@@ -239,9 +239,9 @@ export default function DailyPrepSection({ latestFms }: Props) {
       </div>
 
       <Tabs defaultValue="threer" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="threer">Protocollo 3R (Quotidiano)</TabsTrigger>
-          <TabsTrigger value="ramp">RAMP-6 (Pre-Workout)</TabsTrigger>
+        <TabsList className="grid grid-cols-2 w-full h-auto">
+          <TabsTrigger value="threer" className="text-[11px] sm:text-sm whitespace-normal leading-tight px-2 py-2 h-auto">Protocollo 3R<span className="hidden sm:inline">&nbsp;(Quotidiano)</span></TabsTrigger>
+          <TabsTrigger value="ramp" className="text-[11px] sm:text-sm whitespace-normal leading-tight px-2 py-2 h-auto">RAMP-6<span className="hidden sm:inline">&nbsp;(Pre-Workout)</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="threer" className="mt-4 space-y-5">
