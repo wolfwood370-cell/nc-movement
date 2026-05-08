@@ -1,8 +1,11 @@
 // =============================================================================
-// Corrective Prescription Engine — Cook's "Movement" 3R protocol.
+// Corrective Prescription Engine — Cook's "Movement" 3R protocol + Jeffreys' RAMP.
 // Maps each FMS pattern key (and the generic priority level) to a practical
-// Reset → Reactivate → Reinforce sequence.
+// Reset → Reactivate → Reinforce sequence and provides clinical constraint
+// filters for the RAMP-6 Raise / Potentiate phases.
 // =============================================================================
+
+import type { FmsScores, AnkleClearing } from './fms';
 
 export interface CorrectiveStep {
   /** Phase label, e.g. "Reset". */
