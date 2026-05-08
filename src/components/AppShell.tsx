@@ -35,7 +35,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               className="w-9 h-9 rounded-lg object-contain"
             />
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC Movement</div>
+              <div className="font-display font-bold text-sm text-primary">NC MOVEMENT</div>
             </div>
           </button>
           <button onClick={onSignOut}
