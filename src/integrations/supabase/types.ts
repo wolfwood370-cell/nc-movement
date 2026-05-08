@@ -614,7 +614,13 @@ export type Database = {
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
-      corrective_phase: "Reset" | "Reactivate" | "Reinforce"
+      corrective_phase:
+        | "Reset"
+        | "Reactivate"
+        | "Reinforce"
+        | "Raise"
+        | "Activate"
+        | "Potentiate"
       sfma_score: "FN" | "DN" | "FP" | "DP"
       ybt_test_type: "LQ" | "UQ"
     }
@@ -745,7 +751,14 @@ export const Constants = {
   public: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
-      corrective_phase: ["Reset", "Reactivate", "Reinforce"],
+      corrective_phase: [
+        "Reset",
+        "Reactivate",
+        "Reinforce",
+        "Raise",
+        "Activate",
+        "Potentiate",
+      ],
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],
     },
