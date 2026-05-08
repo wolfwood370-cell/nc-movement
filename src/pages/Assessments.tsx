@@ -1,15 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import logoFms from '@/assets/logo-fms.png';
-import logoSfma from '@/assets/logo-sfma.png';
-import logoFcs from '@/assets/logo-fcs.png';
-import logoYbt from '@/assets/logo-ybt.png';
 
 const tests = [
-  { key: 'fms',  label: 'FMS — Functional Movement Screen', logo: logoFms, ready: true },
-  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', logo: logoSfma, ready: true },
-  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', logo: logoFcs, ready: true },
-  { key: 'ybt',  label: 'YBT — Y-Balance Test', logo: logoYbt, ready: true },
+  { key: 'fms',  label: 'FMS — Functional Movement Screen', ready: true },
+  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', ready: true },
+  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', ready: true },
+  { key: 'ybt',  label: 'YBT — Y-Balance Test', ready: true },
 ];
 
 export default function Assessments() {
@@ -30,9 +26,6 @@ export default function Assessments() {
             to={t.ready ? '/clients' : '#'}
             className={`surface-card p-4 flex items-center gap-4 tap-target ${t.ready ? 'hover:shadow-elevated' : 'opacity-60'}`}
           >
-            <div className="w-14 h-14 rounded-xl bg-background border border-border grid place-items-center overflow-hidden shrink-0">
-              <img src={t.logo} alt={`${t.key.toUpperCase()} logo`} className="w-full h-full object-contain p-1.5" />
-            </div>
             <div className="flex-1 min-w-0">
               <div className="font-display font-semibold">{t.label}</div>
               <div className="text-xs text-muted-foreground">
