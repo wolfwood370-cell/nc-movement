@@ -351,6 +351,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
                         name={ex.name}
                         dose={doseFor(ex)}
                         onPlay={ex.video_url ? () => setVideo({ url: ex.video_url!, title: ex.name }) : undefined}
+                        safetyTag={i === 0 ? potentiateTag : null}
                       />
                     ))
                   )}
