@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 glass-card border-t border-border rounded-none pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-3xl mx-auto grid grid-cols-5">
+        <div className="max-w-3xl mx-auto grid grid-cols-4">
           {tabs.map(t => (
             <NavLink
               key={t.to}
