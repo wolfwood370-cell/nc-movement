@@ -1,15 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
-import fmsLogo from '@/assets/test-logos/fms.png';
-import sfmaLogo from '@/assets/test-logos/sfma.png';
-import ybtLogo from '@/assets/test-logos/ybt.png';
-import fcsLogo from '@/assets/test-logos/fcs.png';
+import { ChevronLeft, ClipboardList, Compass, Target, Gauge } from 'lucide-react';
 
 const tests = [
-  { key: 'fms',  label: 'FMS — Functional Movement Screen', logo: fmsLogo,  ready: true },
-  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', logo: sfmaLogo, ready: true },
-  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', logo: fcsLogo,  ready: true },
-  { key: 'ybt',  label: 'YBT — Y-Balance Test', logo: ybtLogo,  ready: true },
+  { key: 'fms',  label: 'FMS — Functional Movement Screen', icon: ClipboardList, ready: true },
+  { key: 'sfma', label: 'SFMA — Selective Functional Movement Assessment', icon: Compass, ready: true },
+  { key: 'fcs',  label: 'FCS — Fundamental Capacity Screen', icon: Gauge, ready: true },
+  { key: 'ybt',  label: 'YBT — Y-Balance Test', icon: Target, ready: true },
 ];
 
 export default function Assessments() {
@@ -30,8 +26,8 @@ export default function Assessments() {
             to={t.ready ? '/clients' : '#'}
             className={`surface-card p-4 flex items-center gap-4 tap-target ${t.ready ? 'hover:shadow-elevated' : 'opacity-60'}`}
           >
-            <div className="h-11 w-24 grid place-items-center shrink-0">
-              <img src={t.logo} alt={`${t.label} logo`} className="max-h-11 max-w-full object-contain" />
+            <div className="w-11 h-11 rounded-xl bg-accent grid place-items-center">
+              <t.icon className="w-5 h-5 text-accent-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-display font-semibold">{t.label}</div>

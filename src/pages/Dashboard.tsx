@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Activity, ChevronRight } from 'lucide-react';
-import fmsLogo from '@/assets/test-logos/fms.png';
-import sfmaLogo from '@/assets/test-logos/sfma.png';
-import ybtLogo from '@/assets/test-logos/ybt.png';
-import fcsLogo from '@/assets/test-logos/fcs.png';
+import { Plus, Users, Activity, ChevronRight, ClipboardList, Target, Compass, Gauge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -22,10 +18,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   logo: fmsLogo,  enabled: true  },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    logo: sfmaLogo, enabled: true  },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                logo: ybtLogo,  enabled: true  },
-  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         logo: fcsLogo,  enabled: true  },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   icon: ClipboardList, enabled: true  },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    icon: Compass,       enabled: true  },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                icon: Target,        enabled: true  },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         icon: Gauge,         enabled: true  },
 ];
 
 export default function Dashboard() {
@@ -126,8 +122,8 @@ export default function Dashboard() {
               disabled={!t.enabled && clients.length === 0}
               className="surface-card p-4 text-left tap-target hover:shadow-elevated transition-all relative overflow-hidden group"
             >
-              <div className="h-10 w-20 mb-3 grid place-items-center">
-                <img src={t.logo} alt={`${t.label} logo`} className="max-h-10 max-w-full object-contain" />
+              <div className="w-10 h-10 rounded-xl bg-accent grid place-items-center mb-3">
+                <t.icon className="w-5 h-5 text-accent-foreground" />
               </div>
               <div className="font-display font-bold text-lg">{t.label}</div>
               <div className="text-xs text-muted-foreground leading-snug">{t.desc}</div>
