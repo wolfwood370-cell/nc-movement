@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Activity, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import logoUrl from '@/assets/logo.png';
+import logoUrl from '@/assets/nc-movement-logo.png';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -32,10 +32,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
               alt="NC Movement logo"
               width={36}
               height={36}
-              className="w-9 h-9 rounded-xl shadow-elevated object-cover"
+              className="w-9 h-9 rounded-lg object-contain"
             />
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC Personal Trainer</div>
+              <div className="font-display font-bold text-sm text-primary">NC Movement</div>
             </div>
           </button>
           <button onClick={onSignOut}
