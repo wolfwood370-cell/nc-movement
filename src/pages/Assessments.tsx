@@ -30,8 +30,8 @@ export default function Assessments() {
             to={t.ready ? '/clients' : '#'}
             className={`surface-card p-4 flex items-center gap-4 tap-target ${t.ready ? 'hover:shadow-elevated' : 'opacity-60'}`}
           >
-            <div className="w-11 h-11 rounded-xl bg-accent grid place-items-center">
-              <t.icon className="w-5 h-5 text-accent-foreground" />
+            <div className="h-11 w-24 grid place-items-center shrink-0">
+              <img src={t.logo} alt={`${t.label} logo`} className="max-h-11 max-w-full object-contain" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-display font-semibold">{t.label}</div>
