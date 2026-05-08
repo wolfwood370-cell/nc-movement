@@ -32,10 +32,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
               alt="NC Movement logo"
               width={36}
               height={36}
-              className="w-9 h-9 rounded-xl shadow-elevated object-cover"
+              className="w-9 h-9 rounded-lg object-contain"
             />
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC Personal Trainer</div>
+              <div className="font-display font-bold text-sm text-primary">NC Movement</div>
             </div>
           </button>
           <button onClick={onSignOut}
