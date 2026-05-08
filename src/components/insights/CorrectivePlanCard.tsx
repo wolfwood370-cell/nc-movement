@@ -11,7 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
-import { getCorrectiveProtocol } from '@/lib/correctiveProtocols';
+import {
+  getCorrectiveProtocol,
+  deriveClinicalConstraints,
+  filterRaiseCandidates,
+  filterPotentiateCandidates,
+  type ConstraintTag,
+} from '@/lib/correctiveProtocols';
 import { useCorrectiveExercises, type ExerciseRow, type CorrectivePhase } from '@/hooks/useCorrectiveExercises';
 import ExerciseVideoDialog from './ExerciseVideoDialog';
 
