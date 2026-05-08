@@ -417,7 +417,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 // ---- Reusable phase row -------------------------------------------------
 function PhaseRow({
   theme, Icon, sectionNum, sectionTitle, sectionHint, name, dose, meta,
-  onPlay, onRegression, onProgression, compact,
+  onPlay, onRegression, onProgression, compact, safetyTag,
 }: {
   theme: PhaseTheme;
   Icon: typeof Flame;
@@ -431,6 +431,7 @@ function PhaseRow({
   onRegression?: () => void;
   onProgression?: () => void;
   compact?: boolean;
+  safetyTag?: ConstraintTag | null;
 }) {
   return (
     <div className={`rounded-lg border border-l-4 ${theme.border} ${theme.bg} p-3 animate-fade-in`}>
@@ -455,6 +456,16 @@ function PhaseRow({
           <div className="text-sm font-semibold text-foreground truncate">{name}</div>
           {dose && <div className="text-xs text-muted-foreground mt-0.5">{dose}</div>}
           {meta && <div className="text-[10px] text-muted-foreground/80 mt-0.5">{meta}</div>}
+          {safetyTag && (
+            <div
+              className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-md bg-warning/15 text-warning text-[10px] font-semibold border border-warning/30"
+              title={safetyTag.reason}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              {safetyTag.label}
+            </div>
+          )}
+
           {(onRegression || onProgression) && (
             <div className="flex items-center gap-2 mt-2 no-print">
               {onRegression && (
