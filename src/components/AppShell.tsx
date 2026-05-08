@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Activity, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import logoUrl from '@/assets/logo.png';
+import logoUrl from '@/assets/nc-movement-logo.png';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
