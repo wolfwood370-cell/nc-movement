@@ -78,10 +78,19 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
   const [potentiate, setPotentiate] = useState<ExerciseRow[]>([]);
   const [raise, setRaise] = useState<ExerciseRow | null>(null);
   const [rampLoading, setRampLoading] = useState(false);
+  // Tags emitted by the clinical interceptor when an unsafe candidate was filtered out.
+  const [raiseTag, setRaiseTag] = useState<ConstraintTag | null>(null);
+  const [potentiateTag, setPotentiateTag] = useState<ConstraintTag | null>(null);
 
   const [video, setVideo] = useState<{ url: string; title: string } | null>(null);
 
-  // Fetch RAMP D, F, and Raise (A) exercises by focus.
+  const constraints = useMemo(() => deriveClinicalConstraints(fms ?? null), [fms]);
+  const constraintList = useMemo(
+    () => [constraints.lower, constraints.upper, constraints.spinal].filter(Boolean) as ConstraintTag[],
+    [constraints],
+  );
+
+  // Fetch RAMP D, F, and Raise (A) exercises by focus + apply clinical constraints.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -92,14 +101,24 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
         supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
       ]);
       if (cancelled) return;
+
+      // Activate-extra (cat D) is focus-specific isolation; no impact constraints applied.
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-      const fAll = (fRows ?? []) as ExerciseRow[];
-      setPotentiate([...fAll].sort(() => Math.random() - 0.5).slice(0, 2));
-      setRaise(pickRandom((aRows ?? []) as ExerciseRow[]));
+
+      // Raise (cat A) — apply Constraints A & B.
+      const aSafe = filterRaiseCandidates((aRows ?? []) as ExerciseRow[], constraints);
+      setRaise(pickRandom(aSafe.rows));
+      setRaiseTag(aSafe.appliedTag);
+
+      // Potentiate (cat F) — apply Constraints A, B & C.
+      const fSafe = filterPotentiateCandidates((fRows ?? []) as ExerciseRow[], constraints);
+      setPotentiate([...fSafe.rows].sort(() => Math.random() - 0.5).slice(0, 2));
+      setPotentiateTag(fSafe.appliedTag);
+
       setRampLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [focus]);
+  }, [focus, constraints]);
 
   const display = useMemo(() => {
     const out: Partial<Record<CorrectivePhase, ExerciseRow>> = {};
