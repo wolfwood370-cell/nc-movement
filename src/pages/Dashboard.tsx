@@ -124,15 +124,12 @@ export default function Dashboard() {
               key={t.key}
               onClick={() => setPickTestOpen(t.key)}
               disabled={!t.enabled && clients.length === 0}
-              className="surface-card p-4 text-left tap-target hover:shadow-elevated transition-all relative overflow-hidden group"
+              aria-label={`${t.label} — ${t.desc}`}
+              className="surface-card aspect-square p-3 tap-target hover:shadow-elevated transition-all relative overflow-hidden group bg-white grid place-items-center"
             >
-              <div className="w-10 h-10 rounded-xl overflow-hidden mb-3 bg-white grid place-items-center">
-                <img src={t.logo} alt={t.label} className="w-full h-full object-contain p-0.5" />
-              </div>
-              <div className="font-display font-bold text-lg">{t.label}</div>
-              <div className="text-xs text-muted-foreground leading-snug">{t.desc}</div>
+              <img src={t.logo} alt={t.label} className="w-full h-full object-contain" />
               {!t.enabled && (
-                <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
+                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
               )}
             </button>
           ))}
