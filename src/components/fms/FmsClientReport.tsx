@@ -86,7 +86,14 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
         <div>
           <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS · Report Cliente</p>
           <h1 className="font-display font-bold text-2xl leading-tight">{clientName}</h1>
-          <p className="text-xs text-muted-foreground mt-1">Valutazione del {dateLabel}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-xs text-muted-foreground">Valutazione del {dateLabel}</p>
+            {modified && (
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary text-primary">
+                FMS Modificato (Trial)
+              </Badge>
+            )}
+          </div>
         </div>
         <Button
           variant="outline"
