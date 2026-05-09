@@ -11,7 +11,7 @@ import CorrectivePlanCard from './CorrectivePlanCard';
 
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
-import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
+import { getCorrectivePriority, isModifiedFms, type FmsScores } from '@/lib/fms';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
