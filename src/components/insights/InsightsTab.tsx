@@ -61,7 +61,9 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   const latestFms = fmsHistory[0] ?? null;
   const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
   const navigate = useNavigate();
+  const isModified = isModifiedFms(latestFms);
 
   // ---- Closed-loop Re-Test prompt ---------------------------------------
   // If the latest FMS prescribed correctives (priority != optimal/incomplete)
