@@ -238,14 +238,16 @@
     visibility: hidden !important;
   }
 
-  /* ...then reveal the active printable region (medical referral OR take-home). */
+  /* ...then reveal the active printable region (medical referral OR take-home OR trial session). */
   #medical-referral-print, #medical-referral-print *,
-  #take-home-print, #take-home-print * {
+  #take-home-print, #take-home-print *,
+  #trial-session-print, #trial-session-print * {
     visibility: visible !important;
   }
 
   #medical-referral-print,
-  #take-home-print {
+  #take-home-print,
+  #trial-session-print {
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
