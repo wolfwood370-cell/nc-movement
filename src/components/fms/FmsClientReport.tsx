@@ -7,6 +7,8 @@ import {
   FmsScores,
   scoreColor,
   type CorrectivePriorityLevel,
+  fmsMaxTotal,
+  isModifiedFms,
 } from '@/lib/fms';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +70,8 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
   const priority = useMemo(() => getCorrectivePriority(scores), [scores]);
   const hasAsymmetry = patterns.some(p => p.asymmetric);
   const light = trafficLightFor(priority.level, total, hasAsymmetry);
+  const modified = isModifiedFms(scores);
+  const maxTotal = fmsMaxTotal(scores);
 
   const dateLabel = assessedAt
     ? new Date(assessedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -82,7 +86,14 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
         <div>
           <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS · Report Cliente</p>
           <h1 className="font-display font-bold text-2xl leading-tight">{clientName}</h1>
-          <p className="text-xs text-muted-foreground mt-1">Valutazione del {dateLabel}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-xs text-muted-foreground">Valutazione del {dateLabel}</p>
+            {modified && (
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary text-primary">
+                FMS Modificato (Trial)
+              </Badge>
+            )}
+          </div>
         </div>
         <Button
           variant="outline"
@@ -112,7 +123,7 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg border p-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Totale</div>
-              <div className="font-display font-bold text-xl">{total ?? '—'}<span className="text-xs text-muted-foreground">/21</span></div>
+              <div className="font-display font-bold text-xl">{total ?? '—'}<span className="text-xs text-muted-foreground">/{maxTotal}</span></div>
             </div>
             <div className="rounded-lg border p-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Asimmetrie</div>

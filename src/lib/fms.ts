@@ -2,8 +2,18 @@
 
 export type Score = 0 | 1 | 2 | 3 | null;
 export type AnkleClearing = 'green' | 'yellow' | 'red' | null;
+export type FmsAssessmentType = 'full' | 'modified';
+
+/** Pattern keys included in a Modified FMS (rapid trial-session screen). */
+export const MODIFIED_FMS_PATTERN_KEYS = ['deep_squat', 'shoulder_mobility', 'aslr'] as const;
+/** Maximum theoretical score for a Modified FMS (3 patterns × 3). */
+export const MODIFIED_FMS_MAX = 9;
+/** Maximum theoretical score for a Full FMS (7 patterns × 3). */
+export const FULL_FMS_MAX = 21;
 
 export interface FmsScores {
+  /** 'full' (default) or 'modified' (Deep Squat + SM + ASLR only). */
+  assessment_type?: FmsAssessmentType;
   deep_squat_score: Score;
   tibia_length_cm: number | null;
   hurdle_step_left: Score; hurdle_step_right: Score;
@@ -25,6 +35,7 @@ export interface FmsScores {
 }
 
 export const emptyFmsScores = (): FmsScores => ({
+  assessment_type: 'full',
   deep_squat_score: null,
   tibia_length_cm: null,
   hurdle_step_left: null, hurdle_step_right: null,
@@ -44,6 +55,12 @@ export const emptyFmsScores = (): FmsScores => ({
   clearing_spinal_extension_pain: false,
   clearing_spinal_flexion_pain: false,
 });
+
+export const isModifiedFms = (s: Partial<FmsScores> | null | undefined): boolean =>
+  (s?.assessment_type ?? 'full') === 'modified';
+
+export const fmsMaxTotal = (s: Partial<FmsScores> | null | undefined): number =>
+  isModifiedFms(s) ? MODIFIED_FMS_MAX : FULL_FMS_MAX;
 
 export interface PatternResult {
   key: string;
@@ -74,7 +91,7 @@ export function computePatterns(s: FmsScores): PatternResult[] {
   const rs_l: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_left;
   const rs_r: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_right;
 
-  return [
+  const all: PatternResult[] = [
     { key: 'deep_squat', label: 'Deep Squat', bilateral: false,
       left: s.deep_squat_score, right: s.deep_squat_score,
       final: s.deep_squat_score, asymmetric: false, cleared: false },
@@ -107,6 +124,12 @@ export function computePatterns(s: FmsScores): PatternResult[] {
       asymmetric: rs_l !== null && rs_r !== null && rs_l !== rs_r,
       cleared: s.clearing_spinal_flexion_pain },
   ];
+
+  if (isModifiedFms(s)) {
+    const allowed = new Set<string>(MODIFIED_FMS_PATTERN_KEYS);
+    return all.filter(p => allowed.has(p.key));
+  }
+  return all;
 }
 
 export function computeTotal(patterns: PatternResult[]): number | null {

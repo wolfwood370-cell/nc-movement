@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import {
   computePatterns, computeTotal, emptyFmsScores, FmsScores, primaryCorrective, Score, scoreColor,
+  isModifiedFms, fmsMaxTotal, MODIFIED_FMS_PATTERN_KEYS, type FmsAssessmentType,
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSelector';
@@ -154,9 +155,31 @@ export default function FmsAssessment() {
   const patterns = useMemo(() => computePatterns(scores), [scores]);
   const total = useMemo(() => computeTotal(patterns), [patterns]);
   const corrective = useMemo(() => primaryCorrective(patterns), [patterns]);
+  const modified = isModifiedFms(scores);
+  const maxTotal = fmsMaxTotal(scores);
 
   const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
     setScores(p => ({ ...p, [k]: v }));
+
+  const setAssessmentType = (t: FmsAssessmentType) => {
+    setScores(p => {
+      if (t === 'modified') {
+        // Null-out fields that are not part of the Modified subset so the
+        // saved record cannot carry stale scores from before the switch.
+        return {
+          ...p,
+          assessment_type: 'modified',
+          hurdle_step_left: null, hurdle_step_right: null,
+          inline_lunge_left: null, inline_lunge_right: null,
+          trunk_stability_pushup_score: null,
+          rotary_stability_left: null, rotary_stability_right: null,
+          clearing_spinal_extension_pain: false,
+          clearing_spinal_flexion_pain: false,
+        };
+      }
+      return { ...p, assessment_type: 'full' };
+    });
+  };
 
   const isExisting = !!id && id !== 'new';
 
@@ -354,11 +377,53 @@ export default function FmsAssessment() {
         <AssessedAtPicker value={assessedAt} onChange={setAssessedAt} />
       )}
 
+      {/* Assessment-type toggle (Full vs Modified) */}
+      <div className="surface-card p-4">
+        <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+          Tipo di Assessment
+        </div>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo di Assessment">
+          {([
+            { v: 'full',     title: 'FMS Completo',          sub: '7 pattern · /21' },
+            { v: 'modified', title: 'FMS Modificato (Trial)', sub: 'DS · SM · ASLR · /9' },
+          ] as { v: FmsAssessmentType; title: string; sub: string }[]).map(opt => {
+            const active = (scores.assessment_type ?? 'full') === opt.v;
+            return (
+              <button
+                key={opt.v}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                disabled={readOnly}
+                onClick={() => setAssessmentType(opt.v)}
+                className={`tap-target text-left rounded-xl border p-3 transition-colors ${
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-muted/30 hover:bg-muted/50'
+                } ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                <div className="font-display font-bold text-sm">{opt.title}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{opt.sub}</div>
+              </button>
+            );
+          })}
+        </div>
+        {modified && (
+          <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            Modalità rapida per Trial Session: solo Deep Squat, Shoulder Mobility (+ clearing) e ASLR, con Ankle Clearing informativo.
+            Hurdle Step, Inline Lunge, Trunk Stability Push-Up e Rotary Stability sono disattivati.
+          </p>
+        )}
+      </div>
+
       {/* Live total + corrective */}
       <div className="surface-card p-5 flex items-center gap-4">
         <div className="text-center shrink-0">
           <div className="font-display font-bold text-4xl leading-none">{total ?? '—'}</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">/ 21</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">/ {maxTotal}</div>
+          {modified && (
+            <div className="text-[9px] uppercase tracking-wider text-primary font-bold mt-0.5">Modificato</div>
+          )}
         </div>
         <div className={`flex-1 rounded-xl px-3 py-2.5 ${correctiveTone}`}>
           <div className="flex items-center gap-2 font-display font-bold text-sm">
@@ -373,23 +438,29 @@ export default function FmsAssessment() {
         {/* Deep Squat */}
         {renderPattern(get('deep_squat'))}
 
-        {/* Lunghezza Tibia + Hurdle Step */}
-        <div className="surface-card p-4">
-          <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
-          <NumberInput
-            disabled={readOnly}
-            value={scores.tibia_length_cm}
-            onChange={(v) => setField('tibia_length_cm', v)}
-            placeholder="es. 42.5"
-          />
-          <Divider />
-          {renderPatternBody(get('hurdle_step'))}
-        </div>
+        {/* Lunghezza Tibia + Hurdle Step (full only) */}
+        {!modified && (
+          <div className="surface-card p-4">
+            <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
+            <NumberInput
+              disabled={readOnly}
+              value={scores.tibia_length_cm}
+              onChange={(v) => setField('tibia_length_cm', v)}
+              placeholder="es. 42.5"
+            />
+            <Divider />
+            {renderPatternBody(get('hurdle_step'))}
+          </div>
+        )}
 
-        {/* Inline Lunge + Ankle Clearing */}
+        {/* Inline Lunge (full) + Ankle Clearing (always) */}
         <div className="surface-card p-4">
-          {renderPatternBody(get('inline_lunge'))}
-          <Divider />
+          {!modified && (
+            <>
+              {renderPatternBody(get('inline_lunge'))}
+              <Divider />
+            </>
+          )}
           <div className="space-y-3">
             <div>
               <div className="font-display font-semibold">Ankle Clearing</div>
@@ -461,33 +532,37 @@ export default function FmsAssessment() {
         {/* ASLR */}
         {renderPattern(get('aslr'))}
 
-        {/* Trunk Stability Push-Up + Spinal Extension Clearing */}
-        <div className="surface-card p-4">
-          {renderPatternBody(get('tspu'))}
-          <Divider />
-          <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
-          <PainToggle
-            disabled={readOnly}
-            label="Test di estensione spinale"
-            checked={scores.clearing_spinal_extension_pain}
-            onCheckedChange={(v) => setField('clearing_spinal_extension_pain', v)}
-          />
-          <p className="text-[11px] text-muted-foreground mt-2">Positivo → Trunk Stability Push-Up forzato a 0.</p>
-        </div>
+        {/* TSPU + Spinal Extension Clearing (full only) */}
+        {!modified && (
+          <div className="surface-card p-4">
+            {renderPatternBody(get('tspu'))}
+            <Divider />
+            <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
+            <PainToggle
+              disabled={readOnly}
+              label="Test di estensione spinale"
+              checked={scores.clearing_spinal_extension_pain}
+              onCheckedChange={(v) => setField('clearing_spinal_extension_pain', v)}
+            />
+            <p className="text-[11px] text-muted-foreground mt-2">Positivo → Trunk Stability Push-Up forzato a 0.</p>
+          </div>
+        )}
 
-        {/* Rotary Stability + Spinal Flexion Clearing */}
-        <div className="surface-card p-4">
-          {renderPatternBody(get('rotary_stability'))}
-          <Divider />
-          <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
-          <PainToggle
-            disabled={readOnly}
-            label="Test di flessione spinale"
-            checked={scores.clearing_spinal_flexion_pain}
-            onCheckedChange={(v) => setField('clearing_spinal_flexion_pain', v)}
-          />
-          <p className="text-[11px] text-muted-foreground mt-2">Positivo → Rotary Stability forzata a 0.</p>
-        </div>
+        {/* Rotary Stability + Spinal Flexion Clearing (full only) */}
+        {!modified && (
+          <div className="surface-card p-4">
+            {renderPatternBody(get('rotary_stability'))}
+            <Divider />
+            <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
+            <PainToggle
+              disabled={readOnly}
+              label="Test di flessione spinale"
+              checked={scores.clearing_spinal_flexion_pain}
+              onCheckedChange={(v) => setField('clearing_spinal_flexion_pain', v)}
+            />
+            <p className="text-[11px] text-muted-foreground mt-2">Positivo → Rotary Stability forzata a 0.</p>
+          </div>
+        )}
       </section>
 
       {!readOnly && (
@@ -498,7 +573,7 @@ export default function FmsAssessment() {
             className="w-full h-14 rounded-2xl text-base shadow-elevated tap-target"
           >
             <Save className="w-5 h-5 mr-2" />
-            {saving ? 'Salvataggio…' : `${isExisting ? 'Salva modifiche' : 'Salva valutazione'}${total !== null ? ` · ${total}/21` : ''}`}
+            {saving ? 'Salvataggio…' : `${isExisting ? 'Salva modifiche' : 'Salva valutazione'}${total !== null ? ` · ${total}/${maxTotal}` : ''}`}
           </Button>
         </div>
       )}

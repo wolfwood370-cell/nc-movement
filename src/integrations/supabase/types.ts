@@ -274,6 +274,7 @@ export type Database = {
           aslr_left: number | null
           aslr_right: number | null
           assessed_at: string
+          assessment_type: string
           clearing_shoulder_left_pain: boolean
           clearing_shoulder_pain: boolean
           clearing_shoulder_right_pain: boolean
@@ -308,6 +309,7 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          assessment_type?: string
           clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
           clearing_shoulder_right_pain?: boolean
@@ -342,6 +344,7 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          assessment_type?: string
           clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
           clearing_shoulder_right_pain?: boolean
