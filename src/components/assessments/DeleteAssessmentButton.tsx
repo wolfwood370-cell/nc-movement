@@ -30,7 +30,10 @@ export default function DeleteAssessmentButton({ table, id, label, onDeleted }: 
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const stop = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
+  // Only stop propagation — calling preventDefault here would block Radix's
+  // AlertDialogTrigger from opening the confirm dialog.
+  const stopPropOnly = (e: MouseEvent) => { e.stopPropagation(); };
+  const stopAll = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
 
   const remove = async () => {
     setBusy(true);
