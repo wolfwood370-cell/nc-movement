@@ -117,6 +117,18 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
+      <Tabs defaultValue="clients" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="analytics">Panoramica Clinica</TabsTrigger>
+          <TabsTrigger value="clients">I Miei Clienti</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="mt-5">
+          <MacroAnalytics />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-5 space-y-6">
+
       {/* Quick start tests */}
       <section>
         <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
