@@ -91,7 +91,7 @@ export function computePatterns(s: FmsScores): PatternResult[] {
   const rs_l: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_left;
   const rs_r: Score = s.clearing_spinal_flexion_pain ? 0 : s.rotary_stability_right;
 
-  return [
+  const all: PatternResult[] = [
     { key: 'deep_squat', label: 'Deep Squat', bilateral: false,
       left: s.deep_squat_score, right: s.deep_squat_score,
       final: s.deep_squat_score, asymmetric: false, cleared: false },
@@ -124,6 +124,12 @@ export function computePatterns(s: FmsScores): PatternResult[] {
       asymmetric: rs_l !== null && rs_r !== null && rs_l !== rs_r,
       cleared: s.clearing_spinal_flexion_pain },
   ];
+
+  if (isModifiedFms(s)) {
+    const allowed = new Set<string>(MODIFIED_FMS_PATTERN_KEYS);
+    return all.filter(p => allowed.has(p.key));
+  }
+  return all;
 }
 
 export function computeTotal(patterns: PatternResult[]): number | null {
