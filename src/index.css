@@ -262,7 +262,9 @@
 
   /* Neutralize Radix dialog wrappers ONLY when they contain a printable region. */
   [role="dialog"]:has(#medical-referral-print),
-  [data-radix-popper-content-wrapper]:has(#medical-referral-print) {
+  [role="dialog"]:has(#trial-session-print),
+  [data-radix-popper-content-wrapper]:has(#medical-referral-print),
+  [data-radix-popper-content-wrapper]:has(#trial-session-print) {
     position: static !important;
     transform: none !important;
     box-shadow: none !important;
