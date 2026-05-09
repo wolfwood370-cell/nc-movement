@@ -123,7 +123,7 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg border p-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Totale</div>
-              <div className="font-display font-bold text-xl">{total ?? '—'}<span className="text-xs text-muted-foreground">/21</span></div>
+              <div className="font-display font-bold text-xl">{total ?? '—'}<span className="text-xs text-muted-foreground">/{maxTotal}</span></div>
             </div>
             <div className="rounded-lg border p-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Asimmetrie</div>
