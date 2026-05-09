@@ -37,7 +37,7 @@ const PATTERNS: PatternDef[] = [
   { key: 'shoulder_mobility', index: 3, label: 'Shoulder Mobility',         bilateral: true,  leftField: 'shoulder_mobility_left', rightField: 'shoulder_mobility_right',
     clearedBy: 'clearing_shoulder_pain', clearedNote: 'Shoulder Impingement Clearing +' },
   { key: 'aslr',              index: 4, label: 'Active Straight-Leg Raise', bilateral: true,  leftField: 'aslr_left',              rightField: 'aslr_right' },
-  { key: 'tspu',              index: 5, label: 'Trunk Stability Push-Up',   bilateral: false, scoreField: 'trunk_stability_pushup_score',
+  { key: 'trunk_stability_pushup', index: 5, label: 'Trunk Stability Push-Up', bilateral: false, scoreField: 'trunk_stability_pushup_score',
     clearedBy: 'clearing_spinal_extension_pain', clearedNote: 'Spinal Extension Clearing +' },
   { key: 'rotary_stability',  index: 6, label: 'Rotary Stability',          bilateral: true,  leftField: 'rotary_stability_left',  rightField: 'rotary_stability_right',
     clearedBy: 'clearing_spinal_flexion_pain', clearedNote: 'Spinal Flexion Clearing +' },
@@ -536,7 +536,7 @@ export default function FmsAssessment() {
         {/* TSPU + Spinal Extension Clearing (full only) */}
         {!modified && (
           <div className="surface-card p-4">
-            {renderPatternBody(get('tspu'))}
+            {renderPatternBody(get('trunk_stability_pushup'))}
             <Divider />
             <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
             <PainToggle
