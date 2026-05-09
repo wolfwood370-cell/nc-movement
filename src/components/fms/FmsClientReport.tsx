@@ -70,6 +70,8 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
   const priority = useMemo(() => getCorrectivePriority(scores), [scores]);
   const hasAsymmetry = patterns.some(p => p.asymmetric);
   const light = trafficLightFor(priority.level, total, hasAsymmetry);
+  const modified = isModifiedFms(scores);
+  const maxTotal = fmsMaxTotal(scores);
 
   const dateLabel = assessedAt
     ? new Date(assessedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
