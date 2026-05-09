@@ -35,6 +35,7 @@ export interface FmsScores {
 }
 
 export const emptyFmsScores = (): FmsScores => ({
+  assessment_type: 'full',
   deep_squat_score: null,
   tibia_length_cm: null,
   hurdle_step_left: null, hurdle_step_right: null,
@@ -54,6 +55,12 @@ export const emptyFmsScores = (): FmsScores => ({
   clearing_spinal_extension_pain: false,
   clearing_spinal_flexion_pain: false,
 });
+
+export const isModifiedFms = (s: Partial<FmsScores> | null | undefined): boolean =>
+  (s?.assessment_type ?? 'full') === 'modified';
+
+export const fmsMaxTotal = (s: Partial<FmsScores> | null | undefined): number =>
+  isModifiedFms(s) ? MODIFIED_FMS_MAX : FULL_FMS_MAX;
 
 export interface PatternResult {
   key: string;
