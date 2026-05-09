@@ -155,9 +155,31 @@ export default function FmsAssessment() {
   const patterns = useMemo(() => computePatterns(scores), [scores]);
   const total = useMemo(() => computeTotal(patterns), [patterns]);
   const corrective = useMemo(() => primaryCorrective(patterns), [patterns]);
+  const modified = isModifiedFms(scores);
+  const maxTotal = fmsMaxTotal(scores);
 
   const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
     setScores(p => ({ ...p, [k]: v }));
+
+  const setAssessmentType = (t: FmsAssessmentType) => {
+    setScores(p => {
+      if (t === 'modified') {
+        // Null-out fields that are not part of the Modified subset so the
+        // saved record cannot carry stale scores from before the switch.
+        return {
+          ...p,
+          assessment_type: 'modified',
+          hurdle_step_left: null, hurdle_step_right: null,
+          inline_lunge_left: null, inline_lunge_right: null,
+          trunk_stability_pushup_score: null,
+          rotary_stability_left: null, rotary_stability_right: null,
+          clearing_spinal_extension_pain: false,
+          clearing_spinal_flexion_pain: false,
+        };
+      }
+      return { ...p, assessment_type: 'full' };
+    });
+  };
 
   const isExisting = !!id && id !== 'new';
 
