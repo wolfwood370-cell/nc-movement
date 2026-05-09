@@ -231,7 +231,8 @@ export default function FmsAssessment() {
   // ---- Reusable pieces ---------------------------------------------------
 
   const renderPatternBody = (p: PatternDef) => {
-    const result = patterns[p.index];
+    const result = patterns.find(x => x.key === p.key);
+    if (!result) return null;
     const cleared = result.cleared;
     return (
       <div className="space-y-3">
