@@ -10,6 +10,8 @@ import {
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MacroAnalytics from '@/components/dashboard/MacroAnalytics';
 import logoFms from '@/assets/logo-fms.png';
 import logoSfma from '@/assets/logo-sfma.png';
 import logoFcs from '@/assets/logo-fcs.png';
