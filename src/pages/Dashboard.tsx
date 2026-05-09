@@ -226,6 +226,8 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+        </TabsContent>
+      </Tabs>
 
       {/* Pick client for selected test */}
       <Dialog open={!!pickTestOpen} onOpenChange={(o) => !o && setPickTestOpen(null)}>
