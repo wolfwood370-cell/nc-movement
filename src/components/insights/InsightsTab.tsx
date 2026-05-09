@@ -223,6 +223,26 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
         </section>
       </div>
 
+      {/* Trial Session generator */}
+      {latestFms && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={() => setTrialOpen(true)}
+            size="lg"
+            className={
+              isModified
+                ? 'tap-target shadow-lg shadow-primary/30 animate-pulse'
+                : 'tap-target'
+            }
+            variant={isModified ? 'default' : 'secondary'}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Genera Sessione Trial
+          </Button>
+        </div>
+      )}
+
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
 
