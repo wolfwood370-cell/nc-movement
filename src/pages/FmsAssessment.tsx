@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import {
   computePatterns, computeTotal, emptyFmsScores, FmsScores, primaryCorrective, Score, scoreColor,
+  isModifiedFms, fmsMaxTotal, MODIFIED_FMS_PATTERN_KEYS, type FmsAssessmentType,
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSelector';
