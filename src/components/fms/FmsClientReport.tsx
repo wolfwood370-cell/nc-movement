@@ -7,6 +7,8 @@ import {
   FmsScores,
   scoreColor,
   type CorrectivePriorityLevel,
+  fmsMaxTotal,
+  isModifiedFms,
 } from '@/lib/fms';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
