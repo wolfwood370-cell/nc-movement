@@ -243,6 +243,13 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
         </div>
       )}
 
+      <TrialSessionModal
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        latestFms={latestFms}
+        clientName={client?.full_name}
+      />
+
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
 
