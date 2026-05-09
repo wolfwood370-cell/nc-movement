@@ -3,11 +3,12 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock } from 'lucide-react';
+import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
+import TrialSessionModal from './TrialSessionModal';
 
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
