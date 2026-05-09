@@ -138,8 +138,8 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   return (
     <div className="space-y-5">
       {isModifiedFms(latestFms) && (
-        <div className="surface-card border border-primary/40 bg-primary/5 px-4 py-2.5 flex items-center gap-2">
-          <span className="inline-block px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
+        <div className="surface-card border border-primary/40 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="self-start shrink-0 whitespace-nowrap inline-block px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
             FMS Modificato (Trial)
           </span>
           <span className="text-xs text-muted-foreground">
