@@ -10,6 +10,8 @@ import {
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MacroAnalytics from '@/components/dashboard/MacroAnalytics';
 import logoFms from '@/assets/logo-fms.png';
 import logoSfma from '@/assets/logo-sfma.png';
 import logoFcs from '@/assets/logo-fcs.png';
@@ -115,6 +117,18 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
+      <Tabs defaultValue="clients" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="analytics">Panoramica Clinica</TabsTrigger>
+          <TabsTrigger value="clients">I Miei Clienti</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="mt-5">
+          <MacroAnalytics />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-5 space-y-6">
+
       {/* Quick start tests */}
       <section>
         <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
@@ -212,6 +226,8 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+        </TabsContent>
+      </Tabs>
 
       {/* Pick client for selected test */}
       <Dialog open={!!pickTestOpen} onOpenChange={(o) => !o && setPickTestOpen(null)}>
