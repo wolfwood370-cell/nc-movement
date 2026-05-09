@@ -2,8 +2,18 @@
 
 export type Score = 0 | 1 | 2 | 3 | null;
 export type AnkleClearing = 'green' | 'yellow' | 'red' | null;
+export type FmsAssessmentType = 'full' | 'modified';
+
+/** Pattern keys included in a Modified FMS (rapid trial-session screen). */
+export const MODIFIED_FMS_PATTERN_KEYS = ['deep_squat', 'shoulder_mobility', 'aslr'] as const;
+/** Maximum theoretical score for a Modified FMS (3 patterns × 3). */
+export const MODIFIED_FMS_MAX = 9;
+/** Maximum theoretical score for a Full FMS (7 patterns × 3). */
+export const FULL_FMS_MAX = 21;
 
 export interface FmsScores {
+  /** 'full' (default) or 'modified' (Deep Squat + SM + ASLR only). */
+  assessment_type?: FmsAssessmentType;
   deep_squat_score: Score;
   tibia_length_cm: number | null;
   hurdle_step_left: Score; hurdle_step_right: Score;
