@@ -490,6 +490,14 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 )}
               </section>
 
+              {/* Section 4 — Safe Strength · Commercial gym alternatives */}
+              <SafeStrengthCard
+                patternKey={priority?.patternKey}
+                focusLabel={focusLabel}
+                variant="inline"
+                limit={3}
+              />
+
               <p className="text-[10px] text-muted-foreground text-center pt-2 border-t border-border">
                 Sessione generata on-the-fly · non salvata nello storico clinico.
               </p>
