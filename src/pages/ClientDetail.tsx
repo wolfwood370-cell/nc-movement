@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import InsightsTab from '@/components/insights/InsightsTab';
+import TrialSessionModal from '@/components/insights/TrialSessionModal';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
@@ -39,6 +40,7 @@ export default function ClientDetail() {
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
+  const [trialOpen, setTrialOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -227,7 +229,26 @@ export default function ClientDetail() {
         </div>
       </TooltipProvider>
 
-      <Tabs defaultValue="history" className="w-full">
+      {fms.length > 0 && (
+        <Button
+          type="button"
+          size="lg"
+          onClick={() => setTrialOpen(true)}
+          className="w-full tap-target shadow-lg shadow-primary/20"
+        >
+          <Zap className="w-4 h-4 mr-2" />
+          Genera Warmup / Sessione Trial
+        </Button>
+      )}
+
+      <TrialSessionModal
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        latestFms={fms[0] ?? null}
+        clientName={client.full_name}
+      />
+
+      <Tabs defaultValue="insights" className="w-full">
         <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="history">Storico</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
