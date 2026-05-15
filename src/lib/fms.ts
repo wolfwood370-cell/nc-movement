@@ -160,8 +160,10 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Dolore rilevato in: ${painful.map(p => p.label).join(', ')}. Trattare il dolore prima di progredire nella gerarchia correttiva.`,
     };
   }
-  const at = (key: string) => patterns.find(p => p.key === key)!;
-  const mobility = [at('aslr'), at('shoulder_mobility')].filter(p => p.final === 1);
+  const at = (key: string) => patterns.find(p => p.key === key);
+  const pick = (keys: string[], score: 1) =>
+    keys.map(at).filter((p): p is PatternResult => !!p && p.final === score);
+  const mobility = pick(['aslr', 'shoulder_mobility'], 1);
   if (mobility.length) {
     return {
       level: 'mobility',
