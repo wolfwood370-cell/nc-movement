@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
+import SafeStrengthCard from './SafeStrengthCard';
 
 interface ExerciseRow {
   id: string;
