@@ -224,7 +224,17 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 
             {/* ---- TAB 1: Daily 3R ---- */}
             <TabsContent value="threer" className="mt-4 space-y-3">
-              {loading ? (
+              {isPerformanceMode ? (
+                <div className="rounded-lg border border-functional/40 bg-functional/5 p-4 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-functional mt-0.5 shrink-0" />
+                    <p className="text-foreground leading-relaxed">
+                      Nessuna correzione quotidiana necessaria. Il cliente possiede schemi motori intatti.
+                      Utilizzare il <strong>RAMP-6</strong> per l'ottimizzazione pre-allenamento.
+                    </p>
+                  </div>
+                </div>
+              ) : loading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                   <Loader2 className="w-4 h-4 animate-spin" /> Carico esercizi…
                 </div>
