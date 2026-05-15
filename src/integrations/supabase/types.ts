@@ -624,6 +624,7 @@ export type Database = {
         | "Raise"
         | "Activate"
         | "Potentiate"
+        | "Safe_Strength"
       sfma_score: "FN" | "DN" | "FP" | "DP"
       ybt_test_type: "LQ" | "UQ"
     }
@@ -761,6 +762,7 @@ export const Constants = {
         "Raise",
         "Activate",
         "Potentiate",
+        "Safe_Strength",
       ],
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],

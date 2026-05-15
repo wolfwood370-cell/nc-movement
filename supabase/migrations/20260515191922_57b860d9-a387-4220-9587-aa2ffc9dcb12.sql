@@ -1,0 +1,1 @@
+ALTER TYPE corrective_phase ADD VALUE IF NOT EXISTS 'Safe_Strength';
