@@ -10,7 +10,7 @@ import type { FmsAssessmentRow } from '@/lib/insights';
 interface ExerciseRow {
   id: string;
   pattern: string;
-  phase: 'Reset' | 'Reactivate' | 'Reinforce' | 'Safe_Strength';
+  phase: 'Reset' | 'Reactivate' | 'Reinforce' | 'Safe_Strength' | 'Raise' | 'Activate' | 'Potentiate';
   posture_level: number;
   posture_name: string;
   name: string;
