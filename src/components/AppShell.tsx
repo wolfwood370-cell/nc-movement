@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Activity, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import logoUrl from '@/assets/logo.png';
+import logoUrl from '@/assets/nc-movement-logo.png';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -27,15 +27,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 glass-card border-b border-border rounded-none">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
-            <img
-              src={logoUrl}
-              alt="NC Movement logo"
-              width={36}
-              height={36}
-              className="w-9 h-9 rounded-xl shadow-elevated object-cover"
-            />
+            <div className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex-shrink-0 bg-white border border-border">
+              <img
+                src={logoUrl}
+                alt="NC Movement logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover object-center scale-[1.2]"
+              />
+            </div>
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC Personal Trainer</div>
+              <div className="font-display font-bold text-sm text-primary">NC MOVEMENT</div>
             </div>
           </button>
           <button onClick={onSignOut}

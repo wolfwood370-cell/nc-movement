@@ -10,6 +10,12 @@ import {
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MacroAnalytics from '@/components/dashboard/MacroAnalytics';
+import logoFms from '@/assets/logo-fms.png';
+import logoSfma from '@/assets/logo-sfma.png';
+import logoFcs from '@/assets/logo-fcs.png';
+import logoYbt from '@/assets/logo-ybt.png';
 
 interface Client { id: string; full_name: string; created_at: string }
 interface RecentAssessment {
@@ -18,10 +24,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   icon: ClipboardList, enabled: true  },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    icon: Compass,       enabled: true  },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                icon: Target,        enabled: true  },
-  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         icon: Gauge,         enabled: true  },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   logo: logoFms, enabled: true  },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    logo: logoSfma, enabled: true  },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                logo: logoYbt, enabled: true  },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         logo: logoFcs, enabled: true  },
 ];
 
 export default function Dashboard() {
@@ -111,6 +117,18 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
       </section>
 
+      <Tabs defaultValue="clients" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="analytics">Panoramica Clinica</TabsTrigger>
+          <TabsTrigger value="clients">I Miei Clienti</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="mt-5">
+          <MacroAnalytics />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-5 space-y-6">
+
       {/* Quick start tests */}
       <section>
         <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
@@ -120,15 +138,12 @@ export default function Dashboard() {
               key={t.key}
               onClick={() => setPickTestOpen(t.key)}
               disabled={!t.enabled && clients.length === 0}
-              className="surface-card p-4 text-left tap-target hover:shadow-elevated transition-all relative overflow-hidden group"
+              aria-label={`${t.label} — ${t.desc}`}
+              className="surface-card aspect-square p-3 tap-target hover:shadow-elevated transition-all relative overflow-hidden group bg-white grid place-items-center"
             >
-              <div className="w-10 h-10 rounded-xl bg-accent grid place-items-center mb-3">
-                <t.icon className="w-5 h-5 text-accent-foreground" />
-              </div>
-              <div className="font-display font-bold text-lg">{t.label}</div>
-              <div className="text-xs text-muted-foreground leading-snug">{t.desc}</div>
+              <img src={t.logo} alt={t.label} className="w-full h-full object-contain" />
               {!t.enabled && (
-                <span className="absolute top-3 right-3 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
+                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
               )}
             </button>
           ))}
@@ -211,6 +226,8 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+        </TabsContent>
+      </Tabs>
 
       {/* Pick client for selected test */}
       <Dialog open={!!pickTestOpen} onOpenChange={(o) => !o && setPickTestOpen(null)}>

@@ -71,6 +71,8 @@ export type Database = {
       exercises_library: {
         Row: {
           created_at: string
+          default_reps_time: string | null
+          default_sets: string | null
           dose: string | null
           goal: string | null
           id: string
@@ -80,13 +82,17 @@ export type Database = {
           posture_level: number
           posture_name: string
           progression: string | null
+          ramp_category: string | null
           rationale: string | null
           regression: string | null
           updated_at: string
           video_url: string | null
+          workout_target: string | null
         }
         Insert: {
           created_at?: string
+          default_reps_time?: string | null
+          default_sets?: string | null
           dose?: string | null
           goal?: string | null
           id?: string
@@ -96,13 +102,17 @@ export type Database = {
           posture_level: number
           posture_name: string
           progression?: string | null
+          ramp_category?: string | null
           rationale?: string | null
           regression?: string | null
           updated_at?: string
           video_url?: string | null
+          workout_target?: string | null
         }
         Update: {
           created_at?: string
+          default_reps_time?: string | null
+          default_sets?: string | null
           dose?: string | null
           goal?: string | null
           id?: string
@@ -112,10 +122,12 @@ export type Database = {
           posture_level?: number
           posture_name?: string
           progression?: string | null
+          ramp_category?: string | null
           rationale?: string | null
           regression?: string | null
           updated_at?: string
           video_url?: string | null
+          workout_target?: string | null
         }
         Relationships: []
       }
@@ -262,6 +274,7 @@ export type Database = {
           aslr_left: number | null
           aslr_right: number | null
           assessed_at: string
+          assessment_type: string
           clearing_shoulder_left_pain: boolean
           clearing_shoulder_pain: boolean
           clearing_shoulder_right_pain: boolean
@@ -296,6 +309,7 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          assessment_type?: string
           clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
           clearing_shoulder_right_pain?: boolean
@@ -330,6 +344,7 @@ export type Database = {
           aslr_left?: number | null
           aslr_right?: number | null
           assessed_at?: string
+          assessment_type?: string
           clearing_shoulder_left_pain?: boolean
           clearing_shoulder_pain?: boolean
           clearing_shoulder_right_pain?: boolean
@@ -602,7 +617,13 @@ export type Database = {
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
-      corrective_phase: "Reset" | "Reactivate" | "Reinforce"
+      corrective_phase:
+        | "Reset"
+        | "Reactivate"
+        | "Reinforce"
+        | "Raise"
+        | "Activate"
+        | "Potentiate"
       sfma_score: "FN" | "DN" | "FP" | "DP"
       ybt_test_type: "LQ" | "UQ"
     }
@@ -733,7 +754,14 @@ export const Constants = {
   public: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
-      corrective_phase: ["Reset", "Reactivate", "Reinforce"],
+      corrective_phase: [
+        "Reset",
+        "Reactivate",
+        "Reinforce",
+        "Raise",
+        "Activate",
+        "Potentiate",
+      ],
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],
     },

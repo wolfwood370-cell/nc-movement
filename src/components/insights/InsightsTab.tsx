@@ -3,14 +3,16 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock } from 'lucide-react';
+import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
+import TrialSessionModal from './TrialSessionModal';
+
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
-import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
+import { getCorrectivePriority, isModifiedFms, type FmsScores } from '@/lib/fms';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -59,7 +61,9 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   const latestFms = fmsHistory[0] ?? null;
   const ybtLatest = ybtHistory?.[0] ?? null;
   const [referralOpen, setReferralOpen] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
   const navigate = useNavigate();
+  const isModified = isModifiedFms(latestFms);
 
   // ---- Closed-loop Re-Test prompt ---------------------------------------
   // If the latest FMS prescribed correctives (priority != optimal/incomplete)
@@ -136,6 +140,16 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
   return (
     <div className="space-y-5">
+      {isModified && (
+        <div className="surface-card border border-primary/40 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="self-start shrink-0 whitespace-nowrap inline-block px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
+            FMS Modificato (Trial)
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Screening rapido: solo Deep Squat, Shoulder Mobility e ASLR. Patterns mancanti esclusi dai grafici.
+          </span>
+        </div>
+      )}
       {/* Closed-loop Re-Test prompt */}
       {retest && (
         <section className="surface-card border-warning/40 border bg-warning/5 p-4 flex items-start gap-3 flex-wrap">
@@ -209,8 +223,36 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
         </section>
       </div>
 
+      {/* Trial Session generator */}
+      {latestFms && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={() => setTrialOpen(true)}
+            size="lg"
+            className={
+              isModified
+                ? 'tap-target shadow-lg shadow-primary/30 animate-pulse'
+                : 'tap-target'
+            }
+            variant={isModified ? 'default' : 'secondary'}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Genera Sessione Trial
+          </Button>
+        </div>
+      )}
+
+      <TrialSessionModal
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        latestFms={latestFms}
+        clientName={client?.full_name}
+      />
+
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
+
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
