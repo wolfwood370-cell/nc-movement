@@ -40,6 +40,7 @@ export default function ClientDetail() {
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
+  const [trialOpen, setTrialOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
