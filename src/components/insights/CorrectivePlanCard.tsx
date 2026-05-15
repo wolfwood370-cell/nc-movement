@@ -176,7 +176,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
             <div className="flex items-center gap-2">
               {isPerformanceMode ? (
                 <Badge variant="outline" className="border-functional/40 text-functional">
-                  Priorità: Ottimizzazione Performance (Nessun Deficit)
+                  Priorità: Performance
                 </Badge>
               ) : (
                 <Badge variant="outline" className="border-warning/40 text-warning">{priority.category}</Badge>
