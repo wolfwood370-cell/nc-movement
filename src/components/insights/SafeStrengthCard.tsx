@@ -50,8 +50,7 @@ export default function SafeStrengthCard({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .select('id,name,pattern,default_sets,default_reps_time,goal,video_url')
         .eq('pattern', patternKey)
-        // @ts-expect-error - 'Safe_Strength' newly added to corrective_phase enum; types may lag.
-        .eq('phase', 'Safe_Strength')
+        .eq('phase', 'Safe_Strength' as never)
         .limit(limit);
       if (cancelled) return;
       setRows((data as SafeStrengthRow[] | null) ?? []);
