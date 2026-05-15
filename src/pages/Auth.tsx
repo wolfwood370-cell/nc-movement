@@ -120,6 +120,35 @@ export default function Auth() {
               <LogIn className="w-4 h-4 mr-2" />
               {submitting ? 'Accesso…' : 'Accedi'}
             </Button>
+
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-2 text-[11px] uppercase tracking-wider text-muted-foreground">oppure</span></div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                const result = await lovable.auth.signInWithOAuth('google', {
+                  redirect_uri: window.location.origin,
+                });
+                if (result.error) {
+                  setSubmitting(false);
+                  toast.error('Accesso con Google non riuscito.');
+                  return;
+                }
+                if (result.redirected) return;
+                navigate('/', { replace: true });
+              }}
+              className="w-full h-12 rounded-xl tap-target"
+            >
+              <GoogleIcon />
+              Continua con Google
+            </Button>
+
             <button type="button" onClick={() => setMode('forgot')}
               className="block w-full text-xs text-primary hover:underline text-center pt-1">
               Password dimenticata?
