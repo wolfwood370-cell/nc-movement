@@ -375,16 +375,23 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
             </div>
           ) : (
             <div className="p-6 space-y-6">
-              {/* Section 1 — Weak Link */}
-              <section className="rounded-lg border border-warning/40 bg-warning/5 p-4">
+              {/* Section 1 — Weak Link / Performance Profile */}
+              <section className={`rounded-lg border p-4 ${isHighScorer ? 'border-functional/40 bg-functional/5' : 'border-warning/40 bg-warning/5'}`}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4 text-warning" />
+                  <Target className={`w-4 h-4 ${isHighScorer ? 'text-functional' : 'text-warning'}`} />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    Weak Link Rilevato
+                    {isHighScorer ? 'Profilo di Movimento' : 'Weak Link Rilevato'}
                   </h3>
                 </div>
-                <p className="font-display font-bold text-base">{focusLabel}</p>
-                {priority?.clientExplanation && (
+                <p className="font-display font-bold text-base">
+                  {isHighScorer ? 'Profilo di Movimento: Ottimale (High Scorer)' : focusLabel}
+                </p>
+                {isHighScorer ? (
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                    Nessun deficit rilevato. La sessione viene generata in <strong>Performance Mode</strong>:
+                    RAMP-6 di mantenimento + Discovery Workout calibrato sull'obiettivo selezionato.
+                  </p>
+                ) : priority?.clientExplanation && (
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                     {priority.clientExplanation}
                   </p>
