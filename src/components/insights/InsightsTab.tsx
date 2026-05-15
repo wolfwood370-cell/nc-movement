@@ -9,6 +9,7 @@ import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
 import TrialSessionModal from './TrialSessionModal';
+import SafeStrengthCard from './SafeStrengthCard';
 
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
@@ -252,6 +253,18 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
+
+      {/* Safe Strength · Commercial Gym alternatives */}
+      {latestFms && (() => {
+        const p = getCorrectivePriority(latestFms as FmsScores);
+        return (
+          <SafeStrengthCard
+            patternKey={p.patternKey}
+            focusLabel={p.focus}
+            variant="card"
+          />
+        );
+      })()}
 
 
       {/* Charts grid */}

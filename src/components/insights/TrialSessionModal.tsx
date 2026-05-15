@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
+import SafeStrengthCard from './SafeStrengthCard';
 
 interface ExerciseRow {
   id: string;
@@ -489,6 +490,14 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                   </>
                 )}
               </section>
+
+              {/* Section 4 — Safe Strength · Commercial gym alternatives */}
+              <SafeStrengthCard
+                patternKey={priority?.patternKey}
+                focusLabel={focusLabel}
+                variant="inline"
+                limit={3}
+              />
 
               <p className="text-[10px] text-muted-foreground text-center pt-2 border-t border-border">
                 Sessione generata on-the-fly · non salvata nello storico clinico.
