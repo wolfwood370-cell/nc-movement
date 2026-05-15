@@ -171,7 +171,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Priorità ai correttivi di mobilità per: ${mobility.map(p => p.label).join(', ')}.`,
     };
   }
-  const motor = [at('rotary_stability'), at('trunk_stability_pushup')].filter(p => p.final === 1);
+  const motor = pick(['rotary_stability', 'trunk_stability_pushup'], 1);
   if (motor.length) {
     return {
       level: 'motor_control',
@@ -179,7 +179,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Priorità ai correttivi di stabilità per: ${motor.map(p => p.label).join(', ')}.`,
     };
   }
-  const fn = [at('inline_lunge'), at('hurdle_step'), at('deep_squat')].filter(p => p.final === 1);
+  const fn = pick(['inline_lunge', 'hurdle_step', 'deep_squat'], 1);
   if (fn.length) {
     return {
       level: 'functional',
