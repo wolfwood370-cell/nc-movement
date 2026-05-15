@@ -413,27 +413,28 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                     color="blue"
                     num="2"
                     title="MOBILIZE"
-                    name={reset?.name ?? '—'}
-                    dose={doseFor(reset)}
-                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
+                    name={reset?.name ?? (isHighScorer ? MAINTENANCE.mobilize.name : '—')}
+                    dose={reset ? doseFor(reset) : (isHighScorer ? MAINTENANCE.mobilize.dose : '—')}
+                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : (isHighScorer ? MAINTENANCE.mobilize.meta : undefined)}
                   />
                   <RampRow
                     icon={ActivityIcon}
                     color="green"
                     num="3"
                     title="ACTIVATE"
-                    name={reactivate?.name ?? '—'}
-                    dose={doseFor(reactivate)}
-                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
+                    name={reactivate?.name ?? (isHighScorer ? MAINTENANCE.activate.name : '—')}
+                    dose={reactivate ? doseFor(reactivate) : (isHighScorer ? MAINTENANCE.activate.dose : '—')}
+                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : (isHighScorer ? MAINTENANCE.activate.meta : undefined)}
                   />
-                  {activateExtra && (
+                  {(activateExtra || isHighScorer) && (
                     <RampRow
                       icon={ActivityIcon}
                       color="green"
                       num="3b"
                       title="ACTIVATE · Full Body"
-                      name={activateExtra.name}
-                      dose={doseFor(activateExtra)}
+                      name={activateExtra?.name ?? MAINTENANCE.activateExtra.name}
+                      dose={activateExtra ? doseFor(activateExtra) : MAINTENANCE.activateExtra.dose}
+                      meta={!activateExtra ? MAINTENANCE.activateExtra.meta : undefined}
                     />
                   )}
                   <RampRow
@@ -441,9 +442,11 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                     color="orange"
                     num="4"
                     title="POTENTIATE"
-                    name={potentiate?.name ?? reinforce?.name ?? '—'}
-                    dose={doseFor(potentiate ?? reinforce)}
+                    name={potentiate?.name ?? reinforce?.name ?? (isHighScorer ? MAINTENANCE.potentiate.name : '—')}
+                    dose={(potentiate || reinforce) ? doseFor(potentiate ?? reinforce) : (isHighScorer ? MAINTENANCE.potentiate.dose : '—')}
+                    meta={(!potentiate && !reinforce && isHighScorer) ? MAINTENANCE.potentiate.meta : undefined}
                   />
+
                 </div>
               </section>
 
