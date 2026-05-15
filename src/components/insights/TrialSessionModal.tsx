@@ -147,9 +147,19 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
     () => (latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null),
     [latestFms],
   );
+  // High scorer: no weak link detected (optimal) or no FMS at all.
+  const isHighScorer = !priority || priority.level === 'optimal' || priority.patternKey === 'none';
   const patternKey = priority?.patternKey && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
     ? priority.patternKey
     : 'aslr';
+
+  // Maintenance fallbacks for high scorers (Full Body default for trial session).
+  const MAINTENANCE = {
+    mobilize: { name: '90/90 Hip Flow', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Full Body' },
+    activate: { name: 'Dead Bug', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Core Stability' },
+    activateExtra: { name: 'Bird Dog', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Anti-rotation' },
+    potentiate: { name: 'Med Ball Chest Pass', dose: '3 Serie x 5 Reps · Esplosivo', meta: 'Maintenance · Power Prep' },
+  };
 
   const flags = useMemo(() => getSafetyFlags(latestFms), [latestFms]);
   const hasAnyFlag = flags.ankle || flags.shoulder || flags.spinalExtension || flags.spinalFlexion;
@@ -383,11 +393,16 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
 
               {/* Section 2 — RAMP-6 Prep */}
               <section>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
                     1. RAMP-6 Prep · The Cure (~20 min)
                   </h3>
+                  {isHighScorer && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      Performance Mode · Maintenance
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <RampRow
@@ -403,27 +418,28 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                     color="blue"
                     num="2"
                     title="MOBILIZE"
-                    name={reset?.name ?? '—'}
-                    dose={doseFor(reset)}
-                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
+                    name={reset?.name ?? (isHighScorer ? MAINTENANCE.mobilize.name : '—')}
+                    dose={reset ? doseFor(reset) : (isHighScorer ? MAINTENANCE.mobilize.dose : '—')}
+                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : (isHighScorer ? MAINTENANCE.mobilize.meta : undefined)}
                   />
                   <RampRow
                     icon={ActivityIcon}
                     color="green"
                     num="3"
                     title="ACTIVATE"
-                    name={reactivate?.name ?? '—'}
-                    dose={doseFor(reactivate)}
-                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
+                    name={reactivate?.name ?? (isHighScorer ? MAINTENANCE.activate.name : '—')}
+                    dose={reactivate ? doseFor(reactivate) : (isHighScorer ? MAINTENANCE.activate.dose : '—')}
+                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : (isHighScorer ? MAINTENANCE.activate.meta : undefined)}
                   />
-                  {activateExtra && (
+                  {(activateExtra || isHighScorer) && (
                     <RampRow
                       icon={ActivityIcon}
                       color="green"
                       num="3b"
                       title="ACTIVATE · Full Body"
-                      name={activateExtra.name}
-                      dose={doseFor(activateExtra)}
+                      name={activateExtra?.name ?? MAINTENANCE.activateExtra.name}
+                      dose={activateExtra ? doseFor(activateExtra) : MAINTENANCE.activateExtra.dose}
+                      meta={!activateExtra ? MAINTENANCE.activateExtra.meta : undefined}
                     />
                   )}
                   <RampRow
@@ -431,9 +447,11 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                     color="orange"
                     num="4"
                     title="POTENTIATE"
-                    name={potentiate?.name ?? reinforce?.name ?? '—'}
-                    dose={doseFor(potentiate ?? reinforce)}
+                    name={potentiate?.name ?? reinforce?.name ?? (isHighScorer ? MAINTENANCE.potentiate.name : '—')}
+                    dose={(potentiate || reinforce) ? doseFor(potentiate ?? reinforce) : (isHighScorer ? MAINTENANCE.potentiate.dose : '—')}
+                    meta={(!potentiate && !reinforce && isHighScorer) ? MAINTENANCE.potentiate.meta : undefined}
                   />
+
                 </div>
               </section>
 
