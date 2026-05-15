@@ -167,22 +167,34 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 
   return (
     <>
-      <Card className="surface-card border-warning/40">
+      <Card className={`surface-card ${isPerformanceMode ? 'border-functional/40' : 'border-warning/40'}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-display flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-warning" /> Protocollo Correttivo & RAMP-6
+              <Sparkles className={`w-4 h-4 ${isPerformanceMode ? 'text-functional' : 'text-warning'}`} /> Protocollo Correttivo & RAMP-6
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-warning/40 text-warning">{priority.category}</Badge>
+              {isPerformanceMode ? (
+                <Badge variant="outline" className="border-functional/40 text-functional">
+                  Priorità: Ottimizzazione Performance (Nessun Deficit)
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-warning/40 text-warning">{priority.category}</Badge>
+              )}
               <Button type="button" size="sm" variant="outline" onClick={() => window.print()} className="no-print h-8">
                 <Printer className="w-3.5 h-3.5 mr-1.5" /> Esporta PDF
               </Button>
             </div>
           </div>
           <div className="pt-2 space-y-1">
-            <div className="font-display font-bold text-base leading-tight">{priority.focus}</div>
-            <p className="text-xs text-muted-foreground">{fallback.rationale}</p>
+            <div className="font-display font-bold text-base leading-tight">
+              {isPerformanceMode ? 'Profilo di Movimento: Ottimale (High Scorer)' : priority.focus}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isPerformanceMode
+                ? 'Nessun deficit rilevato. Usa il RAMP-6 per ottimizzare la performance pre-allenamento.'
+                : fallback.rationale}
+            </p>
             {constraintList.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
