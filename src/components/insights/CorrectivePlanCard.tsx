@@ -137,21 +137,7 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 
   const priority = getCorrectivePriority(fms as FmsScores);
 
-  if (priority.level === 'optimal') {
-    return (
-      <Card className="surface-card border-functional/40">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-display flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-functional" /> Baseline Ottimale
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm">Movement baseline ottimale. Procedi alla programmazione di performance training.</p>
-          <p className="text-xs text-muted-foreground">{priority.detail}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const isPerformanceMode = priority.level === 'optimal';
 
   if (priority.level === 'incomplete') {
     return <ShellEmpty title="Protocollo Correttivo & RAMP-6" body={priority.detail ?? 'FMS incompleto.'} />;
