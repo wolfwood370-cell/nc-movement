@@ -393,11 +393,16 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
 
               {/* Section 2 — RAMP-6 Prep */}
               <section>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
                     1. RAMP-6 Prep · The Cure (~20 min)
                   </h3>
+                  {isHighScorer && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      Performance Mode · Maintenance
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <RampRow
