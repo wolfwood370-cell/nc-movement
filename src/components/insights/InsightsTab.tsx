@@ -9,6 +9,7 @@ import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
 import CorrectivePlanCard from './CorrectivePlanCard';
 import TrialSessionModal from './TrialSessionModal';
+import SafeStrengthCard from './SafeStrengthCard';
 
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
