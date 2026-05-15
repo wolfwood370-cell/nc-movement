@@ -147,9 +147,19 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
     () => (latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null),
     [latestFms],
   );
+  // High scorer: no weak link detected (optimal) or no FMS at all.
+  const isHighScorer = !priority || priority.level === 'optimal' || priority.patternKey === 'none';
   const patternKey = priority?.patternKey && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
     ? priority.patternKey
     : 'aslr';
+
+  // Maintenance fallbacks for high scorers (Full Body default for trial session).
+  const MAINTENANCE = {
+    mobilize: { name: '90/90 Hip Flow', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Full Body' },
+    activate: { name: 'Dead Bug', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Core Stability' },
+    activateExtra: { name: 'Bird Dog', dose: '2 Serie x 8 Reps per lato', meta: 'Maintenance · Anti-rotation' },
+    potentiate: { name: 'Med Ball Chest Pass', dose: '3 Serie x 5 Reps · Esplosivo', meta: 'Maintenance · Power Prep' },
+  };
 
   const flags = useMemo(() => getSafetyFlags(latestFms), [latestFms]);
   const hasAnyFlag = flags.ankle || flags.shoulder || flags.spinalExtension || flags.spinalFlexion;
