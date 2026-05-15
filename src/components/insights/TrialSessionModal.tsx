@@ -6,12 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
-import SafeStrengthCard from './SafeStrengthCard';
 
 interface ExerciseRow {
   id: string;
   pattern: string;
-  phase: 'Reset' | 'Reactivate' | 'Reinforce';
+  phase: 'Reset' | 'Reactivate' | 'Reinforce' | 'Safe_Strength' | 'Raise' | 'Activate' | 'Potentiate';
   posture_level: number;
   posture_name: string;
   name: string;
@@ -40,30 +39,34 @@ const GOAL_OPTIONS: { value: Goal; label: string }[] = [
   { value: 'rehab', label: 'Rieducazione / Gestione Dolore' },
 ];
 
-const GOAL_PARAMS: Record<Goal, { sets: string; reps: string; note: string; circuitInfo: string }> = {
+const GOAL_PARAMS: Record<Goal, { sets: string; reps: string; note: string; circuitInfo: string; diagnosticNote: string }> = {
   strength: {
     sets: '3 Serie',
     reps: '4-6 Reps',
-    note: 'Focus su carico pesante e recuperi completi (90-120s).',
-    circuitInfo: 'Esecuzione a stazioni · Recupero 90-120" tra serie · 3 round',
+    note: 'Carico pesante, recupero 90-120".',
+    circuitInfo: 'Esecuzione a stazioni · Recupero 90-120" · 3 round',
+    diagnosticNote: 'Eccentrica 4 sec · senti il weak link prima di caricare.',
   },
   hypertrophy: {
     sets: '3 Serie',
     reps: '8-12 Reps',
-    note: 'Focus su connessione mente-muscolo e tempo eccentrico lento (3-4 sec).',
+    note: 'Connessione mente-muscolo · eccentrica 3 sec.',
     circuitInfo: 'Esecuzione a stazioni · Recupero 60-75" · 3 round · Tempo 3-1-1-0',
+    diagnosticNote: 'Eccentrica 3 sec · esposizione controllata del pattern.',
   },
   metabolic: {
     sets: '4 Serie',
     reps: '40" Lavoro / 20" Recupero',
-    note: 'Circuito ad alta intensità. Mantenere il battito cardiaco elevato.',
-    circuitInfo: 'Circuito HIIT · 40" lavoro / 20" recupero · 4 round',
+    note: 'Alta intensità · battito elevato.',
+    circuitInfo: 'Circuito HIIT · 40"/20" · 4 round',
+    diagnosticNote: 'Eseguire pulito anche in fatica · qualità > velocità.',
   },
   rehab: {
     sets: '2 Serie',
     reps: '8-10 Reps',
-    note: 'Esecuzione controllata. Pausa isometrica di 2" nel punto di massima contrazione.',
-    circuitInfo: 'Esecuzione controllata · Recupero 60" · 2 round · Pausa iso 2"',
+    note: 'Esecuzione controllata · pausa iso 2".',
+    circuitInfo: 'Esecuzione controllata · Recupero 60" · 2 round',
+    diagnosticNote: 'Pausa iso 2" nel range disponibile · zero compenso.',
   },
 };
 
@@ -85,7 +88,6 @@ function getSafetyFlags(fms: FmsAssessmentRow | null): SafetyFlags {
   };
 }
 
-// Constraint Engine — returns true if the exercise is SAFE for the given flags.
 function isSafe(ex: ExerciseRow, flags: SafetyFlags): boolean {
   const n = ex.name.toLowerCase();
   if (flags.ankle && /(jump|hop|bound|slam|swing|skipping|sprint|plyo|broad|box)/.test(n)) return false;
@@ -95,30 +97,12 @@ function isSafe(ex: ExerciseRow, flags: SafetyFlags): boolean {
   return true;
 }
 
-// Safe fallback names per slot when nothing in pool passes constraints.
-function safeAlternative(label: string, flags: SafetyFlags): { name: string; note: string } {
-  if (flags.ankle && (label === 'Power / Integration' || label === 'Pattern Stress')) {
-    return { name: 'Assault Bike Sprint', note: 'Alternativa zero-impact (ankle clearing positivo)' };
-  }
-  if (flags.shoulder && label === 'Pattern Stress') {
-    return { name: 'Goblet Squat (presa neutra)', note: 'Evita pressa overhead (shoulder clearing positivo)' };
-  }
-  if (flags.spinalFlexion && label === 'Core Stability') {
-    return { name: 'Dead Bug', note: 'Alternativa anti-estensione (spinal flexion clearing positivo)' };
-  }
-  if (flags.spinalExtension && label === 'Core Stability') {
-    return { name: 'Half-Kneeling Pallof Press', note: 'Evita estensione spinale caricata' };
-  }
-  return { name: '—', note: 'Nessuna opzione sicura — consulta protocollo correttivo.' };
-}
-
 function pickRandom<T>(arr: T[]): T | null {
   return arr.length === 0 ? null : arr[Math.floor(Math.random() * arr.length)];
 }
 
 function pickSafe(pool: ExerciseRow[], flags: SafetyFlags): ExerciseRow | null {
-  const safe = pool.filter(e => isSafe(e, flags));
-  return pickRandom(safe);
+  return pickRandom(pool.filter(e => isSafe(e, flags)));
 }
 
 function doseFor(ex: ExerciseRow | null, fallback = '—'): string {
@@ -127,31 +111,27 @@ function doseFor(ex: ExerciseRow | null, fallback = '—'): string {
   return ex.dose ?? fallback;
 }
 
-// Goal-aware preference scoring — higher = better fit for goal.
-function goalScore(ex: ExerciseRow, goal: Goal): number {
+function metabolicScore(ex: ExerciseRow): number {
   const n = ex.name.toLowerCase();
   let s = 0;
-  if (goal === 'strength') {
-    if (/(deadlift|back squat|front squat|goblet squat|bench|row|press)/.test(n)) s += 3;
-    if (ex.phase === 'Reinforce') s += 2;
-  } else if (goal === 'hypertrophy') {
-    if (/(single|split|bulgarian|unilateral|one[- ]?arm|lunge)/.test(n)) s += 3;
-    if (ex.phase === 'Reinforce') s += 1;
-  } else if (goal === 'metabolic') {
-    if (/(swing|slam|burpee|jump|sprint|thruster|carry|lunge|skipping)/.test(n)) s += 3;
-    if (ex.ramp_category === 'F' || ex.workout_target === 'Full Body') s += 2;
-  } else if (goal === 'rehab') {
-    if (/(half[- ]?kneeling|chop|lift|bird dog|dead bug|quadruped|tall kneeling)/.test(n)) s += 3;
-    if (ex.phase === 'Reactivate' || ex.phase === 'Reset') s += 2;
-  }
+  if (/(swing|slam|burpee|jump|sprint|thruster|carry|skipping|row|bike|battle)/.test(n)) s += 3;
+  if (ex.ramp_category === 'F' || ex.workout_target === 'Full Body') s += 2;
   return s;
 }
 
-function pickByGoal(pool: ExerciseRow[], flags: SafetyFlags, goal: Goal): ExerciseRow | null {
+function rehabScore(ex: ExerciseRow): number {
+  const n = ex.name.toLowerCase();
+  let s = 0;
+  if (/(half[- ]?kneeling|chop|lift|bird dog|dead bug|quadruped|tall kneeling|pallof)/.test(n)) s += 3;
+  if (ex.phase === 'Reactivate' || ex.phase === 'Reset') s += 2;
+  return s;
+}
+
+function pickRanked(pool: ExerciseRow[], flags: SafetyFlags, score: (e: ExerciseRow) => number): ExerciseRow | null {
   const safe = pool.filter(e => isSafe(e, flags));
   if (safe.length === 0) return null;
-  const ranked = [...safe].sort((a, b) => goalScore(b, goal) - goalScore(a, goal));
-  const top = ranked.filter(e => goalScore(e, goal) === goalScore(ranked[0], goal));
+  const ranked = [...safe].sort((a, b) => score(b) - score(a));
+  const top = ranked.filter(e => score(e) === score(ranked[0]));
   return pickRandom(top);
 }
 
@@ -177,7 +157,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   const [goal, setGoal] = useState<Goal | ''>('');
   const [loading, setLoading] = useState(false);
 
-  // RAMP-6 prep
   const [reset, setReset] = useState<ExerciseRow | null>(null);
   const [reactivate, setReactivate] = useState<ExerciseRow | null>(null);
   const [reinforce, setReinforce] = useState<ExerciseRow | null>(null);
@@ -185,10 +164,8 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   const [activateExtra, setActivateExtra] = useState<ExerciseRow | null>(null);
   const [potentiate, setPotentiate] = useState<ExerciseRow | null>(null);
 
-  // Discovery
   const [discovery, setDiscovery] = useState<DiscoveryItem[]>([]);
 
-  // Reset goal each time modal reopens
   useEffect(() => { if (open) setGoal(''); }, [open]);
 
   useEffect(() => {
@@ -202,10 +179,8 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
         { data: dRows },
         { data: fRows },
         { data: stressRows },
-        { data: asymRowsA },
-        { data: asymRowsB },
-        { data: coreRotaryRows },
-        { data: coreTspuRows },
+        { data: safeStrengthAll },
+        { data: safeStrengthPattern },
         { data: powerRows },
         { data: rehabReactivateRows },
         { data: rehabResetRows },
@@ -215,10 +190,8 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
         supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', 'Full Body'),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F').eq('workout_target', 'Full Body'),
         supabase.from('exercises_library').select('*').eq('pattern', patternKey).eq('phase', 'Reinforce'),
-        supabase.from('exercises_library').select('*').ilike('name', '%Single Leg%'),
-        supabase.from('exercises_library').select('*').ilike('name', '%Split Squat%'),
-        supabase.from('exercises_library').select('*').eq('pattern', 'Rotary_Stability').eq('phase', 'Reactivate'),
-        supabase.from('exercises_library').select('*').eq('pattern', 'TSPU').eq('phase', 'Reactivate'),
+        supabase.from('exercises_library').select('*').eq('phase', 'Safe_Strength' as never),
+        supabase.from('exercises_library').select('*').eq('phase', 'Safe_Strength' as never).eq('pattern', patternKey),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F'),
         supabase.from('exercises_library').select('*').eq('phase', 'Reactivate'),
         supabase.from('exercises_library').select('*').eq('phase', 'Reset'),
@@ -233,7 +206,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       setActivateExtra(pickSafe((dRows ?? []) as ExerciseRow[], flags));
       setPotentiate(pickSafe((fRows ?? []) as ExerciseRow[], flags));
 
-      // ---- Discovery Workout ----
+      // ---- Discovery Workout (1 diagnostic + 2-3 goal slots) ----
       if (!goal) {
         setDiscovery([]);
         setLoading(false);
@@ -243,56 +216,77 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       const params = GOAL_PARAMS[goal];
       const items: DiscoveryItem[] = [];
 
-      // Pool selection per goal
-      const stressPool = goal === 'rehab'
-        ? ((rehabReactivateRows ?? []) as ExerciseRow[]).filter(r => r.pattern === patternKey)
-        : (stressRows ?? []) as ExerciseRow[];
+      // SLOT 1 — Diagnostic Challenge: pattern-specific stress (Reinforce of weak link)
+      const stressPool = (stressRows ?? []) as ExerciseRow[];
+      const diag = pickSafe(stressPool, flags) ?? pickSafe(pAll, flags);
+      items.push({
+        label: '01 · Diagnostic Challenge',
+        name: diag?.name ?? 'Goblet Squat',
+        dose: `${params.sets} x ${params.reps}`,
+        note: params.diagnosticNote,
+      });
 
-      const asymBase = [...((asymRowsA ?? []) as ExerciseRow[]), ...((asymRowsB ?? []) as ExerciseRow[])];
-      const corePool = [...((coreRotaryRows ?? []) as ExerciseRow[]), ...((coreTspuRows ?? []) as ExerciseRow[])];
-      const powerPool = goal === 'rehab'
-        ? ((rehabResetRows ?? []) as ExerciseRow[])
-        : ((powerRows ?? []) as ExerciseRow[]);
+      // SLOTS 2-4 — Goal Fulfillment
+      // Avoid duplicating the diagnostic exercise.
+      const usedIds = new Set<string>(diag ? [diag.id] : []);
+      const safePatternIds = new Set((safeStrengthPattern ?? []).map((r: ExerciseRow) => r.id));
 
-      const slots: { label: string; pool: ExerciseRow[]; defaultName: string }[] = [
-        { label: 'Pattern Stress', pool: stressPool, defaultName: 'Goblet Squat' },
-        { label: 'Asymmetry Challenge', pool: asymBase, defaultName: 'Bulgarian Split Squat' },
-        { label: 'Core Stability', pool: corePool, defaultName: 'Bird Dog' },
-        { label: 'Power / Integration', pool: powerPool, defaultName: 'Med Ball Slam' },
-      ];
+      let goalPool: ExerciseRow[] = [];
+      let scorer: (e: ExerciseRow) => number = () => 0;
+      let slotCount = 3;
 
-      for (const slot of slots) {
-        const pick = pickByGoal(slot.pool, flags, goal);
-        if (pick) {
-          items.push({
-            label: slot.label,
-            name: pick.name,
-            dose: `${params.sets} x ${params.reps}`,
-            note: params.note,
-          });
-        } else {
-          // Try unsafe pool just to check if downgrade is needed
-          const unsafePick = pickRandom(slot.pool);
-          if (unsafePick && !isSafe(unsafePick, flags)) {
-            const alt = safeAlternative(slot.label, flags);
-            items.push({
-              label: slot.label,
-              name: alt.name,
-              dose: `${params.sets} x ${params.reps}`,
-              note: params.note,
-              downgraded: alt.note,
-            });
-          } else {
-            const alt = safeAlternative(slot.label, flags);
-            items.push({
-              label: slot.label,
-              name: slot.defaultName,
-              dose: `${params.sets} x ${params.reps}`,
-              note: params.note,
-              downgraded: hasAnyFlag ? alt.note : undefined,
-            });
-          }
-        }
+      if (goal === 'strength' || goal === 'hypertrophy') {
+        // Safe Strength exercises that DO NOT load the FMS weak link
+        goalPool = ((safeStrengthAll ?? []) as ExerciseRow[])
+          .filter(e => !safePatternIds.has(e.id));
+        scorer = () => 0;
+      } else if (goal === 'metabolic') {
+        goalPool = (powerRows ?? []) as ExerciseRow[];
+        scorer = metabolicScore;
+      } else {
+        goalPool = [
+          ...((rehabReactivateRows ?? []) as ExerciseRow[]),
+          ...((rehabResetRows ?? []) as ExerciseRow[]),
+        ];
+        scorer = rehabScore;
+        slotCount = 2; // rehab keeps it shorter
+      }
+
+      const candidates = goalPool
+        .filter(e => isSafe(e, flags) && !usedIds.has(e.id))
+        .sort((a, b) => scorer(b) - scorer(a));
+
+      // Light shuffle within equal-score buckets
+      const buckets = new Map<number, ExerciseRow[]>();
+      candidates.forEach(e => {
+        const k = scorer(e);
+        if (!buckets.has(k)) buckets.set(k, []);
+        buckets.get(k)!.push(e);
+      });
+      const ordered: ExerciseRow[] = [];
+      [...buckets.keys()].sort((a, b) => b - a).forEach(k => {
+        const bucket = buckets.get(k)!.sort(() => Math.random() - 0.5);
+        ordered.push(...bucket);
+      });
+
+      const goalLabelByGoal: Record<Goal, string> = {
+        strength: 'Safe Strength',
+        hypertrophy: 'Safe Strength',
+        metabolic: 'Metabolic',
+        rehab: 'Stability / Control',
+      };
+
+      for (let i = 0; i < slotCount && ordered.length > 0; i++) {
+        const pick = ordered.shift()!;
+        usedIds.add(pick.id);
+        items.push({
+          label: `${String(items.length + 1).padStart(2, '0')} · ${goalLabelByGoal[goal]}`,
+          name: pick.name,
+          dose: pick.default_sets && pick.default_reps_time
+            ? `${pick.default_sets} Serie x ${pick.default_reps_time}`
+            : `${params.sets} x ${params.reps}`,
+          note: params.note,
+        });
       }
 
       setDiscovery(items);
@@ -376,10 +370,9 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="w-4 h-4 text-warning" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    1. Il tuo Weak Link
+                    Weak Link Rilevato
                   </h3>
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">Limitazione Primaria Rilevata:</p>
                 <p className="font-display font-bold text-base">{focusLabel}</p>
                 {priority?.clientExplanation && (
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
@@ -393,7 +386,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    2. RAMP-6 Prep · The Cure
+                    1. RAMP-6 Prep · The Cure (~20 min)
                   </h3>
                 </div>
                 <div className="space-y-2">
@@ -449,7 +442,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    3. Discovery Workout · The Challenge
+                    2. Discovery Workout · The Challenge (~20 min)
                   </h3>
                 </div>
                 {!goal ? (
@@ -469,7 +462,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                       {discovery.map((item, i) => (
                         <div key={i} className="rounded-lg border border-border bg-card p-4">
                           <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
-                            {String(i + 1).padStart(2, '0')} · {item.label}
+                            {item.label}
                           </div>
                           <div className="font-display font-semibold text-sm">{item.name}</div>
                           <div className="text-xs text-muted-foreground mt-1">{item.dose}</div>
@@ -491,16 +484,8 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 )}
               </section>
 
-              {/* Section 4 — Safe Strength · Commercial gym alternatives */}
-              <SafeStrengthCard
-                patternKey={priority?.patternKey}
-                focusLabel={focusLabel}
-                variant="inline"
-                limit={3}
-              />
-
               <p className="text-[10px] text-muted-foreground text-center pt-2 border-t border-border">
-                Sessione generata on-the-fly · non salvata nello storico clinico.
+                Sessione 40 min · 20 min consulenza · non salvata nello storico clinico.
               </p>
             </div>
           )}
