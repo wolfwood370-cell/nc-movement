@@ -254,6 +254,18 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
       {/* Corrective prescription engine */}
       <CorrectivePlanCard fms={latestFms} client={client} />
 
+      {/* Safe Strength · Commercial Gym alternatives */}
+      {latestFms && (() => {
+        const p = getCorrectivePriority(latestFms as FmsScores);
+        return (
+          <SafeStrengthCard
+            patternKey={p.patternKey}
+            focusLabel={p.focus}
+            variant="card"
+          />
+        );
+      })()}
+
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
