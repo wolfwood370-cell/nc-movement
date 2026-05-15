@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, LogIn, KeyRound, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,12 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 type Mode = 'signin' | 'forgot';
+
+const GoogleIcon = () => (
+  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.6 6.7 2.6 12s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.1-1.1-.2-1.6H12z"/>
+  </svg>
+);
 
 export default function Auth() {
   const { session, loading } = useAuth();
@@ -113,6 +120,35 @@ export default function Auth() {
               <LogIn className="w-4 h-4 mr-2" />
               {submitting ? 'Accesso…' : 'Accedi'}
             </Button>
+
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-2 text-[11px] uppercase tracking-wider text-muted-foreground">oppure</span></div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                const result = await lovable.auth.signInWithOAuth('google', {
+                  redirect_uri: window.location.origin,
+                });
+                if (result.error) {
+                  setSubmitting(false);
+                  toast.error('Accesso con Google non riuscito.');
+                  return;
+                }
+                if (result.redirected) return;
+                navigate('/', { replace: true });
+              }}
+              className="w-full h-12 rounded-xl tap-target"
+            >
+              <GoogleIcon />
+              Continua con Google
+            </Button>
+
             <button type="button" onClick={() => setMode('forgot')}
               className="block w-full text-xs text-primary hover:underline text-center pt-1">
               Password dimenticata?
