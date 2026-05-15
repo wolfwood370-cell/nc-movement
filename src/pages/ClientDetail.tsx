@@ -229,7 +229,26 @@ export default function ClientDetail() {
         </div>
       </TooltipProvider>
 
-      <Tabs defaultValue="history" className="w-full">
+      {fms.length > 0 && (
+        <Button
+          type="button"
+          size="lg"
+          onClick={() => setTrialOpen(true)}
+          className="w-full tap-target shadow-lg shadow-primary/20"
+        >
+          <Zap className="w-4 h-4 mr-2" />
+          Genera Warmup / Sessione Trial
+        </Button>
+      )}
+
+      <TrialSessionModal
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        latestFms={fms[0] ?? null}
+        clientName={client.full_name}
+      />
+
+      <Tabs defaultValue="insights" className="w-full">
         <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="history">Storico</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
