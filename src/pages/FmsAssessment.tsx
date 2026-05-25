@@ -105,6 +105,7 @@ export default function FmsAssessment() {
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
+  const [packResult, setPackResult] = useState<PackResult | null>(null);
 
   useEffect(() => {
     (async () => {
