@@ -316,7 +316,7 @@ function PtPackPanel({ sessions, clientId, onChanged }: {
     .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0));
   const triage = sessions.find(s => s.session_type === 'Triage');
 
-  const updateSession = async (id: string, patch: Partial<Pick<SessionRow, 'status' | 'scheduled_at'>>) => {
+  const updateSession = async (id: string, patch: { status?: 'draft' | 'scheduled' | 'completed' | 'cancelled'; scheduled_at?: string | null }) => {
     const { error } = await supabase.from('sessions').update(patch).eq('id', id);
     if (error) return;
     onChanged();
