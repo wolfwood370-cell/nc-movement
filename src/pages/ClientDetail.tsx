@@ -420,7 +420,7 @@ function PtPackSessionCard({ session, latestFms, onChanged }: {
         .eq('id', session.id)
         .maybeSingle();
       if (cancelled) return;
-      setProgram((data?.program as PtPackProgram | null) ?? null);
+      setProgram((data?.program as unknown as PtPackProgram | null) ?? null);
       setGoal((data?.goal as string | null) ?? null);
     })();
     return () => { cancelled = true; };
