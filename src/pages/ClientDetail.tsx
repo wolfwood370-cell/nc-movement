@@ -38,6 +38,7 @@ export default function ClientDetail() {
   const [latestSfmaBreakouts, setLatestSfmaBreakouts] = useState<BreakoutResults>({});
   const [latestFcs, setLatestFcs] = useState<FcsFormValues | null>(null);
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
+  const [sessions, setSessions] = useState<Array<{ id: string; session_type: string; session_number: number | null; status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null }>>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
 
   const loadAll = useCallback(async () => {
