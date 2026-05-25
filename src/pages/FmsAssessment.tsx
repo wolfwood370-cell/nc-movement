@@ -210,11 +210,47 @@ export default function FmsAssessment() {
       return;
     }
     const { data, error } = await supabase.from('fms_assessments').insert(payload).select('id').single();
+    if (error || !data) { setSaving(false); toast.error(error?.message ?? 'Errore salvataggio'); return; }
+    const fmsAssessmentId = data.id;
+
+    // Batch-generate the PT Pack (1 Triage + 3 PT Pack sessions).
+    // Unique indexes on (fms_assessment_id) prevent duplication on re-clicks.
+    const sessionRows = [
+      { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
+        session_type: 'Triage' as const, status: 'completed' as const, session_number: null },
+      { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
+        session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 1 },
+      { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
+        session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 2 },
+      { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
+        session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 3 },
+    ];
+    const { data: inserted, error: sErr } = await supabase
+      .from('sessions')
+      .insert(sessionRows)
+      .select('id, session_type, session_number, status');
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+
+    if (sErr) {
+      // FMS saved successfully but session generation failed — surface error but keep navigation usable.
+      toast.error(`Valutazione salvata, ma errore generando il PT Pack: ${sErr.message}`);
+      clearDraft();
+      navigate(`/assessments/fms/${fmsAssessmentId}`, { replace: true });
+      return;
+    }
+
     clearDraft();
-    toast.success('Valutazione salvata');
-    navigate(`/assessments/fms/${data!.id}`, { replace: true });
+    toast.success('Valutazione salvata e PT Pack generato');
+    setPackResult({
+      fmsAssessmentId,
+      sessions: (inserted ?? []).map((r) => ({
+        id: r.id,
+        type: r.session_type as 'Triage' | 'PT Pack',
+        number: r.session_number,
+        status: r.status,
+      })),
+    });
   };
 
   if (loading) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
