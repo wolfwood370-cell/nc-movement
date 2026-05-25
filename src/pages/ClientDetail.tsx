@@ -272,8 +272,9 @@ export default function ClientDetail() {
         </TabsList>
 
         <TabsContent value="ptpack" className="mt-4">
-          <PtPackPanel sessions={sessions} clientId={client.id} onChanged={loadAll} />
+          <PtPackPanel sessions={sessions} clientId={client.id} latestFms={fms[0] ?? null} onChanged={loadAll} />
         </TabsContent>
+
 
 
         <TabsContent value="history" className="mt-4">
