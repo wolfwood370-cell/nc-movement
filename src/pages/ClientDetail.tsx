@@ -514,20 +514,22 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
 }) {
   const hasProgram = !!program;
 
-  // Group exercises by block letter (A / B / C) for visual separation
+  // Group exercises by block letter (W / A / B / C) for visual separation
   const groups = useMemo(() => {
     if (!program) return [] as { key: string; title: string; items: PtPackProgram['exercises'] }[];
     const titles: Record<string, string> = {
+      W: 'Warm-up Correttivo · forzato dal FMS',
       A: 'Blocco A · Forza',
       B: 'Blocco B · Accessori',
       C: 'Blocco C · Finisher',
     };
+    const order = ['W', 'A', 'B', 'C'];
     const out: Record<string, PtPackProgram['exercises']> = {};
     for (const ex of program.exercises) {
       const key = ex.block.charAt(0);
       (out[key] ??= []).push(ex);
     }
-    return Object.keys(out).sort().map(k => ({ key: k, title: titles[k] ?? `Blocco ${k}`, items: out[k] }));
+    return order.filter(k => out[k]).map(k => ({ key: k, title: titles[k] ?? `Blocco ${k}`, items: out[k] }));
   }, [program]);
 
   return (
@@ -562,14 +564,20 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
 
       {hasProgram && open && program && (
         <div className="border-t border-border bg-muted/20 p-4 space-y-5">
+          {program.session_rationale && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-1">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-primary">Razionale Scientifico</div>
+              <p className="text-[12px] text-foreground leading-snug">{program.session_rationale}</p>
+            </div>
+          )}
           {groups.map(g => (
             <div key={g.key} className="space-y-2">
-              <div className="text-[10px] uppercase tracking-wider font-bold text-primary">{g.title}</div>
+              <div className={`text-[10px] uppercase tracking-wider font-bold ${g.key === 'W' ? 'text-warning' : 'text-primary'}`}>{g.title}</div>
               <div className="space-y-2">
                 {g.items.map((e, i) => (
-                  <div key={`${g.key}-${i}`} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                  <div key={`${g.key}-${i}`} className={`rounded-xl border p-3 space-y-2 ${g.key === 'W' ? 'border-warning/40 bg-warning/5' : 'border-border bg-card'}`}>
                     <div className="flex items-start gap-3">
-                      <span className="font-mono text-[10px] font-bold text-primary bg-primary/10 rounded px-1.5 py-0.5 shrink-0">
+                      <span className={`font-mono text-[10px] font-bold rounded px-1.5 py-0.5 shrink-0 ${g.key === 'W' ? 'text-warning bg-warning/15' : 'text-primary bg-primary/10'}`}>
                         {e.block}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -583,10 +591,13 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
                       <StatChip label="TUT" value={e.tut} />
                       <StatChip label="Recupero" value={e.rest} />
                     </div>
-                    {e.notes && (
-                      <div className="text-[11px] text-muted-foreground italic border-l-2 border-primary/30 pl-2">
-                        {e.notes}
+                    {e.rationale && (
+                      <div className="text-[11px] text-muted-foreground leading-snug border-l-2 border-primary/30 pl-2">
+                        <span className="font-semibold text-foreground">Perché: </span>{e.rationale}
                       </div>
+                    )}
+                    {e.notes && (
+                      <div className="text-[11px] text-muted-foreground italic">{e.notes}</div>
                     )}
                   </div>
                 ))}
@@ -595,7 +606,7 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
           ))}
           {program.weak_link && (
             <div className="text-[11px] text-muted-foreground italic">
-              Weak link considerato: <span className="font-semibold text-foreground">{program.weak_link}</span>
+              Weak link FMS considerato: <span className="font-semibold text-foreground">{program.weak_link}</span>
             </div>
           )}
         </div>
