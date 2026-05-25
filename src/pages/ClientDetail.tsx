@@ -432,7 +432,7 @@ function PtPackSessionCard({ session, latestFms, onChanged }: {
     try {
       const prog = await generatePtPackProgram(selectedGoal, session.session_number ?? 1, latestFms);
       await supabase.from('sessions')
-        .update({ program: prog as unknown as Record<string, unknown>, goal: selectedGoal })
+        .update({ program: JSON.parse(JSON.stringify(prog)), goal: selectedGoal })
         .eq('id', session.id);
       setProgram(prog);
       setGoal(selectedGoal);
