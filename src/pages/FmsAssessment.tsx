@@ -255,6 +255,132 @@ export default function FmsAssessment() {
 
   if (loading) return <div className="text-sm text-muted-foreground">Caricamento…</div>;
 
+  // ---- Saving skeleton (covers form while FMS + 4 sessions are written) --
+  if (saving && !packResult) {
+    return (
+      <div className="space-y-4 pb-4" aria-busy="true" aria-live="polite">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 gap-3">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          Salvataggio screening e generazione del PT Pack…
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Success state (post-save) -----------------------------------------
+  if (packResult) {
+    const triage = packResult.sessions.find((s) => s.type === 'Triage');
+    const ptPack = packResult.sessions
+      .filter((s) => s.type === 'PT Pack')
+      .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+    const rows: Array<{ key: string; title: string; status: string; tone: 'success' | 'muted'; icon: typeof CheckCircle2 }> = [
+      { key: 'triage', title: 'Sessione Triage', status: 'Completata', tone: 'success', icon: ClipboardCheck },
+      ...ptPack.map((s) => ({
+        key: `pt-${s.number}`,
+        title: `PT Pack · Sessione ${s.number}`,
+        status: 'Da programmare',
+        tone: 'muted' as const,
+        icon: CalendarClock,
+      })),
+    ];
+    // Keep triage row even if not returned by select (defensive).
+    if (!triage) rows[0].status = 'Generata';
+
+    return (
+      <div className="space-y-5 pb-4 animate-fade-in">
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS · Riepilogo</p>
+          <h1 className="font-display font-bold text-2xl">{clientName || 'Cliente'}</h1>
+        </header>
+
+        <div className="surface-card p-6 bg-success/5 border-success/40">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-12 h-12 rounded-full bg-success/15 grid place-items-center">
+              <CheckCircle2 className="w-7 h-7 text-success" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display font-bold text-lg leading-tight">
+                Screening FMS Completato e Pacchetto PT Generato
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Il sistema ha registrato la sessione Triage e creato 3 sessioni PT Pack pronte per essere programmate.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface-card p-2">
+          <div className="px-3 py-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-primary" /> Entità generate
+          </div>
+          <ul className="divide-y divide-border">
+            {rows.map((r) => {
+              const Ico = r.icon;
+              return (
+                <li key={r.key} className="flex items-center justify-between gap-3 px-3 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`shrink-0 w-9 h-9 rounded-lg grid place-items-center ${
+                      r.tone === 'success' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Ico className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-display font-semibold text-sm truncate">{r.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{r.status}</div>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${
+                    r.tone === 'success'
+                      ? 'bg-success/15 text-success'
+                      : 'bg-warning/15 text-warning-foreground'
+                  }`}>
+                    {r.tone === 'success' ? 'Done' : 'Draft'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <Button
+            variant="outline"
+            className="h-12 rounded-xl tap-target"
+            onClick={() => clientId && navigate(`/clients/${clientId}`)}
+          >
+            <UserRound className="w-4 h-4 mr-2" /> Vai al Profilo Atleta
+          </Button>
+          <Button
+            className="h-12 rounded-xl tap-target shadow-elevated"
+            onClick={() => clientId && navigate(`/clients/${clientId}?tab=calendar`)}
+          >
+            <CalendarClock className="w-4 h-4 mr-2" /> Programma PT Pack
+          </Button>
+        </div>
+
+        <div className="pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => navigate(`/assessments/fms/${packResult.fmsAssessmentId}`, { replace: true })}
+          >
+            <FileText className="w-4 h-4 mr-1.5" /> Apri valutazione
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+
   const correctiveTone =
     corrective.level === 'pain' ? 'bg-pain text-destructive-foreground' :
     corrective.level === 'mobility' ? 'bg-warning text-warning-foreground' :
