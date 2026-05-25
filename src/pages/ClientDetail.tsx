@@ -262,7 +262,12 @@ export default function ClientDetail() {
                     </div>
                     <div className="text-right shrink-0 ml-3">
                       <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">
+                        / {fmsMaxTotal(a as unknown as Parameters<typeof fmsMaxTotal>[0])}
+                        {isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]) && (
+                          <span className="ml-1 text-primary font-bold">· Mod</span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                   <DeleteAssessmentButton
