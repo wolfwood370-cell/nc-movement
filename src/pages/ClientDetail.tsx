@@ -514,20 +514,22 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
 }) {
   const hasProgram = !!program;
 
-  // Group exercises by block letter (A / B / C) for visual separation
+  // Group exercises by block letter (W / A / B / C) for visual separation
   const groups = useMemo(() => {
     if (!program) return [] as { key: string; title: string; items: PtPackProgram['exercises'] }[];
     const titles: Record<string, string> = {
+      W: 'Warm-up Correttivo · forzato dal FMS',
       A: 'Blocco A · Forza',
       B: 'Blocco B · Accessori',
       C: 'Blocco C · Finisher',
     };
+    const order = ['W', 'A', 'B', 'C'];
     const out: Record<string, PtPackProgram['exercises']> = {};
     for (const ex of program.exercises) {
       const key = ex.block.charAt(0);
       (out[key] ??= []).push(ex);
     }
-    return Object.keys(out).sort().map(k => ({ key: k, title: titles[k] ?? `Blocco ${k}`, items: out[k] }));
+    return order.filter(k => out[k]).map(k => ({ key: k, title: titles[k] ?? `Blocco ${k}`, items: out[k] }));
   }, [program]);
 
   return (
