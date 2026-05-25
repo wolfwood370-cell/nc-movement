@@ -1,12 +1,30 @@
 // =====================================================================
-// PT Pack Program Generator
-// Generates a 5-block workout (Activation → Main A → Main B → Accessory →
-// Finisher) based on the client's training goal and FMS weak link.
-// Stored as JSONB on `sessions.program`.
+// PT Pack Program Generator (v2 — FMS-driven)
+// ---------------------------------------------------------------------
+// Generates a coherent 3-session PT Pack where each exercise is selected
+// from `exercises_library` strictly through the FMS Prescription Engine:
+//   - Pattern score → tier (corrective / integration / performance)
+//   - Tier → ramp_category pool
+//   - Score ≤ 1 on a session-relevant pattern → 2 forced warm-up
+//     mobility/stability exercises (phase Reset/Reactivate) prepended.
+//
+// Output is JSONB-serialisable and persisted on `sessions.program`,
+// alongside a coach + client-facing rationale string per exercise and
+// per session.
 // =====================================================================
 import { supabase } from '@/integrations/supabase/client';
 import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
+import {
+  buildFmsProfile,
+  getSessionPrescription,
+  SESSION_FOCUS,
+  TIER_RAMP_CATEGORIES,
+  TIER_LABEL_IT,
+  type FmsProfile,
+  type SessionLetter,
+  type PrescriptionTier,
+} from '@/lib/fmsPrescription';
 
 export type PtGoal = 'Forza' | 'Ipertrofia' | 'Dimagrimento' | 'Performance' | 'Rieducazione';
 
@@ -19,20 +37,28 @@ export const PT_GOALS: { value: PtGoal; label: string; desc: string }[] = [
 ];
 
 export interface ProgramExercise {
-  block: string;              // e.g. "A1", "B1"
-  label: string;              // "Attivazione", "Main Lift", ...
+  block: string;              // "W1","W2","A1","B1","C1"...
+  label: string;              // "Warm-up correttivo", "Main Lift"...
   name: string;
   sets: number;
-  reps: string;               // "8-10", "12", "30 sec"
-  tut: string;                // "3-1-1-0"
-  rest: string;               // "2 min"
+  reps: string;
+  tut: string;
+  rest: string;
+  /** Scientific rationale shown to coach/client. */
+  rationale?: string;
   notes?: string;
 }
 
 export interface PtPackProgram {
   goal: PtGoal;
-  focus: string;               // session focus (Upper/Lower/Full Body)
-  weak_link?: string | null;   // primary FMS weak link
+  /** Display focus, e.g. "Squat / Hinge" */
+  focus: string;
+  /** Tier driving the session: corrective / integration / performance */
+  tier: PrescriptionTier;
+  /** Coach-facing scientific rationale for the whole session. */
+  session_rationale: string;
+  /** Primary FMS limitation (Cook hierarchy) at generation time. */
+  weak_link?: string | null;
   exercises: ProgramExercise[];
   generated_at: string;
 }
@@ -41,27 +67,25 @@ interface ExRow {
   id: string;
   name: string;
   pattern: string;
-  phase: string;
+  phase: string | null;
+  posture_level: number | null;
+  posture_name: string | null;
   ramp_category: string | null;
   workout_target: string | null;
+  goal: string | null;
   default_sets: string | null;
   default_reps_time: string | null;
 }
 
-// Goal → loading scheme (sets · reps · TUT · rest)
-const SCHEME: Record<PtGoal, { sets: number; reps: string; tut: string; rest: string }> = {
+// ────────────────────────────────────────────────────────────────────────
+// Loading schemes — Goal × Block
+// ────────────────────────────────────────────────────────────────────────
+const MAIN_SCHEME: Record<PtGoal, { sets: number; reps: string; tut: string; rest: string }> = {
   Forza:        { sets: 5, reps: '3-5',   tut: '2-1-X-1', rest: '2-3 min' },
   Ipertrofia:   { sets: 4, reps: '8-12',  tut: '3-1-1-0', rest: '60-90 sec' },
   Dimagrimento: { sets: 3, reps: '12-15', tut: '2-0-1-0', rest: '30-45 sec' },
   Performance:  { sets: 4, reps: '4-6',   tut: '2-0-X-1', rest: '90 sec' },
   Rieducazione: { sets: 3, reps: '10-12', tut: '3-2-2-0', rest: '60 sec' },
-};
-
-// Session-level focus rotation across the 3 PT Pack sessions
-const FOCUS_ROTATION: Record<number, 'Full Body' | 'Lower Body' | 'Upper Body'> = {
-  1: 'Full Body',
-  2: 'Lower Body',
-  3: 'Upper Body',
 };
 
 const ACCESSORY_SCHEME: Record<PtGoal, { sets: number; reps: string; tut: string; rest: string }> = {
@@ -72,10 +96,17 @@ const ACCESSORY_SCHEME: Record<PtGoal, { sets: number; reps: string; tut: string
   Rieducazione: { sets: 3, reps: '12-15', tut: '3-1-2-0', rest: '45 sec' },
 };
 
-function pick<T>(arr: T[]): T | null {
-  return arr.length === 0 ? null : arr[Math.floor(Math.random() * arr.length)];
-}
+const WARMUP_SCHEME = { sets: 2, reps: '8-10 lente', tut: '3-2-3-0', rest: '30 sec' };
 
+const FOCUS_FALLBACKS: Record<SessionLetter, { main: string; secondary: string; acc: [string, string]; finisher: string }> = {
+  A: { main: 'Goblet Squat',  secondary: 'Romanian Deadlift', acc: ['Reverse Lunge', 'Hip Thrust'], finisher: 'KB Swing 30/30' },
+  B: { main: 'Chest Press',   secondary: 'Seated Row',        acc: ['Lateral Raise', 'Tricep Pushdown'], finisher: 'Push-Up AMRAP' },
+  C: { main: 'Half-Kneeling Press', secondary: 'Pallof Press', acc: ['Bird Dog Row', 'Side Plank'], finisher: 'Med Ball Slam' },
+};
+
+// ────────────────────────────────────────────────────────────────────────
+// Selection helpers
+// ────────────────────────────────────────────────────────────────────────
 function pickDistinct<T extends { id: string }>(arr: T[], n: number, used: Set<string>): T[] {
   const pool = arr.filter(x => !used.has(x.id));
   const out: T[] = [];
@@ -89,115 +120,179 @@ function pickDistinct<T extends { id: string }>(arr: T[], n: number, used: Set<s
   return out;
 }
 
-export async function generatePtPackProgram(
+// ────────────────────────────────────────────────────────────────────────
+// Library queries — all batched per session
+// ────────────────────────────────────────────────────────────────────────
+async function fetchMainPool(target: string, tier: PrescriptionTier): Promise<ExRow[]> {
+  const ramps = TIER_RAMP_CATEGORIES[tier];
+  const { data } = await supabase.from('exercises_library').select('*')
+    .eq('workout_target', target)
+    .in('ramp_category', ramps);
+  return (data ?? []) as ExRow[];
+}
+
+async function fetchAccessoryPool(target: string, tier: PrescriptionTier): Promise<ExRow[]> {
+  // Accessories allow one ramp_category lower than the main tier
+  const ramps = tier === 'performance' ? ['C', 'D', 'E']
+              : tier === 'integration' ? ['B', 'C', 'D']
+              : ['A', 'B', 'C'];
+  const { data } = await supabase.from('exercises_library').select('*')
+    .eq('workout_target', target)
+    .in('ramp_category', ramps);
+  return (data ?? []) as ExRow[];
+}
+
+async function fetchFinisherPool(target: string, goal: PtGoal): Promise<ExRow[]> {
+  const q = supabase.from('exercises_library').select('*').eq('ramp_category', 'F');
+  // Dimagrimento/Performance: any target; otherwise restrict to session target.
+  const { data } = goal === 'Dimagrimento' || goal === 'Performance'
+    ? await q
+    : await q.eq('workout_target', target);
+  return (data ?? []) as ExRow[];
+}
+
+/**
+ * Warm-up pool for a single failing pattern: mobility/stability biased
+ * (phase Reset → Reactivate). Returns the lowest posture levels first.
+ */
+async function fetchWarmupPool(patternKey: string): Promise<ExRow[]> {
+  const { data } = await supabase.from('exercises_library').select('*')
+    .eq('pattern', patternKey)
+    .in('phase', ['Reset', 'Reactivate'])
+    .order('posture_level', { ascending: true });
+  return (data ?? []) as ExRow[];
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Rationale builders
+// ────────────────────────────────────────────────────────────────────────
+function rationaleWarmup(patternLabel: string, score: number): string {
+  return `Pattern ${patternLabel} = ${score}/3 (zona correttiva). Forzato come warm-up per riattivare mobilità/stabilità prima del carico.`;
+}
+function rationaleMain(tier: PrescriptionTier, focus: string, weakLink: string | null): string {
+  const base =
+    tier === 'corrective'  ? `Tier correttivo: main lift su pattern ${focus} con complessità ridotta (ramp B/C) per costruire competenza prima del carico.` :
+    tier === 'integration' ? `Tier integrazione: main lift su pattern ${focus} con carico progressivo moderato (ramp C/D).` :
+                             `Tier performance: main lift complesso/dinamico (ramp D/E) per esprimere il pattern ${focus} sotto carico.`;
+  return weakLink ? `${base} Selezione orientata a bypassare il weak-link FMS: ${weakLink}.` : base;
+}
+function rationaleAccessory(tier: PrescriptionTier, focus: string): string {
+  return `Accessorio per ${focus}, tier ${TIER_LABEL_IT[tier].toLowerCase()}: rinforza il pattern principale con uno stimolo complementare.`;
+}
+function rationaleFinisher(goal: PtGoal): string {
+  if (goal === 'Dimagrimento') return 'Finisher metabolico ad alta densità — bias glicolitico per spesa energetica.';
+  if (goal === 'Performance')  return 'Finisher esplosivo — output di potenza a fatica controllata.';
+  return 'Finisher a chiusura della sessione — consolidamento del pattern dominante.';
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Per-session generator
+// ────────────────────────────────────────────────────────────────────────
+async function generateSession(
+  letter: SessionLetter,
   goal: PtGoal,
-  sessionNumber: number,
-  latestFms: FmsAssessmentRow | null,
-  usedIds: Set<string> = new Set(),
+  profile: FmsProfile,
+  weakLink: string | null,
+  usedIds: Set<string>,
 ): Promise<PtPackProgram> {
-  const focus = FOCUS_ROTATION[sessionNumber] ?? 'Full Body';
-  const priority = latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null;
-  const weakPattern = priority?.patternKey && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
-    ? priority.patternKey
-    : null;
+  const prescription = getSessionPrescription(letter, profile);
+  const { focus, tier, drivingPatterns, warmupPatterns } = prescription;
 
-  // NOTE: No activation/warm-up block — the coach uses the dedicated warm-up
-  // generated in the "Insights" tab before each PT Pack session.
-  const [
-    { data: safeRows },
-    { data: mainRows },
-    { data: accessoryRows },
-    { data: finisherRows },
-  ] = await Promise.all([
-    weakPattern
-      ? supabase.from('exercises_library').select('*').eq('pattern', weakPattern).eq('ramp_category', 'Safe_Strength')
-      : Promise.resolve({ data: [] }),
-    supabase.from('exercises_library').select('*')
-      .in('ramp_category', ['D', 'E'])
-      .eq('workout_target', focus),
-    supabase.from('exercises_library').select('*')
-      .in('ramp_category', ['C', 'D', 'E'])
-      .eq('workout_target', focus),
-    goal === 'Dimagrimento' || goal === 'Performance'
-      ? supabase.from('exercises_library').select('*').eq('ramp_category', 'F')
-      : supabase.from('exercises_library').select('*').eq('ramp_category', 'F').eq('workout_target', focus),
-  ]);
-
-  const safe = (safeRows ?? []) as ExRow[];
-  const mains = (mainRows ?? []) as ExRow[];
-  const accessories = (accessoryRows ?? []) as ExRow[];
-  const finishers = (finisherRows ?? []) as ExRow[];
-
-  const scheme = SCHEME[goal];
-  const accScheme = ACCESSORY_SCHEME[goal];
-  const used = usedIds;
   const exercises: ProgramExercise[] = [];
 
-  // A1 — Main lift (Safe_Strength alternative if weak link exists)
-  const mainPool = safe.length > 0 ? safe : mains;
-  const main = pickDistinct(mainPool, 1, used)[0] ?? pick(mainPool);
-  if (main && !used.has(main.id)) used.add(main.id);
+  // 1) Forced warm-up (2 per failing pattern, capped at 2 total to stay focused)
+  if (warmupPatterns.length > 0) {
+    // Pick the worst pattern of the session and take 2 warm-up exercises from it.
+    const worstKey = warmupPatterns
+      .map(k => drivingPatterns.find(p => p.key === k)!)
+      .sort((a, b) => (a.score ?? 3) - (b.score ?? 3))[0].key;
+    const worstMeta = drivingPatterns.find(p => p.key === worstKey)!;
+    const pool = await fetchWarmupPool(worstKey);
+    const picks = pickDistinct(pool, 2, usedIds);
+    picks.forEach((e, i) => {
+      exercises.push({
+        block: `W${i + 1}`,
+        label: 'Warm-up correttivo',
+        name: e.name,
+        sets: WARMUP_SCHEME.sets,
+        reps: WARMUP_SCHEME.reps,
+        tut: WARMUP_SCHEME.tut,
+        rest: WARMUP_SCHEME.rest,
+        rationale: rationaleWarmup(worstMeta.label, worstMeta.score as number),
+      });
+    });
+  }
+
+  // 2) Main pool (tier-aware)
+  const mains = await fetchMainPool(focus.workout_target, tier);
+  const accessories = await fetchAccessoryPool(focus.workout_target, tier);
+  const finishers = await fetchFinisherPool(focus.workout_target, goal);
+
+  const mainScheme = MAIN_SCHEME[goal];
+  const accScheme = ACCESSORY_SCHEME[goal];
+
+  // A1 — Main lift
+  const main = pickDistinct(mains, 1, usedIds)[0];
   exercises.push({
     block: 'A1',
     label: 'Main Lift',
-    name: main?.name ?? (focus === 'Lower Body' ? 'Goblet Squat' : focus === 'Upper Body' ? 'Chest Press' : 'Deadlift'),
-    sets: scheme.sets,
-    reps: scheme.reps,
-    tut: scheme.tut,
-    rest: scheme.rest,
-    notes: safe.length > 0 ? 'Variante Safe Strength — bypassa il weak link' : undefined,
+    name: main?.name ?? FOCUS_FALLBACKS[letter].main,
+    sets: mainScheme.sets,
+    reps: mainScheme.reps,
+    tut: mainScheme.tut,
+    rest: mainScheme.rest,
+    rationale: rationaleMain(tier, focus.title, weakLink),
   });
 
-  // A2 — Secondary compound
-  const secondary = pickDistinct(mains, 1, used)[0];
+  // A2 — Compound secondario
+  const secondary = pickDistinct(mains, 1, usedIds)[0];
   exercises.push({
     block: 'A2',
     label: 'Compound Secondario',
-    name: secondary?.name ?? (focus === 'Lower Body' ? 'Romanian Deadlift' : focus === 'Upper Body' ? 'Seated Row' : 'Pull-Up'),
-    sets: Math.max(3, scheme.sets - 1),
-    reps: goal === 'Forza' ? '6-8' : scheme.reps,
-    tut: scheme.tut,
-    rest: scheme.rest,
+    name: secondary?.name ?? FOCUS_FALLBACKS[letter].secondary,
+    sets: Math.max(3, mainScheme.sets - 1),
+    reps: goal === 'Forza' ? '6-8' : mainScheme.reps,
+    tut: mainScheme.tut,
+    rest: mainScheme.rest,
+    rationale: rationaleMain(tier, focus.title, null),
   });
 
-  // B1/B2 — Accessories
-  const accs = pickDistinct(accessories, 2, used);
-  const accFallbacks = focus === 'Lower Body'
-    ? ['Leg Curl', 'Calf Raise']
-    : focus === 'Upper Body'
-      ? ['Lateral Raise', 'Tricep Pushdown']
-      : ['Plank', 'Russian Twist'];
+  // B1/B2 — Accessori
+  const accs = pickDistinct(accessories, 2, usedIds);
   for (let i = 0; i < 2; i += 1) {
     const e = accs[i];
     exercises.push({
       block: `B${i + 1}`,
       label: 'Accessorio',
-      name: e?.name ?? accFallbacks[i],
+      name: e?.name ?? FOCUS_FALLBACKS[letter].acc[i],
       sets: accScheme.sets,
       reps: accScheme.reps,
       tut: accScheme.tut,
       rest: accScheme.rest,
+      rationale: rationaleAccessory(tier, focus.title),
     });
   }
 
   // C1 — Finisher
-  const fin = pickDistinct(finishers, 1, used)[0] ?? pick(finishers);
-  if (fin && !used.has(fin.id)) used.add(fin.id);
+  const fin = pickDistinct(finishers, 1, usedIds)[0];
   exercises.push({
     block: 'C1',
     label: goal === 'Dimagrimento' ? 'Finisher Metabolico' : 'Finisher / Potenza',
-    name: fin?.name ?? (goal === 'Dimagrimento' ? 'Battle Rope 30/30' : 'Med Ball Slam'),
+    name: fin?.name ?? FOCUS_FALLBACKS[letter].finisher,
     sets: 3,
     reps: goal === 'Dimagrimento' ? '30 sec lavoro' : '5-6',
     tut: 'X-0-X-0',
     rest: goal === 'Dimagrimento' ? '30 sec' : '90 sec',
+    rationale: rationaleFinisher(goal),
     notes: goal === 'Dimagrimento' ? 'AMRAP — intensità RPE 8' : 'Esplosivo · max velocità',
   });
 
   return {
     goal,
-    focus,
-    weak_link: priority?.focus ?? null,
+    focus: focus.title,
+    tier,
+    session_rationale: prescription.rationale,
+    weak_link: weakLink,
     exercises,
     generated_at: new Date().toISOString(),
   };
@@ -205,18 +300,26 @@ export async function generatePtPackProgram(
 
 /**
  * Generate the complete 3-session PT Pack as a coherent set.
- * A shared `used` tracker across sessions keeps the three workouts varied
- * and unified — same goal, same weak-link strategy, no duplicate exercises.
+ * Single shared `usedIds` Set keeps the 3 workouts varied (no duplicate
+ * exercises across the pack) and unified (same goal + same FMS profile).
  */
 export async function generatePtPackSet(
   goal: PtGoal,
   latestFms: FmsAssessmentRow | null,
 ): Promise<PtPackProgram[]> {
+  const profile = buildFmsProfile(latestFms as unknown as FmsScores | null);
+  const priority = latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null;
+  const weakLink = priority && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
+    ? priority.focus
+    : null;
   const used = new Set<string>();
   const out: PtPackProgram[] = [];
-  for (const n of [1, 2, 3]) {
+  for (const letter of ['A', 'B', 'C'] as SessionLetter[]) {
     // eslint-disable-next-line no-await-in-loop
-    out.push(await generatePtPackProgram(goal, n, latestFms, used));
+    out.push(await generateSession(letter, goal, profile, weakLink, used));
   }
   return out;
 }
+
+// Re-exports kept for backwards compatibility with old imports.
+export { SESSION_FOCUS };
