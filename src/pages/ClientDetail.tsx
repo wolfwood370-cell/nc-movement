@@ -299,3 +299,129 @@ export default function ClientDetail() {
     </div>
   );
 }
+
+// =====================================================================
+// PT Pack panel — list of generated sessions for the current client.
+// =====================================================================
+type SessionRow = {
+  id: string; session_type: string; session_number: number | null;
+  status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null;
+};
+
+function PtPackPanel({ sessions, clientId, onChanged }: {
+  sessions: SessionRow[]; clientId: string; onChanged: () => void;
+}) {
+  const navigate = useNavigate();
+  const ptPack = sessions.filter(s => s.session_type === 'PT Pack')
+    .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0));
+  const triage = sessions.find(s => s.session_type === 'Triage');
+
+  const updateSession = async (id: string, patch: Partial<Pick<SessionRow, 'status' | 'scheduled_at'>>) => {
+    const { error } = await supabase.from('sessions').update(patch).eq('id', id);
+    if (error) return;
+    onChanged();
+  };
+
+  if (sessions.length === 0) {
+    return (
+      <div className="surface-card p-8 text-center space-y-3">
+        <Sparkles className="w-10 h-10 mx-auto text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          Nessun PT Pack generato. Completa una nuova FMS per creare automaticamente il pacchetto promozionale.
+        </p>
+        <Button onClick={() => navigate(`/assessments/fms/new?clientId=${clientId}`)}>
+          <Plus className="w-4 h-4 mr-2" /> Nuova FMS
+        </Button>
+      </div>
+    );
+  }
+
+  const statusTone = (status: string) =>
+    status === 'completed' ? 'bg-success/15 text-success' :
+    status === 'scheduled' ? 'bg-primary/10 text-primary' :
+    status === 'cancelled' ? 'bg-muted text-muted-foreground line-through' :
+    'bg-warning/15 text-warning-foreground';
+  const statusLabel = (status: string) =>
+    status === 'completed' ? 'Completata' :
+    status === 'scheduled' ? 'Programmata' :
+    status === 'cancelled' ? 'Annullata' : 'Da programmare';
+
+  return (
+    <div className="space-y-4">
+      {triage && (
+        <div className="surface-card p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-success/15 text-success grid place-items-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display font-semibold text-sm">Sessione Triage</div>
+            <div className="text-[11px] text-muted-foreground">
+              {new Date(triage.created_at).toLocaleDateString('it-IT')} · {statusLabel(triage.status)}
+            </div>
+          </div>
+          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${statusTone(triage.status)}`}>
+            {statusLabel(triage.status)}
+          </span>
+        </div>
+      )}
+
+      <div className="surface-card p-2">
+        <div className="px-3 py-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-primary" /> PT Pack · 3 Sessioni
+        </div>
+        <ul className="divide-y divide-border">
+          {ptPack.map(s => (
+            <li key={s.id} className="px-3 py-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
+                    <CalendarClock className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-display font-semibold text-sm">
+                      PT Pack · Sessione {s.session_number}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {s.scheduled_at
+                        ? new Date(s.scheduled_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })
+                        : 'Nessuna data programmata'}
+                    </div>
+                  </div>
+                </div>
+                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${statusTone(s.status)}`}>
+                  {statusLabel(s.status)}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 pl-13">
+                <input
+                  type="datetime-local"
+                  className="text-xs h-9 rounded-md border border-input bg-background px-2"
+                  defaultValue={s.scheduled_at ? new Date(s.scheduled_at).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    void updateSession(s.id, {
+                      scheduled_at: new Date(val).toISOString(),
+                      status: 'scheduled',
+                    });
+                  }}
+                />
+                {s.status !== 'completed' && (
+                  <Button size="sm" variant="outline" onClick={() => void updateSession(s.id, { status: 'completed' })}>
+                    Segna completata
+                  </Button>
+                )}
+                {s.status !== 'cancelled' && s.status !== 'completed' && (
+                  <Button size="sm" variant="ghost" onClick={() => void updateSession(s.id, { status: 'cancelled' })}>
+                    Annulla
+                  </Button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
