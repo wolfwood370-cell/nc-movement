@@ -381,6 +381,78 @@ export type Database = {
           },
         ]
       }
+      fms_screenings: {
+        Row: {
+          active_straight_leg_raise_left: number | null
+          active_straight_leg_raise_right: number | null
+          blacklist_tags: string[]
+          clearing_extension_pain: boolean
+          clearing_flexion_pain: boolean
+          clearing_shoulder_pain: boolean
+          created_at: string
+          deep_squat: number | null
+          fms_total_score: number | null
+          hurdle_step_left: number | null
+          hurdle_step_right: number | null
+          id: string
+          inline_lunge_left: number | null
+          inline_lunge_right: number | null
+          requires_medical_clearance: boolean
+          rotary_stability_left: number | null
+          rotary_stability_right: number | null
+          shoulder_mobility_left: number | null
+          shoulder_mobility_right: number | null
+          trunk_stability_pushup: number | null
+          user_id: string
+        }
+        Insert: {
+          active_straight_leg_raise_left?: number | null
+          active_straight_leg_raise_right?: number | null
+          blacklist_tags?: string[]
+          clearing_extension_pain?: boolean
+          clearing_flexion_pain?: boolean
+          clearing_shoulder_pain?: boolean
+          created_at?: string
+          deep_squat?: number | null
+          fms_total_score?: number | null
+          hurdle_step_left?: number | null
+          hurdle_step_right?: number | null
+          id?: string
+          inline_lunge_left?: number | null
+          inline_lunge_right?: number | null
+          requires_medical_clearance?: boolean
+          rotary_stability_left?: number | null
+          rotary_stability_right?: number | null
+          shoulder_mobility_left?: number | null
+          shoulder_mobility_right?: number | null
+          trunk_stability_pushup?: number | null
+          user_id: string
+        }
+        Update: {
+          active_straight_leg_raise_left?: number | null
+          active_straight_leg_raise_right?: number | null
+          blacklist_tags?: string[]
+          clearing_extension_pain?: boolean
+          clearing_flexion_pain?: boolean
+          clearing_shoulder_pain?: boolean
+          created_at?: string
+          deep_squat?: number | null
+          fms_total_score?: number | null
+          hurdle_step_left?: number | null
+          hurdle_step_right?: number | null
+          id?: string
+          inline_lunge_left?: number | null
+          inline_lunge_right?: number | null
+          requires_medical_clearance?: boolean
+          rotary_stability_left?: number | null
+          rotary_stability_right?: number | null
+          shoulder_mobility_left?: number | null
+          shoulder_mobility_right?: number | null
+          trunk_stability_pushup?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -594,6 +666,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       ybt_assessments: {
         Row: {
           anterior_left_cm: number | null
@@ -661,10 +754,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"
+      app_role: "admin" | "coach" | "athlete"
       corrective_phase:
         | "Reset"
         | "Reactivate"
@@ -805,6 +905,7 @@ export const Constants = {
   public: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
+      app_role: ["admin", "coach", "athlete"],
       corrective_phase: [
         "Reset",
         "Reactivate",
