@@ -76,6 +76,37 @@ export default function ClientDetail() {
 
   useEffect(() => { void loadAll(); }, [loadAll]);
 
+  // Auto-generate the PT Pack from the most recent Modified FMS when the
+  // client has no sessions yet. Unique indexes on `sessions` make this safe
+  // even if the effect runs concurrently — duplicates are silently ignored.
+  useEffect(() => {
+    if (!client) return;
+    if (sessions.length > 0) return;
+    const lastModified = fms.find(a => isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]));
+    if (!lastModified) return;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const rows = [
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'Triage' as const, status: 'completed' as const, session_number: null },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 1 },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 2 },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 3 },
+      ];
+      const { error } = await supabase.from('sessions').insert(rows);
+      // 23505 = unique violation → another tab/session already generated the pack.
+      if (error && error.code !== '23505') return;
+      if (!cancelled) void loadAll();
+    })();
+    return () => { cancelled = true; };
+  }, [client, fms, sessions.length, loadAll]);
+
+
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
   const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
