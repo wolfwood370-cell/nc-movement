@@ -233,11 +233,17 @@ export default function ClientDetail() {
         </div>
       </TooltipProvider>
 
-      <Tabs defaultValue="history" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full">
+      <Tabs defaultValue="ptpack" className="w-full">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="ptpack">PT Pack</TabsTrigger>
           <TabsTrigger value="history">Storico</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ptpack" className="mt-4">
+          <PtPackPanel sessions={sessions} clientId={client.id} onChanged={loadAll} />
+        </TabsContent>
+
 
         <TabsContent value="history" className="mt-4">
           {fms.length === 0 ? (
