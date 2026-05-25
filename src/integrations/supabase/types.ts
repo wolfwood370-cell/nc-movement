@@ -408,6 +408,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          fms_assessment_id: string | null
+          id: string
+          notes: string | null
+          practitioner_id: string
+          scheduled_at: string | null
+          session_number: number | null
+          session_type: Database["public"]["Enums"]["session_type"]
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          fms_assessment_id?: string | null
+          id?: string
+          notes?: string | null
+          practitioner_id: string
+          scheduled_at?: string | null
+          session_number?: number | null
+          session_type: Database["public"]["Enums"]["session_type"]
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          fms_assessment_id?: string | null
+          id?: string
+          notes?: string | null
+          practitioner_id?: string
+          scheduled_at?: string | null
+          session_number?: number | null
+          session_type?: Database["public"]["Enums"]["session_type"]
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sfma_assessments: {
         Row: {
           arms_down_deep_squat: Database["public"]["Enums"]["sfma_score"] | null
@@ -624,6 +666,9 @@ export type Database = {
         | "Raise"
         | "Activate"
         | "Potentiate"
+        | "Safe_Strength"
+      session_status: "draft" | "scheduled" | "completed" | "cancelled"
+      session_type: "Triage" | "PT Pack"
       sfma_score: "FN" | "DN" | "FP" | "DP"
       ybt_test_type: "LQ" | "UQ"
     }
@@ -761,7 +806,10 @@ export const Constants = {
         "Raise",
         "Activate",
         "Potentiate",
+        "Safe_Strength",
       ],
+      session_status: ["draft", "scheduled", "completed", "cancelled"],
+      session_type: ["Triage", "PT Pack"],
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],
     },
