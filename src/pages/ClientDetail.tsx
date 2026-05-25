@@ -48,7 +48,7 @@ export default function ClientDetail() {
       ? supabase.from('profiles').select('display_name, professional_title').eq('id', user.id).maybeSingle()
       : Promise.resolve({ data: null });
 
-    const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }] = await Promise.all([
+    const [{ data: c }, { data: a }, { data: s }, { data: f }, { data: y }, { data: p }, { data: sess }] = await Promise.all([
       supabase.from('clients').select('*').eq('id', id).maybeSingle(),
       supabase.from('fms_assessments').select('*')
         .eq('client_id', id).order('assessed_at', { ascending: false }),
@@ -59,6 +59,10 @@ export default function ClientDetail() {
       supabase.from('ybt_assessments').select('*')
         .eq('client_id', id).order('assessed_at', { ascending: false }),
       profilePromise,
+      supabase.from('sessions')
+        .select('id, session_type, session_number, status, scheduled_at, created_at, fms_assessment_id')
+        .eq('client_id', id)
+        .order('created_at', { ascending: false }),
     ]);
     setClient((c ?? null) as Client | null);
     setFms((a ?? []) as unknown as FmsAssessmentRow[]);
@@ -67,6 +71,7 @@ export default function ClientDetail() {
     setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
     setYbtHistory((y ?? []) as unknown as YbtRow[]);
     setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
+    setSessions((sess ?? []) as typeof sessions);
   }, [id]);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
