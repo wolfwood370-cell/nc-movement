@@ -93,6 +93,7 @@ export async function generatePtPackProgram(
   goal: PtGoal,
   sessionNumber: number,
   latestFms: FmsAssessmentRow | null,
+  usedIds: Set<string> = new Set(),
 ): Promise<PtPackProgram> {
   const focus = FOCUS_ROTATION[sessionNumber] ?? 'Full Body';
   const priority = latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null;
@@ -100,17 +101,14 @@ export async function generatePtPackProgram(
     ? priority.patternKey
     : null;
 
-  // ---- Fetch exercise pools in parallel --------------------------------
+  // NOTE: No activation/warm-up block — the coach uses the dedicated warm-up
+  // generated in the "Insights" tab before each PT Pack session.
   const [
-    { data: activationRows },
-    { data: safeRows },        // Safe Strength alternatives bypassing weak link
-    { data: mainRows },        // Strength main lifts matched to focus
-    { data: accessoryRows },   // Accessories matched to focus
-    { data: finisherRows },    // Power / metabolic finisher
+    { data: safeRows },
+    { data: mainRows },
+    { data: accessoryRows },
+    { data: finisherRows },
   ] = await Promise.all([
-    weakPattern
-      ? supabase.from('exercises_library').select('*').eq('pattern', weakPattern).eq('phase', 'Reactivate')
-      : supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
     weakPattern
       ? supabase.from('exercises_library').select('*').eq('pattern', weakPattern).eq('ramp_category', 'Safe_Strength')
       : Promise.resolve({ data: [] }),
@@ -125,7 +123,6 @@ export async function generatePtPackProgram(
       : supabase.from('exercises_library').select('*').eq('ramp_category', 'F').eq('workout_target', focus),
   ]);
 
-  const activations = (activationRows ?? []) as ExRow[];
   const safe = (safeRows ?? []) as ExRow[];
   const mains = (mainRows ?? []) as ExRow[];
   const accessories = (accessoryRows ?? []) as ExRow[];
@@ -133,28 +130,15 @@ export async function generatePtPackProgram(
 
   const scheme = SCHEME[goal];
   const accScheme = ACCESSORY_SCHEME[goal];
-  const used = new Set<string>();
+  const used = usedIds;
   const exercises: ProgramExercise[] = [];
 
-  // A — Activation (pre-workout, weak-link reactivation)
-  const act = pick(activations);
-  if (act) used.add(act.id);
+  // A1 — Main lift (Safe_Strength alternative if weak link exists)
+  const mainPool = safe.length > 0 ? safe : mains;
+  const main = pickDistinct(mainPool, 1, used)[0] ?? pick(mainPool);
+  if (main && !used.has(main.id)) used.add(main.id);
   exercises.push({
     block: 'A1',
-    label: 'Attivazione',
-    name: act?.name ?? 'Bird Dog',
-    sets: 2,
-    reps: '8-10 / lato',
-    tut: '2-1-2-1',
-    rest: '30 sec',
-    notes: weakPattern ? `Reattivazione weak link · ${weakPattern}` : 'Attivazione core',
-  });
-
-  // B — Main lift (uses Safe_Strength alternative if weak link exists)
-  const main = pick(safe) ?? pick(mains);
-  if (main) used.add(main.id);
-  exercises.push({
-    block: 'B1',
     label: 'Main Lift',
     name: main?.name ?? (focus === 'Lower Body' ? 'Goblet Squat' : focus === 'Upper Body' ? 'Chest Press' : 'Deadlift'),
     sets: scheme.sets,
@@ -164,10 +148,10 @@ export async function generatePtPackProgram(
     notes: safe.length > 0 ? 'Variante Safe Strength — bypassa il weak link' : undefined,
   });
 
-  // B2 — Secondary main (compound)
+  // A2 — Secondary compound
   const secondary = pickDistinct(mains, 1, used)[0];
   exercises.push({
-    block: 'B2',
+    block: 'A2',
     label: 'Compound Secondario',
     name: secondary?.name ?? (focus === 'Lower Body' ? 'Romanian Deadlift' : focus === 'Upper Body' ? 'Seated Row' : 'Pull-Up'),
     sets: Math.max(3, scheme.sets - 1),
@@ -176,7 +160,7 @@ export async function generatePtPackProgram(
     rest: scheme.rest,
   });
 
-  // C — Accessories (2 exercises)
+  // B1/B2 — Accessories
   const accs = pickDistinct(accessories, 2, used);
   const accFallbacks = focus === 'Lower Body'
     ? ['Leg Curl', 'Calf Raise']
@@ -186,7 +170,7 @@ export async function generatePtPackProgram(
   for (let i = 0; i < 2; i += 1) {
     const e = accs[i];
     exercises.push({
-      block: `C${i + 1}`,
+      block: `B${i + 1}`,
       label: 'Accessorio',
       name: e?.name ?? accFallbacks[i],
       sets: accScheme.sets,
@@ -196,10 +180,11 @@ export async function generatePtPackProgram(
     });
   }
 
-  // D — Finisher (power/metabolic)
-  const fin = pick(finishers);
+  // C1 — Finisher
+  const fin = pickDistinct(finishers, 1, used)[0] ?? pick(finishers);
+  if (fin && !used.has(fin.id)) used.add(fin.id);
   exercises.push({
-    block: 'D1',
+    block: 'C1',
     label: goal === 'Dimagrimento' ? 'Finisher Metabolico' : 'Finisher / Potenza',
     name: fin?.name ?? (goal === 'Dimagrimento' ? 'Battle Rope 30/30' : 'Med Ball Slam'),
     sets: 3,
@@ -216,4 +201,22 @@ export async function generatePtPackProgram(
     exercises,
     generated_at: new Date().toISOString(),
   };
+}
+
+/**
+ * Generate the complete 3-session PT Pack as a coherent set.
+ * A shared `used` tracker across sessions keeps the three workouts varied
+ * and unified — same goal, same weak-link strategy, no duplicate exercises.
+ */
+export async function generatePtPackSet(
+  goal: PtGoal,
+  latestFms: FmsAssessmentRow | null,
+): Promise<PtPackProgram[]> {
+  const used = new Set<string>();
+  const out: PtPackProgram[] = [];
+  for (const n of [1, 2, 3]) {
+    // eslint-disable-next-line no-await-in-loop
+    out.push(await generatePtPackProgram(goal, n, latestFms, used));
+  }
+  return out;
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { generatePtPackProgram, PT_GOALS, type PtGoal, type PtPackProgram } from '@/lib/ptPackProgram';
+import { generatePtPackSet, PT_GOALS, type PtGoal, type PtPackProgram } from '@/lib/ptPackProgram';
 import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
@@ -356,6 +356,56 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
     .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0));
   const triage = sessions.find(s => s.session_type === 'Triage');
 
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [programs, setPrograms] = useState<Record<string, { program: PtPackProgram; goal: string }>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  // Load existing programs for all PT Pack sessions
+  useEffect(() => {
+    if (ptPack.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const ids = ptPack.map(s => s.id);
+      const { data } = await supabase.from('sessions')
+        .select('id, program, goal')
+        .in('id', ids);
+      if (cancelled || !data) return;
+      const map: Record<string, { program: PtPackProgram; goal: string }> = {};
+      for (const r of data) {
+        if (r.program && r.goal) {
+          map[r.id] = { program: r.program as unknown as PtPackProgram, goal: r.goal as string };
+        }
+      }
+      setPrograms(map);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ptPack.map(s => s.id).join(','), generating]);
+
+  const generated = ptPack.length > 0 && ptPack.every(s => programs[s.id]);
+  const sharedGoal = generated ? programs[ptPack[0].id]?.goal : null;
+
+  const handleGenerateAll = async (selectedGoal: PtGoal) => {
+    setGoalDialogOpen(false);
+    setGenerating(true);
+    try {
+      const progs = await generatePtPackSet(selectedGoal, latestFms);
+      // Batch-update the 3 session rows (one update per session — Supabase
+      // doesn't support multi-row update of distinct values in a single call).
+      await Promise.all(ptPack.map((s, i) => {
+        const prog = progs[i];
+        if (!prog) return Promise.resolve();
+        return supabase.from('sessions')
+          .update({ program: JSON.parse(JSON.stringify(prog)), goal: selectedGoal })
+          .eq('id', s.id);
+      }));
+      onChanged();
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   if (sessions.length === 0) {
     return (
       <div className="surface-card p-8 text-center space-y-3">
@@ -386,156 +436,56 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
         </div>
       )}
 
-      <div className="space-y-3">
-        {ptPack.map(s => (
-          <PtPackSessionCard
-            key={s.id}
-            session={s}
-            latestFms={latestFms}
-            onChanged={onChanged}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PtPackSessionCard({ session, latestFms, onChanged }: {
-  session: SessionRow;
-  latestFms: FmsAssessmentRow | null;
-  onChanged: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-  const [program, setProgram] = useState<PtPackProgram | null>(null);
-  const [goal, setGoal] = useState<string | null>(null);
-
-  // Load the program from the database
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase.from('sessions')
-        .select('program, goal')
-        .eq('id', session.id)
-        .maybeSingle();
-      if (cancelled) return;
-      setProgram((data?.program as unknown as PtPackProgram | null) ?? null);
-      setGoal((data?.goal as string | null) ?? null);
-    })();
-    return () => { cancelled = true; };
-  }, [session.id]);
-
-  const handleGenerate = async (selectedGoal: PtGoal) => {
-    setGoalDialogOpen(false);
-    setGenerating(true);
-    try {
-      const prog = await generatePtPackProgram(selectedGoal, session.session_number ?? 1, latestFms);
-      await supabase.from('sessions')
-        .update({ program: JSON.parse(JSON.stringify(prog)), goal: selectedGoal })
-        .eq('id', session.id);
-      setProgram(prog);
-      setGoal(selectedGoal);
-      setOpen(true);
-      onChanged();
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const hasProgram = !!program;
-
-  return (
-    <div className="surface-card overflow-hidden">
-      <div className="p-4 flex items-center gap-3">
+      {/* Single Genera CTA — produces all 3 coherent sessions at once */}
+      <div className="surface-card p-4 flex items-center gap-3">
         <div className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${
-          hasProgram ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+          generated ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
         }`}>
-          <Dumbbell className="w-5 h-5" />
+          <Sparkles className="w-5 h-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-display font-semibold text-sm">
-            PT Pack · Sessione {session.session_number}
-          </div>
+          <div className="font-display font-semibold text-sm">PT Pack — 3 Sessioni</div>
           <div className="text-[11px] text-muted-foreground">
-            {hasProgram
-              ? <>Obiettivo: <span className="font-semibold text-foreground">{goal}</span> · {program?.focus} · {program?.exercises.length} esercizi</>
-              : 'Programma non ancora generato'}
+            {generated
+              ? <>Obiettivo: <span className="font-semibold text-foreground">{sharedGoal}</span> · Riscaldamento dalla scheda <span className="font-semibold">Insights</span></>
+              : 'Genera in un click tutte e 3 le sessioni con coerenza unificante'}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {hasProgram ? (
-            <>
-              <Button size="sm" variant="outline" onClick={() => setOpen(o => !o)}>
-                {open ? 'Nascondi' : 'Apri'}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
-                Rigenera
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
-              {generating ? 'Generazione…' : 'Genera Programma'}
-            </Button>
-          )}
-        </div>
+        <Button size="sm" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
+          {generating ? 'Generazione…' : generated ? 'Rigenera' : 'Genera'}
+        </Button>
       </div>
 
-      {hasProgram && open && program && (
-        <div className="border-t border-border p-4 bg-muted/20">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="text-left py-2 px-2">Blocco</th>
-                  <th className="text-left py-2 px-2">Esercizio</th>
-                  <th className="text-center py-2 px-2">Serie</th>
-                  <th className="text-center py-2 px-2">Reps</th>
-                  <th className="text-center py-2 px-2">TUT</th>
-                  <th className="text-center py-2 px-2">Recupero</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {program.exercises.map((e, i) => (
-                  <tr key={i} className="hover:bg-background/60">
-                    <td className="py-2.5 px-2">
-                      <span className="font-mono text-[10px] font-bold text-primary">{e.block}</span>
-                      <div className="text-[10px] text-muted-foreground uppercase">{e.label}</div>
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <div className="font-display font-semibold">{e.name}</div>
-                      {e.notes && <div className="text-[10px] text-muted-foreground italic">{e.notes}</div>}
-                    </td>
-                    <td className="py-2.5 px-2 text-center font-mono font-bold">{e.sets}</td>
-                    <td className="py-2.5 px-2 text-center font-mono">{e.reps}</td>
-                    <td className="py-2.5 px-2 text-center font-mono text-muted-foreground">{e.tut}</td>
-                    <td className="py-2.5 px-2 text-center font-mono text-muted-foreground">{e.rest}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {program.weak_link && (
-            <div className="text-[11px] text-muted-foreground mt-3 italic">
-              Weak link considerato: <span className="font-semibold text-foreground">{program.weak_link}</span>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="space-y-3">
+        {ptPack.map(s => {
+          const entry = programs[s.id];
+          return (
+            <PtPackSessionCard
+              key={s.id}
+              session={s}
+              program={entry?.program ?? null}
+              goal={entry?.goal ?? null}
+              open={openId === s.id}
+              onToggle={() => setOpenId(openId === s.id ? null : s.id)}
+            />
+          );
+        })}
+      </div>
 
       <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Obiettivo della Sessione {session.session_number}</DialogTitle>
+            <DialogTitle>Obiettivo del PT Pack</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
-            Seleziona l'obiettivo di allenamento del cliente. Il programma verrà generato bypassando le limitazioni rilevate dall'FMS.
+            Seleziona l'obiettivo di allenamento. Verranno generate <span className="font-semibold text-foreground">tutte e 3 le sessioni</span> in modo coerente,
+            bypassando le limitazioni rilevate dall'FMS. Il riscaldamento è gestito separatamente nella scheda Insights.
           </p>
           <div className="grid grid-cols-1 gap-2">
             {PT_GOALS.map(g => (
               <button
                 key={g.value}
-                onClick={() => void handleGenerate(g.value)}
+                onClick={() => void handleGenerateAll(g.value)}
                 disabled={generating}
                 className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
               >
@@ -546,6 +496,119 @@ function PtPackSessionCard({ session, latestFms, onChanged }: {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// =====================================================================
+// Single PT Pack session — collapsible card with a readable, mobile-first
+// block layout (no dense table). Each exercise renders as its own row with
+// a clear block badge and stat chips for sets/reps/TUT/rest.
+// =====================================================================
+function PtPackSessionCard({ session, program, goal, open, onToggle }: {
+  session: SessionRow;
+  program: PtPackProgram | null;
+  goal: string | null;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const hasProgram = !!program;
+
+  // Group exercises by block letter (A / B / C) for visual separation
+  const groups = useMemo(() => {
+    if (!program) return [] as { key: string; title: string; items: PtPackProgram['exercises'] }[];
+    const titles: Record<string, string> = {
+      A: 'Blocco A · Forza',
+      B: 'Blocco B · Accessori',
+      C: 'Blocco C · Finisher',
+    };
+    const out: Record<string, PtPackProgram['exercises']> = {};
+    for (const ex of program.exercises) {
+      const key = ex.block.charAt(0);
+      (out[key] ??= []).push(ex);
+    }
+    return Object.keys(out).sort().map(k => ({ key: k, title: titles[k] ?? `Blocco ${k}`, items: out[k] }));
+  }, [program]);
+
+  return (
+    <div className="surface-card overflow-hidden">
+      <button
+        onClick={onToggle}
+        disabled={!hasProgram}
+        className="w-full p-4 flex items-center gap-3 text-left disabled:cursor-default"
+      >
+        <div className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${
+          hasProgram ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+        }`}>
+          <Dumbbell className="w-5 h-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-display font-semibold text-sm">
+            Sessione {session.session_number}
+            {program && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">· {program.focus}</span>}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {hasProgram
+              ? <>{program?.exercises.length} esercizi · Obiettivo {goal}</>
+              : 'In attesa di generazione'}
+          </div>
+        </div>
+        {hasProgram && (
+          <span className="text-[11px] text-primary font-semibold shrink-0">
+            {open ? 'Nascondi' : 'Apri'}
+          </span>
+        )}
+      </button>
+
+      {hasProgram && open && program && (
+        <div className="border-t border-border bg-muted/20 p-4 space-y-5">
+          {groups.map(g => (
+            <div key={g.key} className="space-y-2">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-primary">{g.title}</div>
+              <div className="space-y-2">
+                {g.items.map((e, i) => (
+                  <div key={`${g.key}-${i}`} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="font-mono text-[10px] font-bold text-primary bg-primary/10 rounded px-1.5 py-0.5 shrink-0">
+                        {e.block}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display font-semibold text-sm leading-tight">{e.name}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{e.label}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pl-0">
+                      <StatChip label="Serie" value={String(e.sets)} />
+                      <StatChip label="Reps" value={e.reps} />
+                      <StatChip label="TUT" value={e.tut} />
+                      <StatChip label="Recupero" value={e.rest} />
+                    </div>
+                    {e.notes && (
+                      <div className="text-[11px] text-muted-foreground italic border-l-2 border-primary/30 pl-2">
+                        {e.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {program.weak_link && (
+            <div className="text-[11px] text-muted-foreground italic">
+              Weak link considerato: <span className="font-semibold text-foreground">{program.weak_link}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1 rounded-md bg-background border border-border px-2 py-1">
+      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+      <span className="text-[12px] font-mono font-bold">{value}</span>
     </div>
   );
 }
