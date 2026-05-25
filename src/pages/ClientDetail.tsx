@@ -9,7 +9,7 @@ import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
-import { hasCriticalRedFlags } from '@/lib/fms';
+import { hasCriticalRedFlags, fmsMaxTotal, isModifiedFms } from '@/lib/fms';
 import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
 import EditClientDialog from '@/components/clients/EditClientDialog';
 import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
@@ -75,6 +75,37 @@ export default function ClientDetail() {
   }, [id]);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
+
+  // Auto-generate the PT Pack from the most recent Modified FMS when the
+  // client has no sessions yet. Unique indexes on `sessions` make this safe
+  // even if the effect runs concurrently — duplicates are silently ignored.
+  useEffect(() => {
+    if (!client) return;
+    if (sessions.length > 0) return;
+    const lastModified = fms.find(a => isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]));
+    if (!lastModified) return;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const rows = [
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'Triage' as const, status: 'completed' as const, session_number: null },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 1 },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 2 },
+        { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
+          session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 3 },
+      ];
+      const { error } = await supabase.from('sessions').insert(rows);
+      // 23505 = unique violation → another tab/session already generated the pack.
+      if (error && error.code !== '23505') return;
+      if (!cancelled) void loadAll();
+    })();
+    return () => { cancelled = true; };
+  }, [client, fms, sessions.length, loadAll]);
+
 
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
@@ -262,7 +293,12 @@ export default function ClientDetail() {
                     </div>
                     <div className="text-right shrink-0 ml-3">
                       <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">/ 21</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">
+                        / {fmsMaxTotal(a as unknown as Parameters<typeof fmsMaxTotal>[0])}
+                        {isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]) && (
+                          <span className="ml-1 text-primary font-bold">· Mod</span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                   <DeleteAssessmentButton
