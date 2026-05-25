@@ -9,7 +9,7 @@ import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
-import { hasCriticalRedFlags } from '@/lib/fms';
+import { hasCriticalRedFlags, fmsMaxTotal, isModifiedFms } from '@/lib/fms';
 import { parseBreakoutResults, DIAGNOSIS_META, type BreakoutResults } from '@/lib/breakouts';
 import EditClientDialog from '@/components/clients/EditClientDialog';
 import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
