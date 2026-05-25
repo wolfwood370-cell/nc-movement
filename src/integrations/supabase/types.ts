@@ -413,9 +413,11 @@ export type Database = {
           client_id: string
           created_at: string
           fms_assessment_id: string | null
+          goal: string | null
           id: string
           notes: string | null
           practitioner_id: string
+          program: Json | null
           scheduled_at: string | null
           session_number: number | null
           session_type: Database["public"]["Enums"]["session_type"]
@@ -426,9 +428,11 @@ export type Database = {
           client_id: string
           created_at?: string
           fms_assessment_id?: string | null
+          goal?: string | null
           id?: string
           notes?: string | null
           practitioner_id: string
+          program?: Json | null
           scheduled_at?: string | null
           session_number?: number | null
           session_type: Database["public"]["Enums"]["session_type"]
@@ -439,9 +443,11 @@ export type Database = {
           client_id?: string
           created_at?: string
           fms_assessment_id?: string | null
+          goal?: string | null
           id?: string
           notes?: string | null
           practitioner_id?: string
+          program?: Json | null
           scheduled_at?: string | null
           session_number?: number | null
           session_type?: Database["public"]["Enums"]["session_type"]

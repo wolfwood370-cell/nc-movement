@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CalendarClock, CheckCircle2, Sparkles } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { generatePtPackProgram, PT_GOALS, type PtGoal, type PtPackProgram } from '@/lib/ptPackProgram';
 import InsightsTab from '@/components/insights/InsightsTab';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
@@ -272,8 +274,9 @@ export default function ClientDetail() {
         </TabsList>
 
         <TabsContent value="ptpack" className="mt-4">
-          <PtPackPanel sessions={sessions} clientId={client.id} onChanged={loadAll} />
+          <PtPackPanel sessions={sessions} clientId={client.id} latestFms={fms[0] ?? null} onChanged={loadAll} />
         </TabsContent>
+
 
 
         <TabsContent value="history" className="mt-4">
@@ -337,26 +340,21 @@ export default function ClientDetail() {
 }
 
 // =====================================================================
-// PT Pack panel — list of generated sessions for the current client.
+// PT Pack panel — generates and displays the program (exercises, sets,
+// reps, TUT, rest) for each of the 3 PT Pack sessions.
 // =====================================================================
 type SessionRow = {
   id: string; session_type: string; session_number: number | null;
   status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null;
 };
 
-function PtPackPanel({ sessions, clientId, onChanged }: {
-  sessions: SessionRow[]; clientId: string; onChanged: () => void;
+function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
+  sessions: SessionRow[]; clientId: string; latestFms: FmsAssessmentRow | null; onChanged: () => void;
 }) {
   const navigate = useNavigate();
   const ptPack = sessions.filter(s => s.session_type === 'PT Pack')
     .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0));
   const triage = sessions.find(s => s.session_type === 'Triage');
-
-  const updateSession = async (id: string, patch: { status?: 'draft' | 'scheduled' | 'completed' | 'cancelled'; scheduled_at?: string | null }) => {
-    const { error } = await supabase.from('sessions').update(patch).eq('id', id);
-    if (error) return;
-    onChanged();
-  };
 
   if (sessions.length === 0) {
     return (
@@ -372,16 +370,6 @@ function PtPackPanel({ sessions, clientId, onChanged }: {
     );
   }
 
-  const statusTone = (status: string) =>
-    status === 'completed' ? 'bg-success/15 text-success' :
-    status === 'scheduled' ? 'bg-primary/10 text-primary' :
-    status === 'cancelled' ? 'bg-muted text-muted-foreground line-through' :
-    'bg-warning/15 text-warning-foreground';
-  const statusLabel = (status: string) =>
-    status === 'completed' ? 'Completata' :
-    status === 'scheduled' ? 'Programmata' :
-    status === 'cancelled' ? 'Annullata' : 'Da programmare';
-
   return (
     <div className="space-y-4">
       {triage && (
@@ -392,71 +380,172 @@ function PtPackPanel({ sessions, clientId, onChanged }: {
           <div className="min-w-0 flex-1">
             <div className="font-display font-semibold text-sm">Sessione Triage</div>
             <div className="text-[11px] text-muted-foreground">
-              {new Date(triage.created_at).toLocaleDateString('it-IT')} · {statusLabel(triage.status)}
+              {new Date(triage.created_at).toLocaleDateString('it-IT')} · Completata
             </div>
           </div>
-          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${statusTone(triage.status)}`}>
-            {statusLabel(triage.status)}
-          </span>
         </div>
       )}
 
-      <div className="surface-card p-2">
-        <div className="px-3 py-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-primary" /> PT Pack · 3 Sessioni
-        </div>
-        <ul className="divide-y divide-border">
-          {ptPack.map(s => (
-            <li key={s.id} className="px-3 py-3 space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
-                    <CalendarClock className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-display font-semibold text-sm">
-                      PT Pack · Sessione {s.session_number}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {s.scheduled_at
-                        ? new Date(s.scheduled_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })
-                        : 'Nessuna data programmata'}
-                    </div>
-                  </div>
-                </div>
-                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${statusTone(s.status)}`}>
-                  {statusLabel(s.status)}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2 pl-13">
-                <input
-                  type="datetime-local"
-                  className="text-xs h-9 rounded-md border border-input bg-background px-2"
-                  defaultValue={s.scheduled_at ? new Date(s.scheduled_at).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) return;
-                    void updateSession(s.id, {
-                      scheduled_at: new Date(val).toISOString(),
-                      status: 'scheduled',
-                    });
-                  }}
-                />
-                {s.status !== 'completed' && (
-                  <Button size="sm" variant="outline" onClick={() => void updateSession(s.id, { status: 'completed' })}>
-                    Segna completata
-                  </Button>
-                )}
-                {s.status !== 'cancelled' && s.status !== 'completed' && (
-                  <Button size="sm" variant="ghost" onClick={() => void updateSession(s.id, { status: 'cancelled' })}>
-                    Annulla
-                  </Button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+      <div className="space-y-3">
+        {ptPack.map(s => (
+          <PtPackSessionCard
+            key={s.id}
+            session={s}
+            latestFms={latestFms}
+            onChanged={onChanged}
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+function PtPackSessionCard({ session, latestFms, onChanged }: {
+  session: SessionRow;
+  latestFms: FmsAssessmentRow | null;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [program, setProgram] = useState<PtPackProgram | null>(null);
+  const [goal, setGoal] = useState<string | null>(null);
+
+  // Load the program from the database
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from('sessions')
+        .select('program, goal')
+        .eq('id', session.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setProgram((data?.program as unknown as PtPackProgram | null) ?? null);
+      setGoal((data?.goal as string | null) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [session.id]);
+
+  const handleGenerate = async (selectedGoal: PtGoal) => {
+    setGoalDialogOpen(false);
+    setGenerating(true);
+    try {
+      const prog = await generatePtPackProgram(selectedGoal, session.session_number ?? 1, latestFms);
+      await supabase.from('sessions')
+        .update({ program: JSON.parse(JSON.stringify(prog)), goal: selectedGoal })
+        .eq('id', session.id);
+      setProgram(prog);
+      setGoal(selectedGoal);
+      setOpen(true);
+      onChanged();
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const hasProgram = !!program;
+
+  return (
+    <div className="surface-card overflow-hidden">
+      <div className="p-4 flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${
+          hasProgram ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+        }`}>
+          <Dumbbell className="w-5 h-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-display font-semibold text-sm">
+            PT Pack · Sessione {session.session_number}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {hasProgram
+              ? <>Obiettivo: <span className="font-semibold text-foreground">{goal}</span> · {program?.focus} · {program?.exercises.length} esercizi</>
+              : 'Programma non ancora generato'}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {hasProgram ? (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setOpen(o => !o)}>
+                {open ? 'Nascondi' : 'Apri'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
+                Rigenera
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
+              {generating ? 'Generazione…' : 'Genera Programma'}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {hasProgram && open && program && (
+        <div className="border-t border-border p-4 bg-muted/20">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="text-left py-2 px-2">Blocco</th>
+                  <th className="text-left py-2 px-2">Esercizio</th>
+                  <th className="text-center py-2 px-2">Serie</th>
+                  <th className="text-center py-2 px-2">Reps</th>
+                  <th className="text-center py-2 px-2">TUT</th>
+                  <th className="text-center py-2 px-2">Recupero</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {program.exercises.map((e, i) => (
+                  <tr key={i} className="hover:bg-background/60">
+                    <td className="py-2.5 px-2">
+                      <span className="font-mono text-[10px] font-bold text-primary">{e.block}</span>
+                      <div className="text-[10px] text-muted-foreground uppercase">{e.label}</div>
+                    </td>
+                    <td className="py-2.5 px-2">
+                      <div className="font-display font-semibold">{e.name}</div>
+                      {e.notes && <div className="text-[10px] text-muted-foreground italic">{e.notes}</div>}
+                    </td>
+                    <td className="py-2.5 px-2 text-center font-mono font-bold">{e.sets}</td>
+                    <td className="py-2.5 px-2 text-center font-mono">{e.reps}</td>
+                    <td className="py-2.5 px-2 text-center font-mono text-muted-foreground">{e.tut}</td>
+                    <td className="py-2.5 px-2 text-center font-mono text-muted-foreground">{e.rest}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {program.weak_link && (
+            <div className="text-[11px] text-muted-foreground mt-3 italic">
+              Weak link considerato: <span className="font-semibold text-foreground">{program.weak_link}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Obiettivo della Sessione {session.session_number}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Seleziona l'obiettivo di allenamento del cliente. Il programma verrà generato bypassando le limitazioni rilevate dall'FMS.
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {PT_GOALS.map(g => (
+              <button
+                key={g.value}
+                onClick={() => void handleGenerate(g.value)}
+                disabled={generating}
+                className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                <div className="font-display font-semibold text-sm">{g.label}</div>
+                <div className="text-[11px] text-muted-foreground">{g.desc}</div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
