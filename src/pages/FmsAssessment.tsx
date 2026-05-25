@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText, Pencil, X } from 'lucide-react';
+import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText, Pencil, X, CalendarClock, UserRound, Sparkles, ClipboardCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
@@ -17,6 +18,9 @@ import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSel
 import FmsClientReport from '@/components/fms/FmsClientReport';
 import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { useFormDraft } from '@/hooks/useFormDraft';
+
+type PackSessionRow = { id: string; type: 'Triage' | 'PT Pack'; number: number | null; status: string };
+type PackResult = { fmsAssessmentId: string; sessions: PackSessionRow[] };
 
 interface PatternDef {
   key: string;
