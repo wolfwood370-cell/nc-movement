@@ -5,6 +5,16 @@
 // from `exercises_library` strictly through the FMS Prescription Engine:
 //   - Pattern score → tier (corrective / integration / performance)
 //   - Tier → ramp_category pool
+//   - Tier → posture_level window (Cook's 4x4 Matrix postural regression):
+//       corrective  → posture_level ≤ 2 (supine / prone / quadruped /
+//                                          half-kneeling): no axial load,
+//                                          isolate segmental mobility & core.
+//       integration → posture_level 3-4 (kneeling / split-stance /
+//                                          stable single-leg): integrate
+//                                          moderate load with segmental
+//                                          control.
+//       performance → posture_level = 4 (standing dynamic, complex force
+//                                          vectors).
 //   - Score ≤ 1 on a session-relevant pattern → 2 forced warm-up
 //     mobility/stability exercises (phase Reset/Reactivate) prepended.
 //   - Main / Accessory pools are PATTERN-AWARE: exercises whose `pattern`
@@ -12,6 +22,9 @@
 //     the broad workout_target × ramp_category cohort. The broad cohort
 //     remains as a fallback when the pattern-specific pool is empty or
 //     cannot fill all slots.
+//   - When a (ramp_category × posture_level) combination yields an empty
+//     pool, the posture constraint is relaxed by one step before the
+//     hard-coded FOCUS_FALLBACKS list is considered.
 //
 // Output is JSONB-serialisable and persisted on `sessions.program`,
 // alongside a coach + client-facing rationale string per exercise and
@@ -128,6 +141,25 @@ const PATTERN_LABELS_IT: Record<string, string> = {
   hurdle_step:            'Hurdle Step',
 };
 
+/**
+ * Postural matrix per tier (Cook's 4x4 Matrix). For each tier we keep a
+ * `primary` posture window (the tier's clinical sweet spot) and a `fallback`
+ * window — one step looser — used only when the primary search yields an
+ * empty pool. If the fallback also fails, generateSession falls through to
+ * the FOCUS_FALLBACKS hard-coded variants.
+ *
+ *   corrective  primary [1, 2] → fallback [1, 3]  (allow up to kneeling)
+ *   integration primary [3, 4] → fallback [2, 4]  (allow quadruped regression)
+ *   performance primary [4, 4] → fallback [3, 4]  (allow kneeling regression)
+ *
+ * Tuples are [minLevel, maxLevel] inclusive.
+ */
+const POSTURE_RANGES: Record<PrescriptionTier, { primary: [number, number]; fallback: [number, number] }> = {
+  corrective:  { primary: [1, 2], fallback: [1, 3] },
+  integration: { primary: [3, 4], fallback: [2, 4] },
+  performance: { primary: [4, 4], fallback: [3, 4] },
+};
+
 // ────────────────────────────────────────────────────────────────────────
 // Selection helpers
 // ────────────────────────────────────────────────────────────────────────
@@ -181,12 +213,13 @@ async function fetchMainPool(
   drivingPatternKeys: string[],
 ): Promise<PoolResult> {
   const ramps = TIER_RAMP_CATEGORIES[tier];
-  return fetchPool(target, ramps, drivingPatternKeys);
+  return fetchPoolWithPostureFallback(target, ramps, drivingPatternKeys, POSTURE_RANGES[tier]);
 }
 
 /**
  * Accessory pool — same prioritisation contract as `fetchMainPool`. The ramp
- * window allows one tier lower than the main to keep volume manageable.
+ * window allows one tier lower than the main to keep volume manageable; the
+ * postural window follows the same Cook 4x4 matrix as the main pool.
  */
 async function fetchAccessoryPool(
   target: string,
@@ -196,24 +229,50 @@ async function fetchAccessoryPool(
   const ramps = tier === 'performance' ? ['C', 'D', 'E']
               : tier === 'integration' ? ['B', 'C', 'D']
               : ['A', 'B', 'C'];
-  return fetchPool(target, ramps, drivingPatternKeys);
+  return fetchPoolWithPostureFallback(target, ramps, drivingPatternKeys, POSTURE_RANGES[tier]);
+}
+
+/**
+ * Two-step postural fallback: query with the tier's primary posture range
+ * first; if both the pattern-specific cohort and the broad cohort come back
+ * empty, retry once with the looser `fallback` range. If still empty,
+ * `generateSession` falls through to the FOCUS_FALLBACKS hard-coded list.
+ */
+async function fetchPoolWithPostureFallback(
+  target: string,
+  ramps: string[],
+  drivingPatternKeys: string[],
+  posture: { primary: [number, number]; fallback: [number, number] },
+): Promise<PoolResult> {
+  let pool = await fetchPool(target, ramps, drivingPatternKeys, posture.primary);
+  if (pool.specific.length === 0 && pool.fallback.length === 0) {
+    pool = await fetchPool(target, ramps, drivingPatternKeys, posture.fallback);
+  }
+  return pool;
 }
 
 async function fetchPool(
   target: string,
   ramps: string[],
   drivingPatternKeys: string[],
+  postureRange: [number, number],
 ): Promise<PoolResult> {
+  const [minLevel, maxLevel] = postureRange;
+
   const specificQuery = drivingPatternKeys.length > 0
     ? supabase.from('exercises_library').select('*')
         .eq('workout_target', target)
         .in('ramp_category', ramps)
         .in('pattern', drivingPatternKeys)
+        .gte('posture_level', minLevel)
+        .lte('posture_level', maxLevel)
     : Promise.resolve({ data: [] as ExRow[], error: null });
 
   const fallbackQuery = supabase.from('exercises_library').select('*')
     .eq('workout_target', target)
-    .in('ramp_category', ramps);
+    .in('ramp_category', ramps)
+    .gte('posture_level', minLevel)
+    .lte('posture_level', maxLevel);
 
   const [specificRes, fallbackRes] = await Promise.all([specificQuery, fallbackQuery]);
 
@@ -253,22 +312,39 @@ function rationaleWarmup(patternLabel: string, score: number): string {
   return `Pattern ${patternLabel} = ${score}/3 (zona correttiva). Forzato come warm-up per riattivare mobilità/stabilità prima del carico.`;
 }
 
+/**
+ * Tier-aware postural rationale fragment for main lifts. Wraps the
+ * `posture_name` of the chosen exercise with the Cook 4x4 Matrix narrative.
+ */
+function postureRationale(tier: PrescriptionTier, postureName: string): string {
+  if (tier === 'corrective') {
+    return `Postura regredita a livello ${postureName} per azzerare il carico gravitazionale e ottimizzare l'apprendimento motorio del pattern.`;
+  }
+  if (tier === 'integration') {
+    return `Postura ${postureName} con vincoli di stabilità asimmetrica per integrare carico moderato e controllo segmentario.`;
+  }
+  return `Postura ${postureName} eretta/dinamica per esprimere il pattern sotto vettori di forza complessi.`;
+}
+
 function rationaleMain(
   tier: PrescriptionTier,
   focus: string,
   weakLink: string | null,
   patternMatched: boolean,
   matchedPattern: string | undefined,
+  postureName: string | null,
 ): string {
+  const postureFragment = postureName ? ` ${postureRationale(tier, postureName)}` : '';
   if (patternMatched && matchedPattern) {
     const label = PATTERN_LABELS_IT[matchedPattern] ?? matchedPattern;
-    return `Esercizio selezionato specificamente per indirizzare il pattern ${label} evidenziato nel test FMS (main lift, tier ${TIER_LABEL_IT[tier].toLowerCase()}).`;
+    return `Esercizio selezionato specificamente per indirizzare il pattern ${label} evidenziato nel test FMS (main lift, tier ${TIER_LABEL_IT[tier].toLowerCase()}).${postureFragment}`;
   }
   const base =
     tier === 'corrective'  ? `Tier correttivo: main lift su pattern ${focus} con complessità ridotta (ramp B/C) per costruire competenza prima del carico.` :
     tier === 'integration' ? `Tier integrazione: main lift su pattern ${focus} con carico progressivo moderato (ramp C/D).` :
                              `Tier performance: main lift complesso/dinamico (ramp D/E) per esprimere il pattern ${focus} sotto carico.`;
-  return weakLink ? `${base} Selezione orientata a bypassare il weak-link FMS: ${weakLink}.` : base;
+  const weakLinkFragment = weakLink ? ` Selezione orientata a bypassare il weak-link FMS: ${weakLink}.` : '';
+  return `${base}${weakLinkFragment}${postureFragment}`;
 }
 
 function rationaleAccessory(
@@ -352,7 +428,7 @@ async function generateSession(
     reps: mainScheme.reps,
     tut: mainScheme.tut,
     rest: mainScheme.rest,
-    rationale: rationaleMain(tier, focus.title, weakLink, mainMatched, main?.pattern),
+    rationale: rationaleMain(tier, focus.title, weakLink, mainMatched, main?.pattern, main?.posture_name ?? null),
   });
 
   // A2 — Compound secondario (also preferentially pattern-matched, but the
@@ -367,7 +443,7 @@ async function generateSession(
     reps: goal === 'Forza' ? '6-8' : mainScheme.reps,
     tut: mainScheme.tut,
     rest: mainScheme.rest,
-    rationale: rationaleMain(tier, focus.title, null, secondaryMatched, secondary?.pattern),
+    rationale: rationaleMain(tier, focus.title, null, secondaryMatched, secondary?.pattern, secondary?.posture_name ?? null),
   });
 
   // B1/B2 — Accessori
