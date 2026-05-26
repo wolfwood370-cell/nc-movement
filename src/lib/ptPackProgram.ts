@@ -63,6 +63,10 @@ export interface PtPackProgram {
   tier: PrescriptionTier;
   /** Coach-facing scientific rationale for the whole session. */
   session_rationale: string;
+  /** Concise cause→effect line, e.g. "Tier Correttivo pilotato da: ASLR 1/3". */
+  tier_driver?: string;
+  /** Pattern keys that triggered forced warm-up (mirrored from prescription). */
+  warmup_patterns?: string[];
   /** Primary FMS limitation (Cook hierarchy) at generation time. */
   weak_link?: string | null;
   exercises: ProgramExercise[];
