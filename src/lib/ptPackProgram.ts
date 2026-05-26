@@ -7,6 +7,11 @@
 //   - Tier → ramp_category pool
 //   - Score ≤ 1 on a session-relevant pattern → 2 forced warm-up
 //     mobility/stability exercises (phase Reset/Reactivate) prepended.
+//   - Main / Accessory pools are PATTERN-AWARE: exercises whose `pattern`
+//     column matches a deficit pattern from the FMS are preferred over
+//     the broad workout_target × ramp_category cohort. The broad cohort
+//     remains as a fallback when the pattern-specific pool is empty or
+//     cannot fill all slots.
 //
 // Output is JSONB-serialisable and persisted on `sessions.program`,
 // alongside a coach + client-facing rationale string per exercise and
@@ -22,6 +27,7 @@ import {
   TIER_RAMP_CATEGORIES,
   TIER_LABEL_IT,
   type FmsProfile,
+  type PatternPrescription,
   type SessionLetter,
   type PrescriptionTier,
 } from '@/lib/fmsPrescription';
@@ -77,6 +83,13 @@ interface ExRow {
   default_reps_time: string | null;
 }
 
+/** Pattern-aware pool result. `specific` matches a deficit pattern; `fallback`
+ *  is the broad workout_target × ramp_category cohort minus the specific ids. */
+interface PoolResult {
+  specific: ExRow[];
+  fallback: ExRow[];
+}
+
 // ────────────────────────────────────────────────────────────────────────
 // Loading schemes — Goal × Block
 // ────────────────────────────────────────────────────────────────────────
@@ -104,6 +117,17 @@ const FOCUS_FALLBACKS: Record<SessionLetter, { main: string; secondary: string; 
   C: { main: 'Half-Kneeling Press', secondary: 'Pallof Press', acc: ['Bird Dog Row', 'Side Plank'], finisher: 'Med Ball Slam' },
 };
 
+/** Italian label per pattern key — used in pattern-match rationale text. */
+const PATTERN_LABELS_IT: Record<string, string> = {
+  deep_squat:             'Deep Squat',
+  aslr:                   'ASLR (mobilità anca)',
+  shoulder_mobility:      'Shoulder Mobility',
+  trunk_stability_pushup: 'Trunk Stability Push-Up',
+  rotary_stability:       'Rotary Stability',
+  inline_lunge:           'Inline Lunge',
+  hurdle_step:            'Hurdle Step',
+};
+
 // ────────────────────────────────────────────────────────────────────────
 // Selection helpers
 // ────────────────────────────────────────────────────────────────────────
@@ -120,26 +144,85 @@ function pickDistinct<T extends { id: string }>(arr: T[], n: number, used: Set<s
   return out;
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// Library queries — all batched per session
-// ────────────────────────────────────────────────────────────────────────
-async function fetchMainPool(target: string, tier: PrescriptionTier): Promise<ExRow[]> {
-  const ramps = TIER_RAMP_CATEGORIES[tier];
-  const { data } = await supabase.from('exercises_library').select('*')
-    .eq('workout_target', target)
-    .in('ramp_category', ramps);
-  return (data ?? []) as ExRow[];
+/**
+ * Pick `n` distinct exercises from a `PoolResult`. Pattern-specific candidates
+ * are tried first (shuffled for variety); the broad fallback only kicks in
+ * when the specific pool can't fill all slots. Mutates `used` to enforce
+ * cross-session de-duplication.
+ */
+function pickWithPriority(pool: PoolResult, n: number, used: Set<string>): ExRow[] {
+  const out = pickDistinct(pool.specific, n, used);
+  if (out.length < n) {
+    out.push(...pickDistinct(pool.fallback, n - out.length, used));
+  }
+  return out;
 }
 
-async function fetchAccessoryPool(target: string, tier: PrescriptionTier): Promise<ExRow[]> {
-  // Accessories allow one ramp_category lower than the main tier
+/** Deficit pattern keys (score ≤ 2) that the pool query should bias toward. */
+function deficitPatternKeys(driving: PatternPrescription[]): string[] {
+  return driving
+    .filter(p => p.score !== null && p.score !== undefined && (p.score as number) <= 2)
+    .map(p => p.key);
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Library queries — pattern-aware, batched per session
+// ────────────────────────────────────────────────────────────────────────
+/**
+ * Main lift pool. Two queries fired in parallel:
+ *   1. `workout_target × ramp_category × pattern ∈ drivingPatternKeys`
+ *   2. broad `workout_target × ramp_category` fallback (minus the specific ids)
+ * Returned separately so `pickWithPriority` fills A1/A2 from the pattern-
+ * specific cohort first and only dips into the fallback when needed.
+ */
+async function fetchMainPool(
+  target: string,
+  tier: PrescriptionTier,
+  drivingPatternKeys: string[],
+): Promise<PoolResult> {
+  const ramps = TIER_RAMP_CATEGORIES[tier];
+  return fetchPool(target, ramps, drivingPatternKeys);
+}
+
+/**
+ * Accessory pool — same prioritisation contract as `fetchMainPool`. The ramp
+ * window allows one tier lower than the main to keep volume manageable.
+ */
+async function fetchAccessoryPool(
+  target: string,
+  tier: PrescriptionTier,
+  drivingPatternKeys: string[],
+): Promise<PoolResult> {
   const ramps = tier === 'performance' ? ['C', 'D', 'E']
               : tier === 'integration' ? ['B', 'C', 'D']
               : ['A', 'B', 'C'];
-  const { data } = await supabase.from('exercises_library').select('*')
+  return fetchPool(target, ramps, drivingPatternKeys);
+}
+
+async function fetchPool(
+  target: string,
+  ramps: string[],
+  drivingPatternKeys: string[],
+): Promise<PoolResult> {
+  const specificQuery = drivingPatternKeys.length > 0
+    ? supabase.from('exercises_library').select('*')
+        .eq('workout_target', target)
+        .in('ramp_category', ramps)
+        .in('pattern', drivingPatternKeys)
+    : Promise.resolve({ data: [] as ExRow[], error: null });
+
+  const fallbackQuery = supabase.from('exercises_library').select('*')
     .eq('workout_target', target)
     .in('ramp_category', ramps);
-  return (data ?? []) as ExRow[];
+
+  const [specificRes, fallbackRes] = await Promise.all([specificQuery, fallbackQuery]);
+
+  const specific = (specificRes.data ?? []) as ExRow[];
+  const fallbackAll = (fallbackRes.data ?? []) as ExRow[];
+  const specificIds = new Set(specific.map(r => r.id));
+  const fallback = fallbackAll.filter(r => !specificIds.has(r.id));
+
+  return { specific, fallback };
 }
 
 async function fetchFinisherPool(target: string, goal: PtGoal): Promise<ExRow[]> {
@@ -169,16 +252,38 @@ async function fetchWarmupPool(patternKey: string): Promise<ExRow[]> {
 function rationaleWarmup(patternLabel: string, score: number): string {
   return `Pattern ${patternLabel} = ${score}/3 (zona correttiva). Forzato come warm-up per riattivare mobilità/stabilità prima del carico.`;
 }
-function rationaleMain(tier: PrescriptionTier, focus: string, weakLink: string | null): string {
+
+function rationaleMain(
+  tier: PrescriptionTier,
+  focus: string,
+  weakLink: string | null,
+  patternMatched: boolean,
+  matchedPattern: string | undefined,
+): string {
+  if (patternMatched && matchedPattern) {
+    const label = PATTERN_LABELS_IT[matchedPattern] ?? matchedPattern;
+    return `Esercizio selezionato specificamente per indirizzare il pattern ${label} evidenziato nel test FMS (main lift, tier ${TIER_LABEL_IT[tier].toLowerCase()}).`;
+  }
   const base =
     tier === 'corrective'  ? `Tier correttivo: main lift su pattern ${focus} con complessità ridotta (ramp B/C) per costruire competenza prima del carico.` :
     tier === 'integration' ? `Tier integrazione: main lift su pattern ${focus} con carico progressivo moderato (ramp C/D).` :
                              `Tier performance: main lift complesso/dinamico (ramp D/E) per esprimere il pattern ${focus} sotto carico.`;
   return weakLink ? `${base} Selezione orientata a bypassare il weak-link FMS: ${weakLink}.` : base;
 }
-function rationaleAccessory(tier: PrescriptionTier, focus: string): string {
+
+function rationaleAccessory(
+  tier: PrescriptionTier,
+  focus: string,
+  patternMatched: boolean,
+  matchedPattern: string | undefined,
+): string {
+  if (patternMatched && matchedPattern) {
+    const label = PATTERN_LABELS_IT[matchedPattern] ?? matchedPattern;
+    return `Esercizio selezionato specificamente per indirizzare il pattern ${label} evidenziato nel test FMS (accessorio, tier ${TIER_LABEL_IT[tier].toLowerCase()}).`;
+  }
   return `Accessorio per ${focus}, tier ${TIER_LABEL_IT[tier].toLowerCase()}: rinforza il pattern principale con uno stimolo complementare.`;
 }
+
 function rationaleFinisher(goal: PtGoal): string {
   if (goal === 'Dimagrimento') return 'Finisher metabolico ad alta densità — bias glicolitico per spesa energetica.';
   if (goal === 'Performance')  return 'Finisher esplosivo — output di potenza a fatica controllata.';
@@ -197,12 +302,12 @@ async function generateSession(
 ): Promise<PtPackProgram> {
   const prescription = getSessionPrescription(letter, profile);
   const { focus, tier, drivingPatterns, warmupPatterns } = prescription;
+  const drivingKeys = deficitPatternKeys(drivingPatterns);
 
   const exercises: ProgramExercise[] = [];
 
-  // 1) Forced warm-up (2 per failing pattern, capped at 2 total to stay focused)
+  // 1) Forced warm-up (2 exercises on the worst-scored pattern of the session)
   if (warmupPatterns.length > 0) {
-    // Pick the worst pattern of the session and take 2 warm-up exercises from it.
     const worstKey = warmupPatterns
       .map(k => drivingPatterns.find(p => p.key === k)!)
       .sort((a, b) => (a.score ?? 3) - (b.score ?? 3))[0].key;
@@ -223,16 +328,22 @@ async function generateSession(
     });
   }
 
-  // 2) Main pool (tier-aware)
-  const mains = await fetchMainPool(focus.workout_target, tier);
-  const accessories = await fetchAccessoryPool(focus.workout_target, tier);
-  const finishers = await fetchFinisherPool(focus.workout_target, goal);
+  // 2) Pattern-aware Main + Accessory pools + finisher (parallel fetch)
+  const [mainPool, accessoryPool, finishers] = await Promise.all([
+    fetchMainPool(focus.workout_target, tier, drivingKeys),
+    fetchAccessoryPool(focus.workout_target, tier, drivingKeys),
+    fetchFinisherPool(focus.workout_target, goal),
+  ]);
+
+  const mainSpecificIds = new Set(mainPool.specific.map(r => r.id));
+  const accSpecificIds  = new Set(accessoryPool.specific.map(r => r.id));
 
   const mainScheme = MAIN_SCHEME[goal];
-  const accScheme = ACCESSORY_SCHEME[goal];
+  const accScheme  = ACCESSORY_SCHEME[goal];
 
-  // A1 — Main lift
-  const main = pickDistinct(mains, 1, usedIds)[0];
+  // A1 — Main lift (preferentially pattern-matched)
+  const main = pickWithPriority(mainPool, 1, usedIds)[0];
+  const mainMatched = !!main && mainSpecificIds.has(main.id);
   exercises.push({
     block: 'A1',
     label: 'Main Lift',
@@ -241,11 +352,13 @@ async function generateSession(
     reps: mainScheme.reps,
     tut: mainScheme.tut,
     rest: mainScheme.rest,
-    rationale: rationaleMain(tier, focus.title, weakLink),
+    rationale: rationaleMain(tier, focus.title, weakLink, mainMatched, main?.pattern),
   });
 
-  // A2 — Compound secondario
-  const secondary = pickDistinct(mains, 1, usedIds)[0];
+  // A2 — Compound secondario (also preferentially pattern-matched, but the
+  // pattern-specific pool may already be exhausted by A1)
+  const secondary = pickWithPriority(mainPool, 1, usedIds)[0];
+  const secondaryMatched = !!secondary && mainSpecificIds.has(secondary.id);
   exercises.push({
     block: 'A2',
     label: 'Compound Secondario',
@@ -254,13 +367,14 @@ async function generateSession(
     reps: goal === 'Forza' ? '6-8' : mainScheme.reps,
     tut: mainScheme.tut,
     rest: mainScheme.rest,
-    rationale: rationaleMain(tier, focus.title, null),
+    rationale: rationaleMain(tier, focus.title, null, secondaryMatched, secondary?.pattern),
   });
 
   // B1/B2 — Accessori
-  const accs = pickDistinct(accessories, 2, usedIds);
+  const accs = pickWithPriority(accessoryPool, 2, usedIds);
   for (let i = 0; i < 2; i += 1) {
     const e = accs[i];
+    const matched = !!e && accSpecificIds.has(e.id);
     exercises.push({
       block: `B${i + 1}`,
       label: 'Accessorio',
@@ -269,11 +383,11 @@ async function generateSession(
       reps: accScheme.reps,
       tut: accScheme.tut,
       rest: accScheme.rest,
-      rationale: rationaleAccessory(tier, focus.title),
+      rationale: rationaleAccessory(tier, focus.title, matched, e?.pattern),
     });
   }
 
-  // C1 — Finisher
+  // C1 — Finisher (no pattern bias)
   const fin = pickDistinct(finishers, 1, usedIds)[0];
   exercises.push({
     block: 'C1',
