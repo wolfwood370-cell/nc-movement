@@ -72,6 +72,8 @@ export interface PtPackProgram {
   goal: PtGoal;
   /** Display focus, e.g. "Squat / Hinge" */
   focus: string;
+  /** Session letter A | B | C (clinically deterministic) */
+  letter?: SessionLetter;
   /** Tier driving the session: corrective / integration / performance */
   tier: PrescriptionTier;
   /** Coach-facing scientific rationale for the whole session. */
@@ -80,6 +82,12 @@ export interface PtPackProgram {
   tier_driver?: string;
   /** Pattern keys that triggered forced warm-up (mirrored from prescription). */
   warmup_patterns?: string[];
+  /** True when Modified-FMS proxy substitution was applied (Sessions B/C). */
+  proxy_applied?: boolean;
+  /** FMS assessment type the program was generated from. */
+  assessment_type?: 'full' | 'modified';
+  /** Pattern keys read by the prescription (driving patterns). */
+  driving_pattern_keys?: string[];
   /** Primary FMS limitation (Cook hierarchy) at generation time. */
   weak_link?: string | null;
   exercises: ProgramExercise[];
@@ -494,10 +502,14 @@ async function generateSession(
   return {
     goal,
     focus: focus.title,
+    letter,
     tier,
     session_rationale: prescription.rationale,
     tier_driver: tierDriver,
     warmup_patterns: prescription.warmupPatterns,
+    proxy_applied: !!prescription.proxyApplied,
+    assessment_type: profile.isModified ? 'modified' : 'full',
+    driving_pattern_keys: prescription.drivingPatterns.map(p => p.key),
     weak_link: weakLink,
     exercises,
     generated_at: new Date().toISOString(),

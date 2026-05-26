@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -564,6 +564,21 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
 
       {hasProgram && open && program && (
         <div className="border-t border-border bg-muted/20 p-4 space-y-5">
+          {program.proxy_applied && program.assessment_type === 'modified' && (
+            <div className="rounded-xl border border-primary/50 bg-primary/10 p-3 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-wider font-bold text-primary mb-0.5">
+                  Protezione Clinica · FMS Modificato
+                </div>
+                <p className="text-[12px] leading-snug text-foreground">
+                  Sessione impostata su <span className="font-semibold">Tier {program.tier === 'corrective' ? 'Correttivo' : program.tier === 'integration' ? 'Integrazione' : 'Performance'}</span>
+                  {' '}tramite proxy di mobilità: test nativi non eseguiti per screening rapido,
+                  applicata protezione gerarchica FMS (Cook) sui pattern non valutati.
+                </p>
+              </div>
+            </div>
+          )}
           {program.tier_driver && (
             <div className={`rounded-xl border p-3 flex items-start gap-2 ${
               program.tier === 'corrective' ? 'border-warning/40 bg-warning/10 text-warning-foreground'

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Printer, Flame, Droplet, Activity as ActivityIcon, Zap, Target, Sparkles, Loader2 } from 'lucide-react';
+import { Printer, Flame, Droplet, Activity as ActivityIcon, Zap, Target, Sparkles, Loader2, ShieldAlert, ShieldCheck, AlertOctagon, Info } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
+import { getCorrectivePriority, isModifiedFms, type FmsScores, type CorrectivePriorityLevel } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
 
 interface ExerciseRow {
@@ -45,10 +45,36 @@ function doseFor(ex: ExerciseRow | null, fallback = '—'): string {
   return ex.dose ?? fallback;
 }
 
+/** Color tokens per corrective priority level — semantic, theme-aware. */
+const WEAK_LINK_TONE: Record<CorrectivePriorityLevel, {
+  border: string; bg: string; text: string; chip: string; label: string;
+  icon: typeof Target;
+}> = {
+  red_flag:      { border: 'border-destructive/50', bg: 'bg-destructive/10', text: 'text-destructive',
+                   chip: 'bg-destructive text-destructive-foreground', label: 'Red Flag', icon: AlertOctagon },
+  mobility:      { border: 'border-warning/50',     bg: 'bg-warning/10',     text: 'text-warning',
+                   chip: 'bg-warning text-warning-foreground',         label: 'Mobilità', icon: ShieldAlert },
+  motor_control: { border: 'border-warning/50',     bg: 'bg-warning/10',     text: 'text-warning',
+                   chip: 'bg-warning text-warning-foreground',         label: 'Controllo Motorio', icon: ShieldAlert },
+  functional:    { border: 'border-warning/40',     bg: 'bg-warning/5',      text: 'text-warning',
+                   chip: 'bg-warning/80 text-warning-foreground',      label: 'Funzionale', icon: Target },
+  optimal:       { border: 'border-success/50',     bg: 'bg-success/10',     text: 'text-success',
+                   chip: 'bg-success text-success-foreground',         label: 'Ottimale', icon: ShieldCheck },
+  incomplete:    { border: 'border-border',         bg: 'bg-muted/30',       text: 'text-muted-foreground',
+                   chip: 'bg-muted text-muted-foreground',             label: 'Incompleto', icon: Info },
+};
+
 export default function TrialSessionModal({ open, onOpenChange, latestFms, clientName }: Props) {
+  // Explicit assessment_type flow: the Modified flag drives proxy logic
+  // downstream (Sessions B/C) and unlocks the clinical-shield notice below.
+  const assessmentType: 'full' | 'modified' = isModifiedFms(latestFms as FmsScores | null) ? 'modified' : 'full';
+  const isModified = assessmentType === 'modified';
+
   const priority = useMemo(
-    () => (latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null),
-    [latestFms],
+    () => (latestFms
+      ? getCorrectivePriority({ ...(latestFms as unknown as FmsScores), assessment_type: assessmentType })
+      : null),
+    [latestFms, assessmentType],
   );
   const patternKey = priority?.patternKey && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
     ? priority.patternKey
@@ -151,7 +177,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   }, [open, patternKey]);
 
   const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
-  const focusLabel = priority?.focus ?? 'Pattern Globale';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,22 +210,47 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
             </div>
           ) : (
             <div className="p-6 space-y-6">
-              {/* Section 1 — Weak Link */}
-              <section className="rounded-lg border border-warning/40 bg-warning/5 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4 text-warning" />
-                  <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    1. Il tuo Weak Link
-                  </h3>
+              {/* Modified-FMS clinical notice */}
+              {isModified && (
+                <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div className="text-xs leading-snug">
+                    <span className="font-bold text-primary uppercase tracking-wider text-[10px] block mb-0.5">
+                      FMS Modificato · Proxy clinici attivi
+                    </span>
+                    <span className="text-muted-foreground">
+                      Test nativi non eseguiti per screening rapido (solo Deep Squat, Shoulder Mobility, ASLR).
+                      Applicata protezione gerarchica FMS sui pattern non testati tramite proxy di mobilità.
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">Limitazione Primaria Rilevata:</p>
-                <p className="font-display font-bold text-base">{focusLabel}</p>
-                {priority?.clientExplanation && (
-                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    {priority.clientExplanation}
-                  </p>
-                )}
-              </section>
+              )}
+
+              {/* Section 1 — Weak Link + tier-styled client explanation */}
+              {priority && (() => {
+                const tone = WEAK_LINK_TONE[priority.level];
+                const Icon = tone.icon;
+                return (
+                  <section className={`rounded-lg border p-4 ${tone.border} ${tone.bg}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-4 h-4 ${tone.text}`} />
+                      <h3 className="font-display font-bold text-sm uppercase tracking-wider">
+                        1. Il tuo Weak Link
+                      </h3>
+                      <span className={`ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tone.chip}`}>
+                        {tone.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">Limitazione Primaria Rilevata:</p>
+                    <p className="font-display font-bold text-base">{priority.focus}</p>
+                    {priority.clientExplanation && (
+                      <p className={`text-xs mt-2 leading-relaxed ${tone.text}`}>
+                        {priority.clientExplanation}
+                      </p>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* Section 2 — RAMP-6 Prep */}
               <section>
