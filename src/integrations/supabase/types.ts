@@ -81,6 +81,7 @@ export type Database = {
           phase: Database["public"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
+          posture_tier: number | null
           progression: string | null
           ramp_category: string | null
           rationale: string | null
@@ -101,6 +102,7 @@ export type Database = {
           phase: Database["public"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
+          posture_tier?: number | null
           progression?: string | null
           ramp_category?: string | null
           rationale?: string | null
@@ -121,6 +123,7 @@ export type Database = {
           phase?: Database["public"]["Enums"]["corrective_phase"]
           posture_level?: number
           posture_name?: string
+          posture_tier?: number | null
           progression?: string | null
           ramp_category?: string | null
           rationale?: string | null
