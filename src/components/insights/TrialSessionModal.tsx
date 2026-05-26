@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Printer, Flame, Droplet, Activity as ActivityIcon, Zap, Target, Sparkles, Loader2 } from 'lucide-react';
+import { Printer, Flame, Droplet, Activity as ActivityIcon, Zap, Target, Sparkles, Loader2, ShieldAlert, ShieldCheck, AlertOctagon, Info } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { getCorrectivePriority, type FmsScores } from '@/lib/fms';
+import { getCorrectivePriority, isModifiedFms, type FmsScores, type CorrectivePriorityLevel } from '@/lib/fms';
 import type { FmsAssessmentRow } from '@/lib/insights';
 
 interface ExerciseRow {
