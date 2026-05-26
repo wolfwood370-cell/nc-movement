@@ -46,9 +46,16 @@ function doseFor(ex: ExerciseRow | null, fallback = '—'): string {
 }
 
 export default function TrialSessionModal({ open, onOpenChange, latestFms, clientName }: Props) {
+  // Explicit assessment_type flow: the Modified flag drives proxy logic
+  // downstream (Sessions B/C) and unlocks the clinical-shield notice below.
+  const assessmentType: 'full' | 'modified' = isModifiedFms(latestFms as FmsScores | null) ? 'modified' : 'full';
+  const isModified = assessmentType === 'modified';
+
   const priority = useMemo(
-    () => (latestFms ? getCorrectivePriority(latestFms as unknown as FmsScores) : null),
-    [latestFms],
+    () => (latestFms
+      ? getCorrectivePriority({ ...(latestFms as unknown as FmsScores), assessment_type: assessmentType })
+      : null),
+    [latestFms, assessmentType],
   );
   const patternKey = priority?.patternKey && priority.patternKey !== 'none' && priority.patternKey !== 'pain'
     ? priority.patternKey
