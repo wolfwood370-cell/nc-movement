@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
