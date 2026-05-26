@@ -76,6 +76,10 @@ export interface PtPackProgram {
   tier: PrescriptionTier;
   /** Coach-facing scientific rationale for the whole session. */
   session_rationale: string;
+  /** Concise cause→effect line, e.g. "Tier Correttivo pilotato da: ASLR 1/3". */
+  tier_driver?: string;
+  /** Pattern keys that triggered forced warm-up (mirrored from prescription). */
+  warmup_patterns?: string[];
   /** Primary FMS limitation (Cook hierarchy) at generation time. */
   weak_link?: string | null;
   exercises: ProgramExercise[];
@@ -477,11 +481,23 @@ async function generateSession(
     notes: goal === 'Dimagrimento' ? 'AMRAP — intensità RPE 8' : 'Esplosivo · max velocità',
   });
 
+  // Cause→effect line: pick the lowest-scoring driving pattern as the "driver".
+  const tierDriver = (() => {
+    const dp = prescription.drivingPatterns ?? [];
+    if (dp.length === 0) return `Tier ${TIER_LABEL_IT[tier]} · prescrizione di default (nessun pattern FMS rilevante).`;
+    const worst = [...dp].sort((a, b) => (a.score ?? 9) - (b.score ?? 9))[0];
+    const asym = worst.asymmetric ? ' (asimmetria L/R)' : '';
+    const proxy = worst.proxy ? ' · proxy FMS Modificato' : '';
+    return `Tier ${TIER_LABEL_IT[tier]} pilotato da: ${worst.label} ${worst.score}/3${asym}${proxy}`;
+  })();
+
   return {
     goal,
     focus: focus.title,
     tier,
     session_rationale: prescription.rationale,
+    tier_driver: tierDriver,
+    warmup_patterns: prescription.warmupPatterns,
     weak_link: weakLink,
     exercises,
     generated_at: new Date().toISOString(),

@@ -564,6 +564,20 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
 
       {hasProgram && open && program && (
         <div className="border-t border-border bg-muted/20 p-4 space-y-5">
+          {program.tier_driver && (
+            <div className={`rounded-xl border p-3 flex items-start gap-2 ${
+              program.tier === 'corrective' ? 'border-warning/40 bg-warning/10 text-warning-foreground'
+              : program.tier === 'integration' ? 'border-primary/30 bg-primary/5'
+              : 'border-success/40 bg-success/10'
+            }`}>
+              <span className={`text-[10px] uppercase tracking-wider font-bold shrink-0 px-1.5 py-0.5 rounded ${
+                program.tier === 'corrective' ? 'bg-warning text-warning-foreground'
+                : program.tier === 'integration' ? 'bg-primary/15 text-primary'
+                : 'bg-success text-success-foreground'
+              }`}>FMS · Causa→Effetto</span>
+              <p className="text-[12px] font-medium leading-snug">{program.tier_driver}</p>
+            </div>
+          )}
           {program.session_rationale && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-1">
               <div className="text-[10px] uppercase tracking-wider font-bold text-primary">Razionale Scientifico</div>

@@ -184,6 +184,29 @@ export default function FmsClientReport({ clientName, assessedAt, scores }: Prop
               </div>
             </div>
           ))}
+          {modified && (
+            <div className="pt-3 mt-2 border-t border-border/50 space-y-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Pattern non testati nel Modificato
+              </div>
+              {[
+                { key: 'hurdle_step', label: 'Hurdle Step' },
+                { key: 'inline_lunge', label: 'Inline Lunge' },
+                { key: 'trunk_stability_pushup', label: 'Trunk Stability Push-Up' },
+                { key: 'rotary_stability', label: 'Rotary Stability' },
+              ].map(p => (
+                <div key={p.key} className="flex items-center justify-between gap-2 py-1">
+                  <div className="text-sm text-muted-foreground truncate">{p.label}</div>
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary/40 text-primary shrink-0">
+                    Valutato via Proxy di Mobilità
+                  </Badge>
+                </div>
+              ))}
+              <p className="text-[11px] text-muted-foreground italic leading-snug pt-1">
+                Il PT Pack usa Deep Squat, Shoulder Mobility e ASLR come proxy clinici per stimare il rischio sui pattern non testati (gerarchia di Cook).
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
