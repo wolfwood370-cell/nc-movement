@@ -158,7 +158,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   }, [open, patternKey]);
 
   const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
-  const focusLabel = priority?.focus ?? 'Pattern Globale';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
