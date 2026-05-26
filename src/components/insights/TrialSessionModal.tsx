@@ -45,6 +45,25 @@ function doseFor(ex: ExerciseRow | null, fallback = '—'): string {
   return ex.dose ?? fallback;
 }
 
+/** Color tokens per corrective priority level — semantic, theme-aware. */
+const WEAK_LINK_TONE: Record<CorrectivePriorityLevel, {
+  border: string; bg: string; text: string; chip: string; label: string;
+  icon: typeof Target;
+}> = {
+  red_flag:      { border: 'border-destructive/50', bg: 'bg-destructive/10', text: 'text-destructive',
+                   chip: 'bg-destructive text-destructive-foreground', label: 'Red Flag', icon: AlertOctagon },
+  mobility:      { border: 'border-warning/50',     bg: 'bg-warning/10',     text: 'text-warning',
+                   chip: 'bg-warning text-warning-foreground',         label: 'Mobilità', icon: ShieldAlert },
+  motor_control: { border: 'border-warning/50',     bg: 'bg-warning/10',     text: 'text-warning',
+                   chip: 'bg-warning text-warning-foreground',         label: 'Controllo Motorio', icon: ShieldAlert },
+  functional:    { border: 'border-warning/40',     bg: 'bg-warning/5',      text: 'text-warning',
+                   chip: 'bg-warning/80 text-warning-foreground',      label: 'Funzionale', icon: Target },
+  optimal:       { border: 'border-success/50',     bg: 'bg-success/10',     text: 'text-success',
+                   chip: 'bg-success text-success-foreground',         label: 'Ottimale', icon: ShieldCheck },
+  incomplete:    { border: 'border-border',         bg: 'bg-muted/30',       text: 'text-muted-foreground',
+                   chip: 'bg-muted text-muted-foreground',             label: 'Incompleto', icon: Info },
+};
+
 export default function TrialSessionModal({ open, onOpenChange, latestFms, clientName }: Props) {
   // Explicit assessment_type flow: the Modified flag drives proxy logic
   // downstream (Sessions B/C) and unlocks the clinical-shield notice below.
