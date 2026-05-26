@@ -16,6 +16,7 @@ import SfmaAssessment from "./pages/SfmaAssessment";
 import YbtAssessment from "./pages/YbtAssessment";
 import CorrectiveLibrary from "./pages/CorrectiveLibrary";
 import DailyPrep from "./pages/DailyPrep";
+import BugReports from "./pages/BugReports";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound.tsx";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/assessments/ybt/:id" element={<Shell><YbtAssessment /></Shell>} />
             <Route path="/library" element={<Shell><CorrectiveLibrary /></Shell>} />
             <Route path="/daily-prep" element={<Shell><DailyPrep /></Shell>} />
+            <Route path="/admin/bugs" element={<Shell><BugReports /></Shell>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

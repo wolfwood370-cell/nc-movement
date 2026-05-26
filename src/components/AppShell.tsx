@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
+import { Activity, Bug, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/nc-movement-logo.png';
@@ -40,11 +40,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <div className="font-display font-bold text-sm text-primary">NC MOVEMENT</div>
             </div>
           </button>
-          <button onClick={onSignOut}
-            className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
-            aria-label="Esci">
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => navigate('/admin/bugs')}
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+              aria-label="Segnalazioni Bug">
+              <Bug className="w-4 h-4" />
+            </button>
+            <button onClick={onSignOut}
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+              aria-label="Esci">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 

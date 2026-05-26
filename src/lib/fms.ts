@@ -160,8 +160,13 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Dolore rilevato in: ${painful.map(p => p.label).join(', ')}. Trattare il dolore prima di progredire nella gerarchia correttiva.`,
     };
   }
-  const at = (key: string) => patterns.find(p => p.key === key)!;
-  const mobility = [at('aslr'), at('shoulder_mobility')].filter(p => p.final === 1);
+  // Patterns absent from the array (e.g. Modified FMS only ships DS+SM+ASLR)
+  // are gracefully skipped via the type predicate filter — no `!` assertion.
+  const at = (key: string): PatternResult | undefined => patterns.find(p => p.key === key);
+  const filterByScore = (keys: readonly string[], target: number): PatternResult[] =>
+    keys.map(at).filter((p): p is PatternResult => !!p && p.final === target);
+
+  const mobility = filterByScore(['aslr', 'shoulder_mobility'], 1);
   if (mobility.length) {
     return {
       level: 'mobility',
@@ -169,7 +174,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Priorità ai correttivi di mobilità per: ${mobility.map(p => p.label).join(', ')}.`,
     };
   }
-  const motor = [at('rotary_stability'), at('trunk_stability_pushup')].filter(p => p.final === 1);
+  const motor = filterByScore(['rotary_stability', 'trunk_stability_pushup'], 1);
   if (motor.length) {
     return {
       level: 'motor_control',
@@ -177,7 +182,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
       detail: `Priorità ai correttivi di stabilità per: ${motor.map(p => p.label).join(', ')}.`,
     };
   }
-  const fn = [at('inline_lunge'), at('hurdle_step'), at('deep_squat')].filter(p => p.final === 1);
+  const fn = filterByScore(['inline_lunge', 'hurdle_step', 'deep_squat'], 1);
   if (fn.length) {
     return {
       level: 'functional',
