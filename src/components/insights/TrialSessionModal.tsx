@@ -192,22 +192,47 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
             </div>
           ) : (
             <div className="p-6 space-y-6">
-              {/* Section 1 — Weak Link */}
-              <section className="rounded-lg border border-warning/40 bg-warning/5 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4 text-warning" />
-                  <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    1. Il tuo Weak Link
-                  </h3>
+              {/* Modified-FMS clinical notice */}
+              {isModified && (
+                <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div className="text-xs leading-snug">
+                    <span className="font-bold text-primary uppercase tracking-wider text-[10px] block mb-0.5">
+                      FMS Modificato · Proxy clinici attivi
+                    </span>
+                    <span className="text-muted-foreground">
+                      Test nativi non eseguiti per screening rapido (solo Deep Squat, Shoulder Mobility, ASLR).
+                      Applicata protezione gerarchica FMS sui pattern non testati tramite proxy di mobilità.
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">Limitazione Primaria Rilevata:</p>
-                <p className="font-display font-bold text-base">{focusLabel}</p>
-                {priority?.clientExplanation && (
-                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    {priority.clientExplanation}
-                  </p>
-                )}
-              </section>
+              )}
+
+              {/* Section 1 — Weak Link + tier-styled client explanation */}
+              {priority && (() => {
+                const tone = WEAK_LINK_TONE[priority.level];
+                const Icon = tone.icon;
+                return (
+                  <section className={`rounded-lg border p-4 ${tone.border} ${tone.bg}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-4 h-4 ${tone.text}`} />
+                      <h3 className="font-display font-bold text-sm uppercase tracking-wider">
+                        1. Il tuo Weak Link
+                      </h3>
+                      <span className={`ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tone.chip}`}>
+                        {tone.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">Limitazione Primaria Rilevata:</p>
+                    <p className="font-display font-bold text-base">{priority.focus}</p>
+                    {priority.clientExplanation && (
+                      <p className={`text-xs mt-2 leading-relaxed ${tone.text}`}>
+                        {priority.clientExplanation}
+                      </p>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* Section 2 — RAMP-6 Prep */}
               <section>
