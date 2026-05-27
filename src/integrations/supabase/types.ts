@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      bug_reports: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_name: string | null
+          error_stack: string | null
+          id: string
+          meta: Json
+          status: string
+          url_path: string | null
+          user_agent: string | null
+          user_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_name?: string | null
+          error_stack?: string | null
+          id?: string
+          meta?: Json
+          status?: string
+          url_path?: string | null
+          user_agent?: string | null
+          user_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_name?: string | null
+          error_stack?: string | null
+          id?: string
+          meta?: Json
+          status?: string
+          url_path?: string | null
+          user_agent?: string | null
+          user_note?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           competition_level: string | null
