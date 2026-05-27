@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Bug, Check, ClipboardCopy, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bug, Check, ClipboardCopy, Database, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-
-// `bug_reports` is added by migration 20260527120000. Until Lovable
-// regenerates `supabase/types.ts`, we use a loose cast to avoid a TS error
-// on the unknown table name. Remove once the table is in the typed schema.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +12,59 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatBugForClaude, type BugReport, type BugStatus } from '@/lib/bugReporter';
+import {
+  formatBugForClaude,
+  readLocalReports,
+  type BugReport,
+  type BugStatus,
+} from '@/lib/bugReporter';
+
+// `bug_reports` is added by migration 20260527120000. Until Lovable
+// regenerates `supabase/types.ts`, we use a loose cast to avoid a TS error
+// on the unknown table name. Remove once the table is in the typed schema.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
+/** Detect Postgres "table not found" errors raised by PostgREST. */
+function isTableMissingError(err: { message?: string; code?: string } | null | undefined): boolean {
+  if (!err) return false;
+  const msg = (err.message ?? '').toLowerCase();
+  return msg.includes('could not find the table')
+      || msg.includes('relation "public.bug_reports" does not exist')
+      || err.code === '42P01';
+}
+
+/** Migration SQL — kept inline so the user can paste it into Lovable's SQL
+ *  Editor as a manual fallback when the auto-migration hasn't run yet. */
+const MIGRATION_SQL = `CREATE TABLE IF NOT EXISTS public.bug_reports (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  error_message   text NOT NULL,
+  error_name      text,
+  error_stack     text,
+  url_path        text,
+  user_agent      text,
+  user_note       text,
+  status          text NOT NULL DEFAULT 'new'
+                  CHECK (status IN ('new', 'reported', 'fixed')),
+  meta            jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_bug_reports_created_at
+  ON public.bug_reports (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_status
+  ON public.bug_reports (status);
+
+ALTER TABLE public.bug_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "bug_reports_insert_authenticated"
+  ON public.bug_reports FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "bug_reports_select_authenticated"
+  ON public.bug_reports FOR SELECT TO authenticated USING (true);
+CREATE POLICY "bug_reports_update_authenticated"
+  ON public.bug_reports FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "bug_reports_delete_authenticated"
+  ON public.bug_reports FOR DELETE TO authenticated USING (true);`;
 
 type StatusFilter = 'all' | BugStatus;
 
@@ -36,22 +82,34 @@ const STATUS_BADGE_CLASS: Record<BugStatus, string> = {
 
 export default function BugReports() {
   const [reports, setReports] = useState<BugReport[]>([]);
+  const [localReports, setLocalReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [tableMissing, setTableMissing] = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    // localStorage always works — load it first so we have *something* to show
+    // even if the DB isn't ready yet.
+    setLocalReports(readLocalReports());
+
+    const { data, error } = await sb
       .from('bug_reports')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
     setLoading(false);
     if (error) {
+      if (isTableMissingError(error)) {
+        setTableMissing(true);
+        setReports([]);
+        return;
+      }
       toast.error(`Errore nel caricare le segnalazioni: ${error.message}`);
       return;
     }
+    setTableMissing(false);
     setReports((data ?? []) as BugReport[]);
   };
 
@@ -115,21 +173,113 @@ export default function BugReports() {
         </p>
       </header>
 
-      <div className="flex items-center gap-2">
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as StatusFilter)} className="flex-1">
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="all">Tutti · {counts.all}</TabsTrigger>
-            <TabsTrigger value="new">Nuovi · {counts.new}</TabsTrigger>
-            <TabsTrigger value="reported">Segnalati · {counts.reported}</TabsTrigger>
-            <TabsTrigger value="fixed">Sistemati · {counts.fixed}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Button onClick={fetchReports} variant="outline" size="sm" disabled={loading}>
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-        </Button>
-      </div>
+      {tableMissing && (
+        <Card className="surface-card border-warning/40">
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <Database className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <h3 className="font-display font-bold text-sm">
+                  Tabella <code>bug_reports</code> non ancora presente
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Il file di migration è già nel repo (<code>supabase/migrations/20260527120000_create_bug_reports.sql</code>),
+                  ma Lovable Cloud non l'ha ancora applicato. Apri la chat di Lovable e scrivi:
+                  <em> "Applica la migration più recente in supabase/migrations e rigenera i tipi"</em>.
+                  In alternativa, incolla l'SQL qui sotto nel SQL Editor di Lovable Cloud.
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  I report già catturati dal browser (localStorage) restano comunque visibili sotto e sono pronti da copiare.
+                </p>
+              </div>
+            </div>
+            <details className="text-[11px]">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground font-semibold">
+                Mostra SQL della migration
+              </summary>
+              <div className="relative mt-2">
+                <pre className="bg-muted/40 rounded-md p-3 overflow-x-auto text-[10px] leading-snug">{MIGRATION_SQL}</pre>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(MIGRATION_SQL).then(
+                      () => toast.success('SQL copiato — incollalo nel SQL Editor di Lovable'),
+                      () => toast.error('Copia fallita'),
+                    );
+                  }}
+                  className="absolute top-2 right-2 h-7 text-[11px]"
+                >
+                  <ClipboardCopy className="w-3 h-3 mr-1" /> Copia SQL
+                </Button>
+              </div>
+            </details>
+            <Button size="sm" variant="outline" onClick={fetchReports} className="h-8 text-xs">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Riprova caricamento
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-      {loading && reports.length === 0 ? (
+      {!tableMissing && (
+        <div className="flex items-center gap-2">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as StatusFilter)} className="flex-1">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="all">Tutti · {counts.all}</TabsTrigger>
+              <TabsTrigger value="new">Nuovi · {counts.new}</TabsTrigger>
+              <TabsTrigger value="reported">Segnalati · {counts.reported}</TabsTrigger>
+              <TabsTrigger value="fixed">Sistemati · {counts.fixed}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={fetchReports} variant="outline" size="sm" disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
+        </div>
+      )}
+
+      {tableMissing && localReports.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            Report salvati nel browser (localStorage) · {localReports.length}
+          </p>
+          <Accordion type="multiple" className="space-y-2">
+            {localReports.map((r, idx) => (
+              <AccordionItem
+                key={`local-${idx}-${r.created_at ?? r.error_message}`}
+                value={`local-${idx}`}
+                className="border border-border rounded-lg surface-card overflow-hidden"
+              >
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-start gap-2 text-left w-full pr-2">
+                    <Badge className="shrink-0 bg-muted text-muted-foreground">Locale</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-sm truncate">{r.error_message}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span>{formatTimestamp(r.created_at)}</span>
+                        {r.url_path && <span className="truncate">· {r.url_path}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-3">
+                  {r.error_stack && (
+                    <pre className="bg-muted/40 rounded-md p-2 overflow-x-auto text-[10px]">{r.error_stack}</pre>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => copyReport(r)}
+                    className="h-8 text-xs"
+                  >
+                    <ClipboardCopy className="w-3.5 h-3.5 mr-1.5" /> Copia per Claude
+                  </Button>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      )}
+
+      {tableMissing ? null : loading && reports.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> Carico segnalazioni…
         </div>
