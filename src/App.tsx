@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import AppShell from "@/components/AppShell";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -47,7 +48,7 @@ const App = () => (
             <Route path="/assessments/ybt/:id" element={<Shell><YbtAssessment /></Shell>} />
             <Route path="/library" element={<Shell><CorrectiveLibrary /></Shell>} />
             <Route path="/daily-prep" element={<Shell><DailyPrep /></Shell>} />
-            <Route path="/admin/bugs" element={<Shell><BugReports /></Shell>} />
+            <Route path="/admin/bugs" element={<Shell><AdminRoute><BugReports /></AdminRoute></Shell>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

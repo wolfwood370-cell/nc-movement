@@ -25,6 +25,7 @@ export type Database = {
           status: string
           url_path: string | null
           user_agent: string | null
+          user_id: string | null
           user_note: string | null
         }
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           status?: string
           url_path?: string | null
           user_agent?: string | null
+          user_id?: string | null
           user_note?: string | null
         }
         Update: {
@@ -49,6 +51,7 @@ export type Database = {
           status?: string
           url_path?: string | null
           user_agent?: string | null
+          user_id?: string | null
           user_note?: string | null
         }
         Relationships: []

@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Activity, Bug, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsStaff } from '@/hooks/useIsStaff';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/nc-movement-logo.png';
 
@@ -15,6 +16,7 @@ const tabs = [
 export default function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isStaff } = useIsStaff();
 
   const onSignOut = async () => {
     await signOut();
@@ -41,11 +43,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </button>
           <div className="flex items-center gap-1">
-            <button onClick={() => navigate('/admin/bugs')}
-              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
-              aria-label="Segnalazioni Bug">
-              <Bug className="w-4 h-4" />
-            </button>
+            {isStaff && (
+              <button onClick={() => navigate('/admin/bugs')}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+                aria-label="Segnalazioni Bug">
+                <Bug className="w-4 h-4" />
+              </button>
+            )}
             <button onClick={onSignOut}
               className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
               aria-label="Esci">
