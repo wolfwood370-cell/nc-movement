@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generatePtPackSet, PT_GOALS, type PtGoal, type PtPackProgram } from '@/lib/ptPackProgram';
 import InsightsTab from '@/components/insights/InsightsTab';
+import TrialSessionModal from '@/components/insights/TrialSessionModal';
 import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
@@ -275,7 +276,7 @@ export default function ClientDetail() {
         </TabsList>
 
         <TabsContent value="ptpack" className="mt-4">
-          <PtPackPanel sessions={sessions} clientId={client.id} latestFms={fms[0] ?? null} onChanged={loadAll} />
+          <PtPackPanel sessions={sessions} clientId={client.id} clientName={client.full_name} latestFms={fms[0] ?? null} onChanged={loadAll} />
         </TabsContent>
 
 
@@ -349,18 +350,30 @@ type SessionRow = {
   status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null;
 };
 
-function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
-  sessions: SessionRow[]; clientId: string; latestFms: FmsAssessmentRow | null; onChanged: () => void;
+function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
+  sessions: SessionRow[]; clientId: string; clientName: string; latestFms: FmsAssessmentRow | null; onChanged: () => void;
 }) {
   const navigate = useNavigate();
-  const ptPack = sessions.filter(s => s.session_type === 'PT Pack')
-    .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0));
-  const triage = sessions.find(s => s.session_type === 'Triage');
+  // Scope to the latest FMS assessment only. Each saved FMS spawns its own
+  // Triage + 3 PT Pack sessions; without this filter, packs from older
+  // assessments pile up in the list ("duplicate days") and the Genera mapping
+  // (3 generated programs → N session rows) would misalign.
+  const scoped = useMemo(
+    () => (latestFms ? sessions.filter(s => s.fms_assessment_id === latestFms.id) : []),
+    [sessions, latestFms],
+  );
+  const ptPack = useMemo(
+    () => scoped.filter(s => s.session_type === 'PT Pack')
+      .sort((a, b) => (a.session_number ?? 0) - (b.session_number ?? 0)),
+    [scoped],
+  );
+  const triage = scoped.find(s => s.session_type === 'Triage');
 
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [programs, setPrograms] = useState<Record<string, { program: PtPackProgram; goal: string }>>({});
   const [openId, setOpenId] = useState<string | null>(null);
+  const [trialOpen, setTrialOpen] = useState(false);
 
   // Load existing programs for all PT Pack sessions
   useEffect(() => {
@@ -407,7 +420,7 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
     }
   };
 
-  if (sessions.length === 0) {
+  if (scoped.length === 0) {
     return (
       <div className="surface-card p-8 text-center space-y-3">
         <Sparkles className="w-10 h-10 mx-auto text-muted-foreground" />
@@ -431,12 +444,12 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
           <div className="min-w-0 flex-1">
             <div className="font-display font-semibold text-sm">Sessione di Prova (Triage)</div>
             <div className="text-[11px] text-muted-foreground">
-              {new Date(triage.created_at).toLocaleDateString('it-IT')} · Da svolgere · genera la prova dalla scheda Insights
+              {new Date(triage.created_at).toLocaleDateString('it-IT')} · Da svolgere
             </div>
           </div>
-          <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md bg-warning/15 text-warning-foreground shrink-0">
-            Da fare
-          </span>
+          <Button size="sm" variant="secondary" onClick={() => setTrialOpen(true)} className="shrink-0">
+            <Zap className="w-4 h-4 mr-1.5" /> Genera Prova
+          </Button>
         </div>
       )}
 
@@ -500,6 +513,13 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
           </div>
         </DialogContent>
       </Dialog>
+
+      <TrialSessionModal
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        latestFms={latestFms}
+        clientName={clientName}
+      />
     </div>
   );
 }
