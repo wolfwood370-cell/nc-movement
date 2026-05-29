@@ -217,7 +217,8 @@ export default function FmsAssessment() {
     // Unique indexes on (fms_assessment_id) prevent duplication on re-clicks.
     const sessionRows = [
       { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
-        session_type: 'Triage' as const, status: 'completed' as const, session_number: null },
+        // Trial session is created but NOT yet performed — coach must still run it.
+        session_type: 'Triage' as const, status: 'scheduled' as const, session_number: null },
       { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
         session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 1 },
       { practitioner_id: user.id, client_id: clientId, fms_assessment_id: fmsAssessmentId,
@@ -277,12 +278,12 @@ export default function FmsAssessment() {
 
   // ---- Success state (post-save) -----------------------------------------
   if (packResult) {
-    const triage = packResult.sessions.find((s) => s.type === 'Triage');
     const ptPack = packResult.sessions
       .filter((s) => s.type === 'PT Pack')
       .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
     const rows: Array<{ key: string; title: string; status: string; tone: 'success' | 'muted'; icon: typeof CheckCircle2 }> = [
-      { key: 'triage', title: 'Sessione Triage', status: 'Completata', tone: 'success', icon: ClipboardCheck },
+      // Trial session is generated but still to be performed — never auto-completed.
+      { key: 'triage', title: 'Sessione di Prova (Triage)', status: 'Da svolgere', tone: 'muted', icon: ClipboardCheck },
       ...ptPack.map((s) => ({
         key: `pt-${s.number}`,
         title: `PT Pack · Sessione ${s.number}`,
@@ -291,8 +292,6 @@ export default function FmsAssessment() {
         icon: CalendarClock,
       })),
     ];
-    // Keep triage row even if not returned by select (defensive).
-    if (!triage) rows[0].status = 'Generata';
 
     return (
       <div className="space-y-5 pb-4 animate-fade-in">
@@ -311,7 +310,7 @@ export default function FmsAssessment() {
                 Screening FMS Completato e Pacchetto PT Generato
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Il sistema ha registrato la sessione Triage e creato 3 sessioni PT Pack pronte per essere programmate.
+                Il sistema ha predisposto la Sessione di Prova (Triage) — ancora da svolgere — e creato 3 sessioni PT Pack pronte per essere programmate.
               </p>
             </div>
           </div>

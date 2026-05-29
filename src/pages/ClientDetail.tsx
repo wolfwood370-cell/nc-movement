@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, CheckCircle2, Sparkles, Dumbbell, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -92,7 +92,8 @@ export default function ClientDetail() {
       if (!user || cancelled) return;
       const rows = [
         { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
-          session_type: 'Triage' as const, status: 'completed' as const, session_number: null },
+          // Trial session is created but NOT yet performed — coach must still run it.
+          session_type: 'Triage' as const, status: 'scheduled' as const, session_number: null },
         { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
           session_type: 'PT Pack' as const, status: 'draft' as const, session_number: 1 },
         { practitioner_id: user.id, client_id: client.id, fms_assessment_id: lastModified.id,
@@ -424,15 +425,18 @@ function PtPackPanel({ sessions, clientId, latestFms, onChanged }: {
     <div className="space-y-4">
       {triage && (
         <div className="surface-card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-success/15 text-success grid place-items-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
+            <ClipboardList className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-display font-semibold text-sm">Sessione Triage</div>
+            <div className="font-display font-semibold text-sm">Sessione di Prova (Triage)</div>
             <div className="text-[11px] text-muted-foreground">
-              {new Date(triage.created_at).toLocaleDateString('it-IT')} · Completata
+              {new Date(triage.created_at).toLocaleDateString('it-IT')} · Da svolgere · genera la prova dalla scheda Insights
             </div>
           </div>
+          <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md bg-warning/15 text-warning-foreground shrink-0">
+            Da fare
+          </span>
         </div>
       )}
 
