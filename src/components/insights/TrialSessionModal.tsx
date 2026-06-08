@@ -81,6 +81,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
     : 'aslr';
 
   const [loading, setLoading] = useState(false);
+  const [errored, setErrored] = useState(false);
   const [reset, setReset] = useState<ExerciseRow | null>(null);
   const [reactivate, setReactivate] = useState<ExerciseRow | null>(null);
   const [reinforce, setReinforce] = useState<ExerciseRow | null>(null);
@@ -94,18 +95,8 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [
-        { data: pRows },
-        { data: aRows },
-        { data: dRows },
-        { data: fRows },
-        { data: stressRows },
-        { data: asymRowsA },
-        { data: asymRowsB },
-        { data: coreRotaryRows },
-        { data: coreTspuRows },
-        { data: powerRows },
-      ] = await Promise.all([
+      setErrored(false);
+      const results = await Promise.all([
         supabase.from('exercises_library').select('*').eq('pattern', patternKey),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', 'Full Body'),
@@ -122,6 +113,24 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F'),
       ]);
       if (cancelled) return;
+      if (results.some(r => r.error)) {
+        // Don't present hardcoded defaults as a generated session on failure.
+        setErrored(true);
+        setLoading(false);
+        return;
+      }
+      const [
+        { data: pRows },
+        { data: aRows },
+        { data: dRows },
+        { data: fRows },
+        { data: stressRows },
+        { data: asymRowsA },
+        { data: asymRowsB },
+        { data: coreRotaryRows },
+        { data: coreTspuRows },
+        { data: powerRows },
+      ] = results;
 
       const pAll = (pRows ?? []) as ExerciseRow[];
       setReset(pickRandom(pAll.filter(r => r.phase === 'Reset')));
@@ -207,6 +216,11 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
           {loading ? (
             <div className="p-10 flex items-center justify-center text-muted-foreground gap-2 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Generazione sessione…
+            </div>
+          ) : errored ? (
+            <div className="p-10 flex flex-col items-center justify-center text-center text-sm text-destructive gap-2">
+              <Target className="w-5 h-5" />
+              Errore nel caricamento degli esercizi. Chiudi e riapri per riprovare.
             </div>
           ) : (
             <div className="p-6 space-y-6">

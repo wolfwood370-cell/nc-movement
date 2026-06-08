@@ -111,9 +111,17 @@ export default function FmsAssessment() {
     (async () => {
       setLoading(true);
       if (id && id !== 'new') {
-        const { data } = await supabase.from('fms_assessments')
+        const { data, error } = await supabase.from('fms_assessments')
           .select('*, clients(full_name)').eq('id', id).maybeSingle();
-        if (data) {
+        if (error || !data) {
+          // Distinguish a failed/absent load from a fresh assessment: never
+          // present a blank editable form as if it were a new screening.
+          toast.error(error ? 'Impossibile caricare la valutazione.' : 'Valutazione non trovata.');
+          setLoading(false);
+          navigate(-1);
+          return;
+        }
+        {
           const empty = emptyFmsScores();
           const s: FmsScores = { ...empty };
           (Object.keys(empty) as (keyof FmsScores)[]).forEach((k) => {

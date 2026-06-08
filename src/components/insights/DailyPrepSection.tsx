@@ -144,11 +144,12 @@ export default function DailyPrepSection({ latestFms }: Props) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('pattern', pattern);
       if (cancelled) return;
+      if (error) { console.error('DailyPrep 3R load failed', error); setLoading(false); return; }
       const rows = (data ?? []) as ExerciseRow[];
       setReset(pickRandom(rows.filter(r => r.phase === 'Reset')));
       setReactivate(pickRandom(rows.filter(r => r.phase === 'Reactivate')));
@@ -162,17 +163,18 @@ export default function DailyPrepSection({ latestFms }: Props) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: dRows } = await supabase
+      const { data: dRows, error: dErr } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('ramp_category', 'D')
         .eq('workout_target', focus);
-      const { data: fRows } = await supabase
+      const { data: fRows, error: fErr } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('ramp_category', 'F')
         .eq('workout_target', focus);
       if (cancelled) return;
+      if (dErr || fErr) { console.error('DailyPrep RAMP load failed', dErr || fErr); return; }
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
       const fAll = (fRows ?? []) as ExerciseRow[];
       const shuffled = [...fAll].sort(() => Math.random() - 0.5).slice(0, 2);

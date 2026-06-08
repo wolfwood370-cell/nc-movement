@@ -19,12 +19,6 @@ import {
   type BugStatus,
 } from '@/lib/bugReporter';
 
-// `bug_reports` is added by migration 20260527120000. Until Lovable
-// regenerates `supabase/types.ts`, we use a loose cast to avoid a TS error
-// on the unknown table name. Remove once the table is in the typed schema.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
-
 /** Detect Postgres "table not found" errors raised by PostgREST. */
 function isTableMissingError(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false;
@@ -94,7 +88,7 @@ export default function BugReports() {
     // even if the DB isn't ready yet.
     setLocalReports(readLocalReports());
 
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from('bug_reports')
       .select('*')
       .order('created_at', { ascending: false })
@@ -110,7 +104,14 @@ export default function BugReports() {
       return;
     }
     setTableMissing(false);
-    setReports((data ?? []) as BugReport[]);
+    // DB types `status` as plain string; narrow each row to BugStatus.
+    const ALLOWED: BugStatus[] = ['new', 'reported', 'fixed'];
+    const rows: BugReport[] = (data ?? []).map((r) => ({
+      ...r,
+      status: ALLOWED.includes(r.status as BugStatus) ? (r.status as BugStatus) : 'new',
+      meta: (r.meta ?? {}) as Record<string, unknown>,
+    }));
+    setReports(rows);
   };
 
   useEffect(() => { void fetchReports(); }, []);
@@ -124,7 +125,7 @@ export default function BugReports() {
   };
 
   const updateStatus = async (id: string, status: BugStatus) => {
-    const { error } = await sb.from('bug_reports').update({ status }).eq('id', id);
+    const { error } = await supabase.from('bug_reports').update({ status }).eq('id', id);
     if (error) {
       toast.error(`Aggiornamento fallito: ${error.message}`);
       return;
@@ -135,7 +136,7 @@ export default function BugReports() {
 
   const deleteReport = async (id: string) => {
     if (!window.confirm('Eliminare definitivamente questa segnalazione?')) return;
-    const { error } = await sb.from('bug_reports').delete().eq('id', id);
+    const { error } = await supabase.from('bug_reports').delete().eq('id', id);
     if (error) {
       toast.error(`Eliminazione fallita: ${error.message}`);
       return;

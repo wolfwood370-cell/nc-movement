@@ -39,7 +39,9 @@ export default function BreakoutWizard({ schema, initial, onSave, onCancel, savi
   const currentNodeId = path[path.length - 1];
   const currentNode = schema.nodes[currentNodeId];
   const totalNodes = useMemo(() => Object.keys(schema.nodes).length, [schema]);
-  const progress = outcome ? 100 : Math.round((path.length / (totalNodes + 1)) * 100);
+  // Denominator = node count (no +1): the last question reads as a near-full bar
+  // instead of capping at totalNodes/(totalNodes+1). Clamp for variable-depth trees.
+  const progress = outcome ? 100 : Math.min(100, Math.round((path.length / Math.max(1, totalNodes)) * 100));
 
   const pick = (opt: BreakoutOption) => {
     triggerHapticFeedback(TONE_HAPTIC[opt.tone]);

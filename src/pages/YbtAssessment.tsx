@@ -162,12 +162,19 @@ export default function YbtAssessment() {
     (async () => {
       setLoading(true);
       if (id && id !== 'new') {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('ybt_assessments')
           .select('*, clients(full_name, gender, primary_sport)')
           .eq('id', id)
           .maybeSingle();
-        if (!cancelled && data) {
+        if (cancelled) return;
+        if (error || !data) {
+          toast.error(error ? 'Impossibile caricare la valutazione YBT.' : 'Valutazione non trovata.');
+          setLoading(false);
+          navigate(-1);
+          return;
+        }
+        {
           const next: YbtFormValues = { ...YBT_DEFAULTS };
           (Object.keys(YBT_DEFAULTS) as (keyof YbtFormValues)[]).forEach((k) => {
             const v = (data as unknown as Record<string, unknown>)[k as string];

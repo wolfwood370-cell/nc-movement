@@ -25,21 +25,23 @@ export default function Clients() {
 
   const load = async () => {
     setLoading(true);
-    const { data: cs } = await supabase
+    const { data: cs, error: csErr } = await supabase
       .from('clients')
       .select('id, full_name, created_at, date_of_birth, primary_sport')
       .order('full_name', { ascending: true });
+    if (csErr) toast.error('Impossibile caricare i clienti.');
     const list = (cs ?? []) as Client[];
     setClients(list);
 
     if (list.length) {
       // Fetch only the latest 1 FMS per client (limit acts as a safety cap on the 1000-row default).
-      const { data: fms } = await supabase
+      const { data: fms, error: fmsErr } = await supabase
         .from('fms_assessments')
         .select('*')
         .in('client_id', list.map(c => c.id))
         .order('assessed_at', { ascending: false })
         .limit(1000);
+      if (fmsErr) toast.error('Impossibile caricare i dati di rischio.');
       const map: Record<string, FmsAssessmentRow> = {};
       (fms ?? []).forEach((row) => {
         const r = row as unknown as FmsAssessmentRow & { client_id: string };
@@ -51,11 +53,13 @@ export default function Clients() {
     }
     setLoading(false);
   };
-  // Reload whenever the authenticated user changes — RLS scopes the result to them.
+  // Reload only when the authenticated user's id changes (not on every token
+  // refresh that yields a new-but-equivalent user object).
   useEffect(() => {
     if (!user) return;
     load();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const create = async (v: Parameters<typeof toClientPayload>[0]) => {
     if (!user) return;

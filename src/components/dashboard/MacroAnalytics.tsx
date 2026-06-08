@@ -48,17 +48,26 @@ function KpiCard({ icon: Icon, label, value, hint, tone = 'default' }: KpiProps)
 
 export default function MacroAnalyticsView() {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [analytics, setAnalytics] = useState<MacroAnalytics | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: clientsRows }, { data: fmsRows }] = await Promise.all([
+      setLoadError(false);
+      const [{ data: clientsRows, error: clientsErr }, { data: fmsRows, error: fmsErr }] = await Promise.all([
         supabase.from('clients').select('id'),
         supabase.from('fms_assessments').select('*').order('assessed_at', { ascending: false }),
       ]);
       if (cancelled) return;
+      if (clientsErr || fmsErr) {
+        // Don't compute analytics from empty rows on failure — that would read
+        // as a misleading "Dati insufficienti". Surface the error explicitly.
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
       const totalClients = clientsRows?.length ?? 0;
       const latestMap = pickLatestPerClient((fmsRows ?? []) as unknown as FmsAssessmentRow[]);
       const latestRows = [...latestMap.values()];
@@ -88,6 +97,13 @@ export default function MacroAnalyticsView() {
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
 
+  if (loadError) {
+    return (
+      <div className="surface-card p-10 flex items-center justify-center text-sm text-destructive gap-2">
+        <AlertTriangle className="w-4 h-4" /> Errore nel caricamento delle analytics. Ricarica la pagina.
+      </div>
+    );
+  }
   if (loading || !analytics) {
     return (
       <div className="surface-card p-10 flex items-center justify-center text-sm text-muted-foreground gap-2">

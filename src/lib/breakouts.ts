@@ -1,5 +1,6 @@
 // SFMA Breakout decision-tree engine.
-// Generic schema so we can plug in the remaining 14 breakouts incrementally.
+// Generic schema; all 15 SFMA Top-Tier patterns have a breakout defined in
+// sfmaBreakouts.ts (re-exported below as BREAKOUT_SCHEMAS).
 
 import type { SfmaPatternKey } from './sfma';
 
@@ -56,7 +57,18 @@ export type BreakoutResults = Partial<Record<SfmaPatternKey, BreakoutOutcome>>;
 
 export function parseBreakoutResults(value: unknown): BreakoutResults {
   if (!value || typeof value !== 'object') return {};
-  return value as BreakoutResults;
+  // Validate each entry: a corrupted/legacy diagnosis code would otherwise
+  // crash every consumer that indexes DIAGNOSIS_META[outcome.diagnosis].
+  const out: BreakoutResults = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (
+      v && typeof v === 'object' &&
+      (BREAKOUT_DIAGNOSES as readonly string[]).includes((v as BreakoutOutcome).diagnosis)
+    ) {
+      out[k as SfmaPatternKey] = v as BreakoutOutcome;
+    }
+  }
+  return out;
 }
 
 export const DIAGNOSIS_META: Record<

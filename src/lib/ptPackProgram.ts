@@ -287,6 +287,10 @@ async function fetchPool(
     .lte('posture_level', maxLevel);
 
   const [specificRes, fallbackRes] = await Promise.all([specificQuery, fallbackQuery]);
+  // Propagate failures: a failed fetch must NOT be silently treated as an
+  // empty library (which would fall back to hardcoded exercises, bypassing FMS).
+  if (specificRes.error) throw specificRes.error;
+  if (fallbackRes.error) throw fallbackRes.error;
 
   const specific = (specificRes.data ?? []) as ExRow[];
   const fallbackAll = (fallbackRes.data ?? []) as ExRow[];
@@ -299,9 +303,10 @@ async function fetchPool(
 async function fetchFinisherPool(target: string, goal: PtGoal): Promise<ExRow[]> {
   const q = supabase.from('exercises_library').select('*').eq('ramp_category', 'F');
   // Dimagrimento/Performance: any target; otherwise restrict to session target.
-  const { data } = goal === 'Dimagrimento' || goal === 'Performance'
+  const { data, error } = goal === 'Dimagrimento' || goal === 'Performance'
     ? await q
     : await q.eq('workout_target', target);
+  if (error) throw error;
   return (data ?? []) as ExRow[];
 }
 
@@ -310,10 +315,11 @@ async function fetchFinisherPool(target: string, goal: PtGoal): Promise<ExRow[]>
  * (phase Reset → Reactivate). Returns the lowest posture levels first.
  */
 async function fetchWarmupPool(patternKey: string): Promise<ExRow[]> {
-  const { data } = await supabase.from('exercises_library').select('*')
+  const { data, error } = await supabase.from('exercises_library').select('*')
     .eq('pattern', patternKey)
     .in('phase', ['Reset', 'Reactivate'])
     .order('posture_level', { ascending: true });
+  if (error) throw error;
   return (data ?? []) as ExRow[];
 }
 

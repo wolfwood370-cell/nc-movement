@@ -72,7 +72,8 @@ describe('FMS — computePatterns', () => {
       clearing_spinal_extension_pain: true,
     };
     const r = computePatterns(s);
-    const tspu = r.find(p => p.key === 'tspu');
+    const tspu = r.find(p => p.key === 'trunk_stability_pushup');
+    expect(tspu).toBeDefined(); // guard: a future key rename must fail loudly
     expect(tspu?.final).toBe(0);
     expect(tspu?.cleared).toBe(true);
   });

@@ -15,12 +15,7 @@
 // =============================================================================
 
 import { supabase } from '@/integrations/supabase/client';
-
-// `bug_reports` is added by migration 20260527120000. Until Lovable
-// regenerates `supabase/types.ts`, we use a loose cast to avoid a TS error
-// on the unknown table name. Remove once the table is in the typed schema.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+import type { Json } from '@/integrations/supabase/types';
 
 export type BugStatus = 'new' | 'reported' | 'fixed';
 
@@ -71,7 +66,7 @@ export async function captureBug(
 
   // Best-effort persistence. Swallow ANY error — the boundary must not throw.
   try {
-    const { data, error: insertErr } = await sb
+    const { data, error: insertErr } = await supabase
       .from('bug_reports')
       .insert({
         error_message: report.error_message,
@@ -81,7 +76,7 @@ export async function captureBug(
         user_agent:    report.user_agent,
         user_note:     report.user_note,
         status:        report.status,
-        meta:          report.meta,
+        meta:          report.meta as Json,
       })
       .select()
       .single();

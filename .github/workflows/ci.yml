@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      # Type-check is non-blocking for now: the project's tsconfig is intentionally
+      # lax and some legacy files have latent type warnings. Surfaced, not enforced.
+      - name: Type-check (non-blocking)
+        run: npx tsc --noEmit
+        continue-on-error: true

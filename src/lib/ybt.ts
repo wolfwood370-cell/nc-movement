@@ -82,6 +82,28 @@ const HIGH_DEMAND_SPORTS = new Set([
   'track', 'athletics', 'skiing', 'snowboard', 'climbing',
 ]);
 
+// The app collects sport names in Italian; map them onto the canonical English
+// keys above so the high-demand cutoff actually triggers (e.g. 'Calcio' → 'soccer').
+const SPORT_ALIASES: Record<string, string> = {
+  calcio: 'soccer',
+  'calcio a 5': 'soccer', calcetto: 'soccer', futsal: 'soccer',
+  pallacanestro: 'basketball', basket: 'basketball',
+  pallavolo: 'volleyball', volley: 'volleyball',
+  ginnastica: 'gymnastics', 'ginnastica artistica': 'gymnastics',
+  rugby: 'rugby', tennis: 'tennis', pallamano: 'handball',
+  sci: 'skiing', 'sci alpino': 'skiing', snowboard: 'snowboard',
+  arrampicata: 'climbing', atletica: 'athletics', 'atletica leggera': 'athletics',
+  'arti marziali': 'martial_arts', mma: 'martial_arts', judo: 'martial_arts',
+  karate: 'martial_arts', lotta: 'martial_arts',
+  hockey: 'hockey', 'hockey su ghiaccio': 'hockey',
+};
+
+/** Normalize a free-text sport name to its canonical key for threshold lookup. */
+function canonicalSport(raw: string | null | undefined): string {
+  const s = (raw ?? '').toLowerCase().trim();
+  return SPORT_ALIASES[s] ?? s;
+}
+
 export type Gender = 'male' | 'female' | 'other' | string | null | undefined;
 
 export interface CompositeContext {
@@ -95,7 +117,7 @@ export interface CompositeThreshold {
 }
 
 export function getCompositeThreshold(ctx: CompositeContext = {}): CompositeThreshold {
-  const sport = (ctx.primarySport ?? '').toLowerCase().trim();
+  const sport = canonicalSport(ctx.primarySport);
   const isActive = sport.length > 0 && HIGH_DEMAND_SPORTS.has(sport);
   const isFemale = ctx.gender === 'female';
 

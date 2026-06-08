@@ -99,12 +99,19 @@ export default function SfmaAssessment() {
     (async () => {
       setLoading(true);
       if (id && id !== 'new') {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('sfma_assessments')
           .select('*, clients(full_name)')
           .eq('id', id)
           .maybeSingle();
-        if (!cancelled && data) {
+        if (cancelled) return;
+        if (error || !data) {
+          toast.error(error ? 'Impossibile caricare la valutazione SFMA.' : 'Valutazione non trovata.');
+          setLoading(false);
+          navigate(-1);
+          return;
+        }
+        {
           const next: SfmaFormValues = { ...SFMA_DEFAULTS };
           (Object.keys(SFMA_DEFAULTS) as (keyof SfmaFormValues)[]).forEach((k) => {
             const v = (data as unknown as Record<string, unknown>)[k as string];

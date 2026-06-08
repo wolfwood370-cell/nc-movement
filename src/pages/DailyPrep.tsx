@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { Flame, Play, Sparkles, Zap, Activity as ActivityIcon, Dumbbell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -114,6 +115,9 @@ export default function DailyPrep() {
   const [activateExtra, setActivateExtra] = useState<ExerciseRow | null>(null);
   const [potentiate, setPotentiate] = useState<ExerciseRow[]>([]);
   const [loading, setLoading] = useState(false);
+  // True once the coach manually picks a pattern — blocks the async auto-select
+  // from overwriting their choice if the FMS query resolves late.
+  const patternTouched = useRef(false);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
@@ -123,14 +127,15 @@ export default function DailyPrep() {
     let cancelled = false;
     if (!clientId) return;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('fms_assessments')
         .select('*')
         .eq('client_id', clientId)
         .order('assessed_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (cancelled || !data) return;
+      if (error) { console.error('DailyPrep weak-link auto-select failed', error); return; }
+      if (cancelled || patternTouched.current || !data) return;
       const priority = getCorrectivePriority(data as unknown as FmsScores);
       const allowed = PATTERN_OPTIONS.map(p => p.value);
       if (allowed.includes(priority.patternKey as PatternKey)) {
@@ -145,11 +150,12 @@ export default function DailyPrep() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('pattern', pattern);
       if (cancelled) return;
+      if (error) { toast.error('Errore nel caricamento esercizi.'); setLoading(false); return; }
       const rows = (data ?? []) as ExerciseRow[];
       setReset(pickRandom(rows.filter(r => r.phase === 'Reset')));
       setReactivate(pickRandom(rows.filter(r => r.phase === 'Reactivate')));
@@ -163,17 +169,18 @@ export default function DailyPrep() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: dRows } = await supabase
+      const { data: dRows, error: dErr } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('ramp_category', 'D')
         .eq('workout_target', focus);
-      const { data: fRows } = await supabase
+      const { data: fRows, error: fErr } = await supabase
         .from('exercises_library')
         .select('*')
         .eq('ramp_category', 'F')
         .eq('workout_target', focus);
       if (cancelled) return;
+      if (dErr || fErr) { toast.error('Errore nel caricamento esercizi RAMP.'); return; }
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
       const fAll = (fRows ?? []) as ExerciseRow[];
       // Pick up to 2 randomly
@@ -204,7 +211,7 @@ export default function DailyPrep() {
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             FMS Priority
           </label>
-          <Select value={pattern} onValueChange={(v) => setPattern(v as PatternKey)}>
+          <Select value={pattern} onValueChange={(v) => { patternTouched.current = true; setPattern(v as PatternKey); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {PATTERN_OPTIONS.map(opt => (

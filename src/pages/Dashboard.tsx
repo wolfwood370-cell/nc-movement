@@ -57,16 +57,23 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: c }, { data: r }, fms, fcs, sfma, ybt] = await Promise.all([
+    const [clientsRes, recentRes, fms, fcs, sfma, ybt] = await Promise.all([
       supabase.from('clients').select('id, full_name, created_at').order('created_at', { ascending: false }),
       supabase.from('fms_assessments')
         .select('id, assessed_at, total_score, primary_corrective, client_id, clients(full_name)')
         .order('assessed_at', { ascending: false }).limit(5),
-      supabase.from('fms_assessments').select('client_id, assessed_at'),
-      supabase.from('fcs_assessments').select('client_id, assessed_at'),
-      supabase.from('sfma_assessments').select('client_id, assessed_at'),
-      supabase.from('ybt_assessments').select('client_id, assessed_at'),
+      // Bound the per-table activity scan (only the most recent rows matter for
+      // sorting clients by last activity). Avoids transferring the whole table.
+      supabase.from('fms_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
+      supabase.from('fcs_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
+      supabase.from('sfma_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
+      supabase.from('ybt_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
     ]);
+    const c = clientsRes.data;
+    const r = recentRes.data;
+    if (clientsRes.error || recentRes.error || fms.error || fcs.error || sfma.error || ybt.error) {
+      toast.error('Errore nel caricamento della dashboard.');
+    }
     const lastByClient = new Map<string, number>();
     for (const rows of [fms.data, fcs.data, sfma.data, ybt.data]) {
       for (const a of (rows ?? []) as { client_id: string; assessed_at: string }[]) {

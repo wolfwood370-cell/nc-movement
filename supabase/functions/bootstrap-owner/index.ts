@@ -27,6 +27,17 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Independent allowlist: this function holds the service-role key, so it must
+  // refuse any non-owner email itself rather than relying solely on the DB
+  // trigger (defense-in-depth in case the token leaks).
+  const ALLOWED_EMAIL = "nctrainingsystems@gmail.com";
+  if (String(email).toLowerCase().trim() !== ALLOWED_EMAIL) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -41,7 +52,9 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Don't echo the DB error verbatim (it confirms the enforced allowlist).
+    console.error("bootstrap-owner createUser failed:", error.message);
+    return new Response(JSON.stringify({ error: "could not create user" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

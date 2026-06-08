@@ -1,6 +1,6 @@
 // Injury Risk Index + insight helpers
 import type { FmsScores } from './fms';
-import { computePatterns, computeTotal } from './fms';
+import { computePatterns, computeTotal, isModifiedFms, fmsMaxTotal } from './fms';
 import type { SfmaFormValues } from './sfma';
 
 export type RiskLevel = 'critical' | 'high' | 'moderate' | 'low' | 'unknown';
@@ -25,12 +25,22 @@ export interface FmsAssessmentRow extends Partial<FmsScores> {
 export interface YbtRow {
   id: string;
   assessed_at: string;
+  /** 'LQ' (lower quarter) or 'UQ' (upper quarter). Reach #1 = anterior for LQ,
+   *  medial for UQ — drives the laterality/anatomy wording of the asymmetry. */
+  test_type?: string | null;
   anterior_left_cm: number | null;
   anterior_right_cm: number | null;
   posteromedial_left_cm: number | null;
   posteromedial_right_cm: number | null;
   posterolateral_left_cm: number | null;
   posterolateral_right_cm: number | null;
+}
+
+/** Human label for the YBT reach #1 asymmetry, branching on test type. */
+export function ybtReach1Label(y?: YbtRow | null): { reach: string; bodyPart: string } {
+  return (y?.test_type === 'UQ')
+    ? { reach: 'reach mediale', bodyPart: "dell'arto superiore" }
+    : { reach: 'reach anteriore', bodyPart: "dell'arto inferiore" };
 }
 
 const diff = (a: number | null, b: number | null) =>
@@ -74,7 +84,7 @@ export function computeRisk(
       const v = latestSfma[k] as string | null | undefined;
       if (v === 'DP' || v === 'FP') {
         sfmaPain = true;
-        alerts.push(`SFMA: dolore in ${humanSfma(k)} (${v})`);
+        alerts.push(`SFMA: dolore in ${humanSfma(k as string)} (${v})`);
       }
     }
   }
@@ -85,6 +95,11 @@ export function computeRisk(
 
   // ---- FMS analysis -------------------------------------------------------
   let total: number | null = null;
+  // Denominator + below-threshold cutoff scale with the assessment type:
+  // Full FMS = 21 (cutoff 14), Modified FMS = 9 (cutoff ~6). Without this a
+  // perfect modified screen (9/9) would be flagged "9/21 sotto soglia (14)".
+  let fmsMax = 21;
+  let fmsCutoff = 14;
   let anyPain = false;
   let anyClearing = false;
   let asym = false;
@@ -92,6 +107,8 @@ export function computeRisk(
     const scores = latestFms as FmsScores;
     const patterns = computePatterns(scores);
     total = computeTotal(patterns) ?? latestFms.total_score;
+    fmsMax = fmsMaxTotal(latestFms);
+    fmsCutoff = Math.round((fmsMax * 14) / 21);
     anyPain = patterns.some(p => p.final === 0);
     anyClearing =
       !!scores.clearing_shoulder_pain ||
@@ -102,13 +119,14 @@ export function computeRisk(
     asym = patterns.some(p => p.asymmetric);
     if (anyPain) alerts.push('FMS: pattern con punteggio 0 (dolore)');
     if (anyClearing) alerts.push('FMS: clearing test positivo');
-    if (total !== null && total < 14) alerts.push(`FMS: punteggio totale ${total}/21 sotto soglia (14)`);
+    if (total !== null && total < fmsCutoff) alerts.push(`FMS: punteggio totale ${total}/${fmsMax} sotto soglia (${fmsCutoff})`);
     if (asym) alerts.push('FMS: asimmetria destra/sinistra rilevata');
   }
 
-  // ---- YBT anterior asymmetry --------------------------------------------
+  // ---- YBT reach #1 asymmetry (anteriore per LQ, mediale per UQ) ----------
   const ant = ybtAnteriorAsymmetry(latestYbt);
-  if (ant !== null && ant > 4) alerts.push(`YBT: asimmetria anteriore ${ant.toFixed(1)} cm (>4)`);
+  const ybtReach1 = ybtReach1Label(latestYbt);
+  if (ant !== null && ant > 4) alerts.push(`YBT: asimmetria ${ybtReach1.reach} ${ant.toFixed(1)} cm (>4)`);
 
   // ---- Decision tree ------------------------------------------------------
   if (anyPain || anyClearing || sfmaPain) {
@@ -120,14 +138,14 @@ export function computeRisk(
       alerts,
     };
   }
-  if ((total !== null && total < 14) || (ant !== null && ant > 4)) {
+  if ((total !== null && total < fmsCutoff) || (ant !== null && ant > 4)) {
     return {
       level: 'high',
       label: 'Rischio Elevato',
       detail:
-        total !== null && total < 14
-          ? `Punteggio FMS ${total}/21 sotto soglia (14).`
-          : `Asimmetria anteriore YBT ${ant?.toFixed(1)} cm (>4).`,
+        total !== null && total < fmsCutoff
+          ? `Punteggio FMS ${total}/${fmsMax} sotto soglia (${fmsCutoff}).`
+          : `Asimmetria ${ybtReach1.reach} YBT ${ant?.toFixed(1)} cm (>4) — fattore di rischio ${ybtReach1.bodyPart}.`,
       score: 75,
       alerts,
     };
@@ -147,7 +165,7 @@ export function computeRisk(
   return {
     level: 'low',
     label: 'Rischio Basso',
-    detail: 'Nessun dolore, nessuna asimmetria, FMS ≥ 14. Allena con fiducia.',
+    detail: `Nessun dolore, nessuna asimmetria, FMS ≥ ${fmsCutoff}. Allena con fiducia.`,
     score: 20,
     alerts,
   };
@@ -185,6 +203,7 @@ export function calcAge(dob: string | null | undefined): number | null {
   const d = new Date(dob);
   if (isNaN(d.getTime())) return null;
   const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return null; // future DOB (mistyped) → no nonsensical negative age
   return Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
 }
 

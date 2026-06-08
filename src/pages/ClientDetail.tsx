@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { captureBug } from '@/lib/bugReporter';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -104,7 +106,12 @@ export default function ClientDetail() {
       ];
       const { error } = await supabase.from('sessions').insert(rows);
       // 23505 = unique violation → another tab/session already generated the pack.
-      if (error && error.code !== '23505') return;
+      if (error && error.code !== '23505') {
+        // Don't swallow real failures: record them so an empty PT-Pack tab is explainable.
+        console.error('Auto PT-Pack generation failed', error);
+        void captureBug(error, { source: 'ClientDetail.autoGenPtPack', extra: { clientId: client.id, fmsId: lastModified.id } });
+        return;
+      }
       if (!cancelled) void loadAll();
     })();
     return () => { cancelled = true; };
@@ -407,14 +414,23 @@ function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
       const progs = await generatePtPackSet(selectedGoal, latestFms);
       // Batch-update the 3 session rows (one update per session — Supabase
       // doesn't support multi-row update of distinct values in a single call).
-      await Promise.all(ptPack.map((s, i) => {
+      const results = await Promise.all(ptPack.map((s, i) => {
         const prog = progs[i];
-        if (!prog) return Promise.resolve();
+        if (!prog) return Promise.resolve({ error: null });
         return supabase.from('sessions')
           .update({ program: JSON.parse(JSON.stringify(prog)), goal: selectedGoal })
           .eq('id', s.id);
       }));
+      const failed = results.find(r => r && 'error' in r && r.error);
+      if (failed && 'error' in failed && failed.error) {
+        toast.error('Salvataggio del PT Pack non riuscito. Riprova.');
+        void captureBug(failed.error, { source: 'ClientDetail.handleGenerateAll', extra: { clientId } });
+        return;
+      }
       onChanged();
+    } catch (e) {
+      toast.error('Generazione del PT Pack non riuscita. Riprova.');
+      void captureBug(e, { source: 'ClientDetail.handleGenerateAll', extra: { clientId } });
     } finally {
       setGenerating(false);
     }

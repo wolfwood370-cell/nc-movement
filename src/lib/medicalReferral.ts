@@ -59,6 +59,8 @@ interface FmsRow extends Partial<FmsScores> {
 
 interface YbtRow {
   assessed_at?: string;
+  /** 'LQ' or 'UQ' — reach #1 is anterior (LQ) vs medial (UQ). */
+  test_type?: string | null;
   anterior_left_cm: number | null;
   anterior_right_cm: number | null;
 }
@@ -97,7 +99,10 @@ export function buildReferralData(
     const patterns = computePatterns(full);
 
     for (const p of patterns) {
-      if (p.final === 0) {
+      // Skip clearing-forced zeros here: a positive clearing test is reported
+      // once, accurately, in the dedicated "Test di Esclusione" block below.
+      // Counting it here too would duplicate it and mislabel it as "dolore".
+      if (p.final === 0 && !p.cleared) {
         const side: ReferralFmsFinding['side'] = !p.bilateral
           ? 'bilateral'
           : p.left === 0 && p.right === 0
@@ -111,17 +116,24 @@ export function buildReferralData(
       }
     }
 
-    const clearingMap: { flag: boolean; test: string }[] = [
-      { flag: !!full.clearing_shoulder_pain || !!full.clearing_shoulder_left_pain || !!full.clearing_shoulder_right_pain, test: 'Shoulder Clearing' },
+    // Side label so clearing-test laterality survives onto the referral.
+    const sideTag = (l: boolean, r: boolean): string =>
+      l && r ? ' (bilaterale)' : l ? ' (sinistro)' : r ? ' (destro)' : '';
+    const shL = !!full.clearing_shoulder_left_pain;
+    const shR = !!full.clearing_shoulder_right_pain;
+    const akL = !!full.ankle_clearing_left_pain;
+    const akR = !!full.ankle_clearing_right_pain;
+    const clearingMap: { flag: boolean; test: string; side?: string }[] = [
+      { flag: !!full.clearing_shoulder_pain || shL || shR, test: 'Shoulder Clearing', side: sideTag(shL, shR) },
       { flag: !!full.clearing_spinal_extension_pain, test: 'Spinal Extension Clearing' },
       { flag: !!full.clearing_spinal_flexion_pain, test: 'Spinal Flexion Clearing' },
-      { flag: !!full.ankle_clearing_left_pain || !!full.ankle_clearing_right_pain, test: 'Ankle Clearing' },
+      { flag: akL || akR, test: 'Ankle Clearing', side: sideTag(akL, akR) },
     ];
     for (const c of clearingMap) {
       if (c.flag) {
         clearingFindings.push({
           test: c.test,
-          description: `Test di esclusione positivo: ${c.test} — dolore riferito durante l’esecuzione.`,
+          description: `Test di esclusione positivo: ${c.test}${c.side ?? ''} — dolore riferito durante l’esecuzione.`,
         });
       }
     }
@@ -133,9 +145,14 @@ export function buildReferralData(
     if (ybt.anterior_left_cm != null && ybt.anterior_right_cm != null) {
       const asym = Math.abs(ybt.anterior_left_cm - ybt.anterior_right_cm);
       if (asym > ANTERIOR_ASYMMETRY_THRESHOLD_CM) {
+        // Reach #1 is the anterior reach for LQ but the MEDIAL reach for UQ —
+        // and UQ asymmetry is an upper-limb (not lower-limb) risk factor.
+        const uq = ybt.test_type === 'UQ';
+        const reach = uq ? 'reach mediale' : 'reach anteriore';
+        const limb = uq ? "dell'arto superiore" : "dell'arto inferiore";
         ybtFindings.push({
           asymmetryCm: asym,
-          description: `Y-Balance Test: asimmetria del reach anteriore di ${asym.toFixed(1)} cm (soglia clinica > ${ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm) — fattore di rischio per lesioni dell'arto inferiore.`,
+          description: `Y-Balance Test: asimmetria del ${reach} di ${asym.toFixed(1)} cm (soglia clinica > ${ANTERIOR_ASYMMETRY_THRESHOLD_CM} cm) — fattore di rischio per lesioni ${limb}.`,
         });
       }
     }
@@ -160,6 +177,7 @@ export function buildReferralData(
     for (const [key, outcome] of Object.entries(results)) {
       if (!outcome) continue;
       const meta = DIAGNOSIS_META[outcome.diagnosis];
+      if (!meta) continue; // skip unknown/legacy diagnosis codes (don't crash the referral)
       const patternLabel = SFMA_LABEL[key as SfmaPatternKey] ?? key;
       breakoutFindings.push({
         pattern: patternLabel,

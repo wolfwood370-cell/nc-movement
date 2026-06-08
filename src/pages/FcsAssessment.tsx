@@ -140,18 +140,28 @@ export default function FcsAssessment() {
   const values = watch();
   const metrics = useMemo(() => computeFcsMetrics(values), [values]);
 
-  // Load existing assessment or client name
+  // Load existing assessment or client name.
+  // `foot` is read as a primitive above the effect so it is a stable dep
+  // (reading params.get inside without depping on it would go stale).
+  const footParam = params.get('foot');
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       if (id && id !== 'new') {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('fcs_assessments')
           .select('*, clients(full_name)')
           .eq('id', id)
           .maybeSingle();
-        if (!cancelled && data) {
+        if (cancelled) return;
+        if (error || !data) {
+          toast.error(error ? 'Impossibile caricare la valutazione FCS.' : 'Valutazione non trovata.');
+          setLoading(false);
+          navigate(-1);
+          return;
+        }
+        {
           const next: FcsFormValues = { ...FCS_DEFAULTS };
           (Object.keys(FCS_DEFAULTS) as (keyof FcsFormValues)[]).forEach((k) => {
             const v = (data as unknown as Record<string, unknown>)[k as string];
@@ -174,7 +184,6 @@ export default function FcsAssessment() {
           .maybeSingle();
         if (!cancelled && data) {
           setClientName(data.full_name ?? '');
-          const footParam = params.get('foot');
           // Pre-fill biometrics from client profile (and foot from biometric guard).
           reset({
             ...FCS_DEFAULTS,
@@ -189,7 +198,7 @@ export default function FcsAssessment() {
     return () => {
       cancelled = true;
     };
-  }, [id, clientIdParam, reset]);
+  }, [id, clientIdParam, footParam, reset]);
 
   const onSubmit = async (data: FcsFormValues) => {
     if (!user || !clientId) {
