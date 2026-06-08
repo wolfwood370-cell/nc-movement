@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
@@ -47,35 +48,25 @@ function KpiCard({ icon: Icon, label, value, hint, tone = 'default' }: KpiProps)
 }
 
 export default function MacroAnalyticsView() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [analytics, setAnalytics] = useState<MacroAnalytics | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setLoadError(false);
+  // react-query: caches the computed analytics so re-opening the "Panoramica
+  // Clinica" tab serves cached data instead of re-running the queries.
+  const { data: analytics, isLoading, isError } = useQuery({
+    queryKey: ['macroAnalytics'],
+    queryFn: async (): Promise<MacroAnalytics> => {
       const [{ data: clientsRows, error: clientsErr }, { data: fmsRows, error: fmsErr }] = await Promise.all([
         supabase.from('clients').select('id'),
         supabase.from('fms_assessments').select('*').order('assessed_at', { ascending: false }),
       ]);
-      if (cancelled) return;
-      if (clientsErr || fmsErr) {
-        // Don't compute analytics from empty rows on failure — that would read
-        // as a misleading "Dati insufficienti". Surface the error explicitly.
-        setLoadError(true);
-        setLoading(false);
-        return;
-      }
+      // Throw on error so failures surface as isError (not a misleading
+      // "Dati insufficienti" computed from empty rows).
+      if (clientsErr) throw clientsErr;
+      if (fmsErr) throw fmsErr;
       const totalClients = clientsRows?.length ?? 0;
       const latestMap = pickLatestPerClient((fmsRows ?? []) as unknown as FmsAssessmentRow[]);
       const latestRows = [...latestMap.values()];
-      setAnalytics(computeMacroAnalytics(totalClients, latestRows));
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+      return computeMacroAnalytics(totalClients, latestRows);
+    },
+  });
 
   const radarData = useMemo(() => {
     if (!analytics) return [];
@@ -97,14 +88,14 @@ export default function MacroAnalyticsView() {
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
 
-  if (loadError) {
+  if (isError) {
     return (
       <div className="surface-card p-10 flex items-center justify-center text-sm text-destructive gap-2">
         <AlertTriangle className="w-4 h-4" /> Errore nel caricamento delle analytics. Ricarica la pagina.
       </div>
     );
   }
-  if (loading || !analytics) {
+  if (isLoading || !analytics) {
     return (
       <div className="surface-card p-10 flex items-center justify-center text-sm text-muted-foreground gap-2">
         <Loader2 className="w-4 h-4 animate-spin" /> Calcolo analytics di clinica…

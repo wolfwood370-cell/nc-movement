@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Compass, ChevronRight, CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
+import { Compass, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { analyzeSfma, SFMA_PATTERNS, type SfmaFormValues, type SfmaPatternKey, type SfmaScore } from '@/lib/sfma';
 import {
@@ -61,20 +61,15 @@ export default function BreakoutHub({ values, results, onSave, saving }: Breakou
 
       <ul className="space-y-2">
         {items.map((b) => {
-          const schema = BREAKOUT_SCHEMAS[b.key];
           const outcome = results[b.key];
           const isPain = b.score === 'FP' || b.score === 'DP';
-          const available = !!schema;
 
           return (
             <li key={b.key}>
               <button
                 type="button"
-                disabled={!available}
-                onClick={() => available && setOpenKey(b.key)}
-                className={`w-full text-left surface-card p-4 flex items-center justify-between gap-3 tap-target transition-all ${
-                  available ? 'hover:border-primary/50 hover:shadow-elevated' : 'opacity-60 cursor-not-allowed'
-                } ${isPain ? 'border-pain/40' : ''}`}
+                onClick={() => setOpenKey(b.key)}
+                className={`w-full text-left surface-card p-4 flex items-center justify-between gap-3 tap-target transition-all hover:border-primary/50 hover:shadow-elevated ${isPain ? 'border-pain/40' : ''}`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -95,10 +90,6 @@ export default function BreakoutHub({ values, results, onSave, saving }: Breakou
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${DIAGNOSIS_META[outcome.diagnosis].chip}`}
                     >
                       {outcome.diagnosis}
-                    </span>
-                  ) : !available ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Lock className="w-3 h-3" /> presto
                     </span>
                   ) : (
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -126,14 +117,6 @@ export default function BreakoutHub({ values, results, onSave, saving }: Breakou
                 setOpenKey(null);
               }}
             />
-          ) : openKey ? (
-            <div className="surface-card p-5 text-center space-y-2">
-              <Lock className="w-6 h-6 mx-auto text-muted-foreground" />
-              <div className="font-display font-semibold">Breakout in arrivo</div>
-              <p className="text-xs text-muted-foreground">
-                Albero clinico non ancora disponibile per questo pattern. Per favore valuta manualmente.
-              </p>
-            </div>
           ) : null}
         </DialogContent>
       </Dialog>

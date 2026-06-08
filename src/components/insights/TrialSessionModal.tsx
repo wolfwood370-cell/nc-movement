@@ -100,16 +100,14 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
         supabase.from('exercises_library').select('*').eq('pattern', patternKey),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', 'Full Body'),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'F').eq('workout_target', 'Full Body'),
-        // Discovery 1 — Pattern Stress
-        supabase.from('exercises_library').select('*').eq('pattern', patternKey).eq('phase', 'Reinforce'),
         // Discovery 2 — Asymmetry Challenge
         supabase.from('exercises_library').select('*').ilike('name', '%Single Leg%'),
         supabase.from('exercises_library').select('*').ilike('name', '%Split Squat%'),
         // Discovery 3 — Core Stability
         supabase.from('exercises_library').select('*').eq('pattern', 'Rotary_Stability').eq('phase', 'Reactivate'),
         supabase.from('exercises_library').select('*').eq('pattern', 'TSPU').eq('phase', 'Reactivate'),
-        // Discovery 4 — Power / Integration
+        // Potentiate + Discovery 4 — Power (cat F). Full Body subset derived in-code
+        // (no separate F+Full Body query). Pattern-stress reuses pRows Reinforce.
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F'),
       ]);
       if (cancelled) return;
@@ -123,8 +121,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
         { data: pRows },
         { data: aRows },
         { data: dRows },
-        { data: fRows },
-        { data: stressRows },
         { data: asymRowsA },
         { data: asymRowsB },
         { data: coreRotaryRows },
@@ -133,19 +129,20 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       ] = results;
 
       const pAll = (pRows ?? []) as ExerciseRow[];
+      const powerAll = (powerRows ?? []) as ExerciseRow[];
       setReset(pickRandom(pAll.filter(r => r.phase === 'Reset')));
       const reactivateEx = pickRandom(pAll.filter(r => r.phase === 'Reactivate'));
       setReactivate(reactivateEx);
       setReinforce(pickRandom(pAll.filter(r => r.phase === 'Reinforce')));
       setRaise(pickRandom((aRows ?? []) as ExerciseRow[]));
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-      setPotentiate(pickRandom((fRows ?? []) as ExerciseRow[]));
+      setPotentiate(pickRandom(powerAll.filter(r => r.workout_target === 'Full Body')));
 
       // ---- Discovery Workout (4 exercises) ----
       const items: DiscoveryItem[] = [];
 
-      // 1. Pattern Stress
-      const stress = pickRandom((stressRows ?? []) as ExerciseRow[]);
+      // 1. Pattern Stress — reuse the pattern's Reinforce rows (no extra query)
+      const stress = pickRandom(pAll.filter(r => r.phase === 'Reinforce'));
       items.push({
         label: 'Pattern Stress',
         name: stress?.name ?? 'Goblet Squat',
@@ -172,7 +169,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       });
 
       // 4. Power / Integration
-      const power = pickRandom((powerRows ?? []) as ExerciseRow[]);
+      const power = pickRandom(powerAll);
       items.push({
         label: 'Power / Integration',
         name: power?.name ?? 'Med Ball Slam',

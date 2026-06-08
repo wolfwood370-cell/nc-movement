@@ -90,25 +90,34 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
     [constraints],
   );
 
-  // Fetch RAMP D, F, and Raise (A) exercises by focus + apply clinical constraints.
+  // Raise (cat A) is focus-INDEPENDENT — keep it in its own effect so changing
+  // the workout-focus dropdown does not re-fetch the Raise pool.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: aRows, error } = await supabase
+        .from('exercises_library').select('*').eq('ramp_category', 'A');
+      if (cancelled || error) return;
+      const aSafe = filterRaiseCandidates((aRows ?? []) as ExerciseRow[], constraints);
+      setRaise(pickRandom(aSafe.rows));
+      setRaiseTag(aSafe.appliedTag);
+    })();
+    return () => { cancelled = true; };
+  }, [constraints]);
+
+  // Fetch RAMP D (focus-specific activation) & F (potentiate) by focus + constraints.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setRampLoading(true);
-      const [{ data: dRows }, { data: fRows }, { data: aRows }] = await Promise.all([
+      const [{ data: dRows }, { data: fRows }] = await Promise.all([
         supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', focus),
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F').eq('workout_target', focus),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
       ]);
       if (cancelled) return;
 
       // Activate-extra (cat D) is focus-specific isolation; no impact constraints applied.
       setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-
-      // Raise (cat A) — apply Constraints A & B.
-      const aSafe = filterRaiseCandidates((aRows ?? []) as ExerciseRow[], constraints);
-      setRaise(pickRandom(aSafe.rows));
-      setRaiseTag(aSafe.appliedTag);
 
       // Potentiate (cat F) — apply Constraints A, B & C.
       const fSafe = filterPotentiateCandidates((fRows ?? []) as ExerciseRow[], constraints);

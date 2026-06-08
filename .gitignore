@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# This project uses Bun (bun.lock). Don't commit other package managers' lockfiles.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
