@@ -263,28 +263,31 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 );
               })()}
 
-              {/* Section 2 — RAMP-6 Prep */}
+              {/* Section 2 — Daily 3R Warm-up (pattern-specific) */}
               <section>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    2. RAMP-6 Prep · The Cure
+                    2. Daily 3R · Routine di Riscaldamento
                   </h3>
                 </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Riscaldamento mirato sul Weak Link · Reset → Reactivate → Reinforce
+                </p>
                 <div className="space-y-2">
                   <RampRow
                     icon={Flame}
                     color="red"
-                    num="1"
-                    title="RAISE"
+                    num="0"
+                    title="RAISE · General"
                     name={raise?.name ?? 'Assault Bike / Rower / Skipping'}
                     dose={doseFor(raise, '3-5 Min · RPE 5-6')}
                   />
                   <RampRow
                     icon={Droplet}
                     color="blue"
-                    num="2"
-                    title="MOBILIZE"
+                    num="1"
+                    title="RESET"
                     name={reset?.name ?? '—'}
                     dose={doseFor(reset)}
                     meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
@@ -292,29 +295,20 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                   <RampRow
                     icon={ActivityIcon}
                     color="green"
-                    num="3"
-                    title="ACTIVATE"
+                    num="2"
+                    title="REACTIVATE"
                     name={reactivate?.name ?? '—'}
                     dose={doseFor(reactivate)}
                     meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
                   />
-                  {activateExtra && (
-                    <RampRow
-                      icon={ActivityIcon}
-                      color="green"
-                      num="3b"
-                      title="ACTIVATE · Full Body"
-                      name={activateExtra.name}
-                      dose={doseFor(activateExtra)}
-                    />
-                  )}
                   <RampRow
                     icon={Zap}
                     color="orange"
-                    num="4"
-                    title="POTENTIATE"
-                    name={potentiate?.name ?? reinforce?.name ?? '—'}
-                    dose={doseFor(potentiate ?? reinforce)}
+                    num="3"
+                    title="REINFORCE"
+                    name={reinforce?.name ?? '—'}
+                    dose={doseFor(reinforce)}
+                    meta={reinforce?.posture_name ? `L${reinforce.posture_level} · ${reinforce.posture_name}` : undefined}
                   />
                 </div>
               </section>
