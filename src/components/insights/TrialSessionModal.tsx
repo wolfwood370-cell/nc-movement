@@ -297,68 +297,12 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 </div>
               </section>
 
-              {/* Section 2b — RAMP-6 Prep */}
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    3. RAMP-6 Prep · The Cure
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <RampRow
-                    icon={Flame}
-                    color="red"
-                    num="1"
-                    title="RAISE"
-                    name={raise?.name ?? 'Assault Bike / Rower / Skipping'}
-                    dose={doseFor(raise, '3-5 Min · RPE 5-6')}
-                  />
-                  <RampRow
-                    icon={Droplet}
-                    color="blue"
-                    num="2"
-                    title="MOBILIZE"
-                    name={reset?.name ?? '—'}
-                    dose={doseFor(reset)}
-                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
-                  />
-                  <RampRow
-                    icon={ActivityIcon}
-                    color="green"
-                    num="3"
-                    title="ACTIVATE"
-                    name={reactivate?.name ?? '—'}
-                    dose={doseFor(reactivate)}
-                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
-                  />
-                  {activateExtra && (
-                    <RampRow
-                      icon={ActivityIcon}
-                      color="green"
-                      num="3b"
-                      title="ACTIVATE · Full Body"
-                      name={activateExtra.name}
-                      dose={doseFor(activateExtra)}
-                    />
-                  )}
-                  <RampRow
-                    icon={Zap}
-                    color="orange"
-                    num="4"
-                    title="POTENTIATE"
-                    name={potentiate?.name ?? reinforce?.name ?? '—'}
-                    dose={doseFor(potentiate ?? reinforce)}
-                  />
-                </div>
-              </section>
-
               {/* Section 3 — Discovery Workout */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    4. Discovery Workout · The Challenge
+                    3. Discovery Workout · The Challenge
                   </h3>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
