@@ -313,7 +313,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    2. RAMP-6 Prep · The Cure
+                    3. RAMP-6 Prep · The Cure
                   </h3>
                 </div>
                 <div className="space-y-2">
