@@ -263,7 +263,52 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 );
               })()}
 
-              {/* Section 2 — RAMP-6 Prep */}
+              {/* Section 2a — Daily 3R Warm-up (Routine Quotidiana) */}
+              <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Flame className="w-4 h-4 text-primary" />
+                  <h3 className="font-display font-bold text-sm uppercase tracking-wider">
+                    2. Daily 3R · Riscaldamento
+                  </h3>
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                    Routine Quotidiana
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Protocollo 3R sul pattern Weak Link · da eseguire come warm-up prima della sessione.
+                </p>
+                <div className="space-y-2">
+                  <RampRow
+                    icon={Droplet}
+                    color="blue"
+                    num="1"
+                    title="RESET"
+                    name={reset?.name ?? '—'}
+                    dose={doseFor(reset)}
+                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
+                  />
+                  <RampRow
+                    icon={Sparkles}
+                    color="green"
+                    num="2"
+                    title="REACTIVATE"
+                    name={reactivate?.name ?? '—'}
+                    dose={doseFor(reactivate)}
+                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
+                  />
+                  <RampRow
+                    icon={ActivityIcon}
+                    color="orange"
+                    num="3"
+                    title="REINFORCE"
+                    name={reinforce?.name ?? '—'}
+                    dose={doseFor(reinforce)}
+                    meta={reinforce?.posture_name ? `L${reinforce.posture_level} · ${reinforce.posture_name}` : undefined}
+                  />
+                </div>
+              </section>
+
+              {/* Section 2b — RAMP-6 Prep */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-primary" />
