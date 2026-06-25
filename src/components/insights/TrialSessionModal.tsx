@@ -369,7 +369,7 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    3. Discovery Workout · The Challenge
+                    4. Discovery Workout · The Challenge
                   </h3>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
