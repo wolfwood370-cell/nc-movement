@@ -85,9 +85,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   const [reset, setReset] = useState<ExerciseRow | null>(null);
   const [reactivate, setReactivate] = useState<ExerciseRow | null>(null);
   const [reinforce, setReinforce] = useState<ExerciseRow | null>(null);
-  const [raise, setRaise] = useState<ExerciseRow | null>(null);
-  const [activateExtra, setActivateExtra] = useState<ExerciseRow | null>(null);
-  const [potentiate, setPotentiate] = useState<ExerciseRow | null>(null);
   const [discovery, setDiscovery] = useState<DiscoveryItem[]>([]);
 
   useEffect(() => {
@@ -98,16 +95,13 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       setErrored(false);
       const results = await Promise.all([
         supabase.from('exercises_library').select('*').eq('pattern', patternKey),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', 'Full Body'),
         // Discovery 2 — Asymmetry Challenge
         supabase.from('exercises_library').select('*').ilike('name', '%Single Leg%'),
         supabase.from('exercises_library').select('*').ilike('name', '%Split Squat%'),
         // Discovery 3 — Core Stability
         supabase.from('exercises_library').select('*').eq('pattern', 'Rotary_Stability').eq('phase', 'Reactivate'),
         supabase.from('exercises_library').select('*').eq('pattern', 'TSPU').eq('phase', 'Reactivate'),
-        // Potentiate + Discovery 4 — Power (cat F). Full Body subset derived in-code
-        // (no separate F+Full Body query). Pattern-stress reuses pRows Reinforce.
+        // Discovery 4 — Power / Integration
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F'),
       ]);
       if (cancelled) return;
@@ -119,8 +113,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       }
       const [
         { data: pRows },
-        { data: aRows },
-        { data: dRows },
         { data: asymRowsA },
         { data: asymRowsB },
         { data: coreRotaryRows },
@@ -134,9 +126,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       const reactivateEx = pickRandom(pAll.filter(r => r.phase === 'Reactivate'));
       setReactivate(reactivateEx);
       setReinforce(pickRandom(pAll.filter(r => r.phase === 'Reinforce')));
-      setRaise(pickRandom((aRows ?? []) as ExerciseRow[]));
-      setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-      setPotentiate(pickRandom(powerAll.filter(r => r.workout_target === 'Full Body')));
 
       // ---- Discovery Workout (4 exercises) ----
       const items: DiscoveryItem[] = [];
@@ -308,68 +297,12 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
                 </div>
               </section>
 
-              {/* Section 2b — RAMP-6 Prep */}
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    3. RAMP-6 Prep · The Cure
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <RampRow
-                    icon={Flame}
-                    color="red"
-                    num="1"
-                    title="RAISE"
-                    name={raise?.name ?? 'Assault Bike / Rower / Skipping'}
-                    dose={doseFor(raise, '3-5 Min · RPE 5-6')}
-                  />
-                  <RampRow
-                    icon={Droplet}
-                    color="blue"
-                    num="2"
-                    title="MOBILIZE"
-                    name={reset?.name ?? '—'}
-                    dose={doseFor(reset)}
-                    meta={reset?.posture_name ? `L${reset.posture_level} · ${reset.posture_name}` : undefined}
-                  />
-                  <RampRow
-                    icon={ActivityIcon}
-                    color="green"
-                    num="3"
-                    title="ACTIVATE"
-                    name={reactivate?.name ?? '—'}
-                    dose={doseFor(reactivate)}
-                    meta={reactivate?.posture_name ? `L${reactivate.posture_level} · ${reactivate.posture_name}` : undefined}
-                  />
-                  {activateExtra && (
-                    <RampRow
-                      icon={ActivityIcon}
-                      color="green"
-                      num="3b"
-                      title="ACTIVATE · Full Body"
-                      name={activateExtra.name}
-                      dose={doseFor(activateExtra)}
-                    />
-                  )}
-                  <RampRow
-                    icon={Zap}
-                    color="orange"
-                    num="4"
-                    title="POTENTIATE"
-                    name={potentiate?.name ?? reinforce?.name ?? '—'}
-                    dose={doseFor(potentiate ?? reinforce)}
-                  />
-                </div>
-              </section>
-
               {/* Section 3 — Discovery Workout */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-primary" />
                   <h3 className="font-display font-bold text-sm uppercase tracking-wider">
-                    4. Discovery Workout · The Challenge
+                    3. Discovery Workout · The Challenge
                   </h3>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
