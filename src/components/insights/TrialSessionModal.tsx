@@ -95,16 +95,13 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       setErrored(false);
       const results = await Promise.all([
         supabase.from('exercises_library').select('*').eq('pattern', patternKey),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'A'),
-        supabase.from('exercises_library').select('*').eq('ramp_category', 'D').eq('workout_target', 'Full Body'),
         // Discovery 2 — Asymmetry Challenge
         supabase.from('exercises_library').select('*').ilike('name', '%Single Leg%'),
         supabase.from('exercises_library').select('*').ilike('name', '%Split Squat%'),
         // Discovery 3 — Core Stability
         supabase.from('exercises_library').select('*').eq('pattern', 'Rotary_Stability').eq('phase', 'Reactivate'),
         supabase.from('exercises_library').select('*').eq('pattern', 'TSPU').eq('phase', 'Reactivate'),
-        // Potentiate + Discovery 4 — Power (cat F). Full Body subset derived in-code
-        // (no separate F+Full Body query). Pattern-stress reuses pRows Reinforce.
+        // Discovery 4 — Power / Integration
         supabase.from('exercises_library').select('*').eq('ramp_category', 'F'),
       ]);
       if (cancelled) return;
@@ -116,8 +113,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       }
       const [
         { data: pRows },
-        { data: aRows },
-        { data: dRows },
         { data: asymRowsA },
         { data: asymRowsB },
         { data: coreRotaryRows },
@@ -131,9 +126,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
       const reactivateEx = pickRandom(pAll.filter(r => r.phase === 'Reactivate'));
       setReactivate(reactivateEx);
       setReinforce(pickRandom(pAll.filter(r => r.phase === 'Reinforce')));
-      setRaise(pickRandom((aRows ?? []) as ExerciseRow[]));
-      setActivateExtra(pickRandom((dRows ?? []) as ExerciseRow[]));
-      setPotentiate(pickRandom(powerAll.filter(r => r.workout_target === 'Full Body')));
 
       // ---- Discovery Workout (4 exercises) ----
       const items: DiscoveryItem[] = [];
