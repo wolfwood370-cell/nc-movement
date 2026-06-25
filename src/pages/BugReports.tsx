@@ -84,33 +84,35 @@ export default function BugReports() {
 
   const fetchReports = async () => {
     setLoading(true);
-    // localStorage always works — load it first so we have *something* to show
-    // even if the DB isn't ready yet.
+    // localStorage always works — load it first so we have *something* to show.
     setLocalReports(readLocalReports());
 
-    const { data, error } = await supabase
-      .from('bug_reports')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
+    // Route through edge function: server-side staff role check + service-role
+    // data access. The UI guard alone is bypassable; this is the real gate.
+    const { data: res, error } = await supabase.functions.invoke('admin-bug-reports', {
+      body: { type: 'list' },
+    });
     setLoading(false);
     if (error) {
-      if (isTableMissingError(error)) {
-        setTableMissing(true);
+      const msg = (error.message ?? '').toLowerCase();
+      if (msg.includes('forbidden')) {
+        toast.error('Accesso negato: ruolo staff richiesto.');
         setReports([]);
         return;
+      }
+      if (isTableMissingError(error as { message?: string; code?: string })) {
+        setTableMissing(true); setReports([]); return;
       }
       toast.error(`Errore nel caricare le segnalazioni: ${error.message}`);
       return;
     }
     setTableMissing(false);
-    // DB types `status` as plain string; narrow each row to BugStatus.
     const ALLOWED: BugStatus[] = ['new', 'reported', 'fixed'];
-    const rows: BugReport[] = (data ?? []).map((r) => ({
-      ...r,
+    const rows: BugReport[] = ((res?.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      ...(r as object),
       status: ALLOWED.includes(r.status as BugStatus) ? (r.status as BugStatus) : 'new',
       meta: (r.meta ?? {}) as Record<string, unknown>,
-    }));
+    }) as BugReport);
     setReports(rows);
   };
 
@@ -125,7 +127,9 @@ export default function BugReports() {
   };
 
   const updateStatus = async (id: string, status: BugStatus) => {
-    const { error } = await supabase.from('bug_reports').update({ status }).eq('id', id);
+    const { error } = await supabase.functions.invoke('admin-bug-reports', {
+      body: { type: 'update', id, status },
+    });
     if (error) {
       toast.error(`Aggiornamento fallito: ${error.message}`);
       return;
@@ -136,7 +140,9 @@ export default function BugReports() {
 
   const deleteReport = async (id: string) => {
     if (!window.confirm('Eliminare definitivamente questa segnalazione?')) return;
-    const { error } = await supabase.from('bug_reports').delete().eq('id', id);
+    const { error } = await supabase.functions.invoke('admin-bug-reports', {
+      body: { type: 'delete', id },
+    });
     if (error) {
       toast.error(`Eliminazione fallita: ${error.message}`);
       return;
