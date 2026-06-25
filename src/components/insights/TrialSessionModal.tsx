@@ -85,9 +85,6 @@ export default function TrialSessionModal({ open, onOpenChange, latestFms, clien
   const [reset, setReset] = useState<ExerciseRow | null>(null);
   const [reactivate, setReactivate] = useState<ExerciseRow | null>(null);
   const [reinforce, setReinforce] = useState<ExerciseRow | null>(null);
-  const [raise, setRaise] = useState<ExerciseRow | null>(null);
-  const [activateExtra, setActivateExtra] = useState<ExerciseRow | null>(null);
-  const [potentiate, setPotentiate] = useState<ExerciseRow | null>(null);
   const [discovery, setDiscovery] = useState<DiscoveryItem[]>([]);
 
   useEffect(() => {
