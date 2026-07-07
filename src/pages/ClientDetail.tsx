@@ -158,7 +158,7 @@ export default function ClientDetail() {
           <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
           <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
           {(client.height_cm || client.weight_kg) && (
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap">
               {client.height_cm ? `${client.height_cm} cm` : ''} {client.weight_kg ? `· ${client.weight_kg} kg` : ''}
             </p>
           )}
@@ -220,7 +220,7 @@ export default function ClientDetail() {
 
       <TooltipProvider delayDuration={150}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl">
+          <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl active:scale-[0.97]">
             <Plus className="w-5 h-5 mr-2" /> Nuova FMS
           </Button>
           <Button
@@ -298,7 +298,7 @@ export default function ClientDetail() {
             <div className="surface-card divide-y divide-border overflow-hidden">
               {fms.map(a => (
                 <div key={a.id} className="flex items-center justify-between p-2 pl-4 hover:bg-accent/40">
-                  <Link to={`/assessments/fms/${a.id}`} className="flex items-center justify-between flex-1 min-w-0 py-2 tap-target">
+                  <Link to={`/assessments/fms/${a.id}`} className="flex items-center justify-between flex-1 min-w-0 py-2 min-h-[44px] transition-opacity active:opacity-[0.55]">
                     <div className="min-w-0">
                       <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
                       <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
@@ -520,7 +520,7 @@ function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
                 key={g.value}
                 onClick={() => void handleGenerateAll(g.value)}
                 disabled={generating}
-                className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary hover:bg-primary/5 transition-colors active:scale-[0.95] disabled:opacity-50"
               >
                 <div className="font-display font-semibold text-sm">{g.label}</div>
                 <div className="text-[11px] text-muted-foreground">{g.desc}</div>
@@ -577,7 +577,7 @@ function PtPackSessionCard({ session, program, goal, open, onToggle }: {
       <button
         onClick={onToggle}
         disabled={!hasProgram}
-        className="w-full p-4 flex items-center gap-3 text-left disabled:cursor-default"
+        className="w-full p-4 flex items-center gap-3 text-left transition-colors active:bg-muted/50 disabled:cursor-default"
       >
         <div className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${
           hasProgram ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'

@@ -71,7 +71,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               to={t.to}
               end={t.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors tap-target ${
+                `flex flex-col items-center gap-1 py-3 text-xs font-medium min-h-[56px] transition-[color,opacity] active:opacity-50 ${
                   isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`
               }

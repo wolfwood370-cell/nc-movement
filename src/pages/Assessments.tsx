@@ -24,7 +24,7 @@ export default function Assessments() {
           <Link
             key={t.key}
             to={t.ready ? '/clients' : '#'}
-            className={`surface-card p-4 flex items-center gap-4 tap-target ${t.ready ? 'hover:shadow-elevated' : 'opacity-60'}`}
+            className={`surface-card p-4 flex items-center gap-4 ${t.ready ? 'card-interactive hover:shadow-elevated' : 'opacity-60'}`}
           >
             <div className="flex-1 min-w-0">
               <div className="font-display font-semibold">{t.label}</div>

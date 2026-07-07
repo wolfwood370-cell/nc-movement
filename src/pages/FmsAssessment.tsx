@@ -4,6 +4,7 @@ import { ChevronLeft, Save, AlertTriangle, CheckCircle2, ShieldAlert, FileText, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -745,7 +746,12 @@ export default function FmsAssessment() {
           <Button
             onClick={save}
             disabled={saving || total === null}
-            className="w-full h-14 rounded-2xl text-base shadow-elevated tap-target"
+            className={cn(
+              "w-full h-14 rounded-2xl text-base tap-target transition-colors",
+              total !== null && !saving
+                ? "bg-success text-success-foreground hover:bg-success/90 shadow-[0_10px_26px_-10px_hsl(var(--success)/0.6)]"
+                : "shadow-elevated",
+            )}
           >
             <Save className="w-5 h-5 mr-2" />
             {saving ? 'Salvataggio…' : `${isExisting ? 'Salva modifiche' : 'Salva valutazione'}${total !== null ? ` · ${total}/${maxTotal}` : ''}`}

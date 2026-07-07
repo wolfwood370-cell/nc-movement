@@ -131,7 +131,7 @@ export default function CorrectiveLibrary() {
                             return (
                               <Card
                                 key={ex.id}
-                                className={`border-border transition-colors ${playable ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                                className={`border-border ${playable ? 'card-interactive cursor-pointer hover:border-primary/50' : 'transition-colors'}`}
                                 onClick={playable ? () => setVideo({ url: ex.video_url!, title: ex.name }) : undefined}
                               >
                                 <CardContent className="p-3 space-y-2">

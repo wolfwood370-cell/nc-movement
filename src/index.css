@@ -57,6 +57,7 @@
        0 = pain (rosso) · 1 = dysfunction (arancione) · 2 = warning (giallo) · 3 = functional (verde) */
     --pain: 0 72% 51%;
     --dysfunction: 24 95% 53%;
+    --dysfunction-foreground: 0 0% 100%;
     --functional: 160 60% 40%;
 
     --font-display: 'Space Grotesk', sans-serif;
@@ -67,6 +68,7 @@
 
     --gradient-primary: hsl(0 72% 42%);
     --shadow-card: 0 1px 2px hsl(210 25% 12% / 0.04), 0 8px 24px -10px hsl(210 25% 12% / 0.08);
+    --shadow-card-hover: 0 2px 4px hsl(210 25% 12% / 0.05), 0 14px 32px -14px hsl(210 25% 12% / 0.16);
     --shadow-elevated: 0 10px 40px -12px hsl(0 72% 42% / 0.35);
   }
 
@@ -115,6 +117,7 @@
 
     --pain: 0 62% 55%;
     --dysfunction: 24 90% 58%;
+    --dysfunction-foreground: 0 0% 100%;
     --functional: 160 50% 45%;
 
     --glass-bg: hsla(220, 18%, 11%, 0.8);
@@ -122,6 +125,7 @@
 
     --gradient-primary: hsl(0 72% 55%);
     --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 12px 32px -14px hsl(0 0% 0% / 0.55);
+    --shadow-card-hover: 0 2px 4px hsl(0 0% 0% / 0.5), 0 18px 40px -16px hsl(0 0% 0% / 0.6);
     --shadow-elevated: 0 16px 48px -14px hsl(0 72% 55% / 0.45);
   }
 }
@@ -193,6 +197,17 @@
 
   .tap-target {
     @apply min-h-[56px] active:scale-[0.98] transition-transform;
+  }
+
+  /* Clickable-card feedback: hover lift + deeper shadow + darker border,
+     press settles back with a subtle scale. Shadow uses the --shadow-card-hover
+     token; border darkens via foreground so it reads in light and dark. */
+  .card-interactive {
+    @apply transition-[transform,box-shadow,border-color] duration-150 ease-out;
+    @apply hover:-translate-y-px hover:border-foreground/20 active:translate-y-0 active:scale-[0.99];
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-card-hover);
   }
 }
 

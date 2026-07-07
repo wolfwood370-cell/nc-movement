@@ -59,7 +59,10 @@ export default {
           foreground: "hsl(var(--success-foreground))",
         },
         pain: "hsl(var(--pain))",
-        dysfunction: "hsl(var(--dysfunction))",
+        dysfunction: {
+          DEFAULT: "hsl(var(--dysfunction))",
+          foreground: "hsl(var(--dysfunction-foreground))",
+        },
         functional: "hsl(var(--functional))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

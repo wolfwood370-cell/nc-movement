@@ -146,7 +146,7 @@ export default function Dashboard() {
               onClick={() => setPickTestOpen(t.key)}
               disabled={!t.enabled && clients.length === 0}
               aria-label={`${t.label} — ${t.desc}`}
-              className="surface-card aspect-square p-3 tap-target hover:shadow-elevated transition-all relative overflow-hidden group bg-white grid place-items-center"
+              className="surface-card aspect-square p-3 tap-target hover:shadow-elevated hover:-translate-y-px active:translate-y-0 transition-all relative overflow-hidden group bg-white grid place-items-center"
             >
               <img src={t.logo} alt={t.label} className="w-full h-full object-contain" />
               {!t.enabled && (
@@ -163,7 +163,7 @@ export default function Dashboard() {
           <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">Clienti</h2>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
+              <Button size="sm" className="rounded-full active:scale-[0.94]"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>

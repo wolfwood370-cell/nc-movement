@@ -77,11 +77,11 @@ export default function Clients() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-display font-bold text-2xl">Clienti</h1>
-          <p className="text-sm text-muted-foreground">{clients.length} in lista</p>
+          <p className="text-sm text-muted-foreground whitespace-nowrap">{clients.length} in lista</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
+            <Button className="rounded-full active:scale-[0.94]"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
