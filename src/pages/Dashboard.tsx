@@ -11,10 +11,10 @@ import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
 import { useMacroAnalytics } from '@/hooks/useMacroAnalytics';
-import logoFms from '@/assets/logo-fms.png';
-import logoSfma from '@/assets/logo-sfma.png';
-import logoFcs from '@/assets/logo-fcs.png';
-import logoYbt from '@/assets/logo-ybt.png';
+import logoFms from '@/assets/logo-fms.webp';
+import logoSfma from '@/assets/logo-sfma.webp';
+import logoFcs from '@/assets/logo-fcs.webp';
+import logoYbt from '@/assets/logo-ybt.webp';
 
 interface Client { id: string; full_name: string; created_at: string }
 
