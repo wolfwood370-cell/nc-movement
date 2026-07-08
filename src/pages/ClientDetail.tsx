@@ -211,9 +211,21 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground tap-target -ml-1">
-        <ChevronLeft className="w-4 h-4" /> Scheda cliente
-      </button>
+      <div className="flex items-center justify-between -ml-1">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground tap-target">
+          <ChevronLeft className="w-4 h-4" /> Scheda cliente
+        </button>
+        {fms[0] && (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            aria-label="Report cliente"
+            className="tap-target h-8 w-8 rounded-full grid place-items-center text-foreground/70 hover:text-foreground hover:bg-accent"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       <div className="surface-card p-4 flex items-start gap-3">
         <ClientAvatar fullName={client.full_name} className="w-12 h-12 text-base font-display" />
