@@ -56,6 +56,7 @@
     /* Movement-specific score tokens
        0 = pain (rosso) · 1 = dysfunction (arancione) · 2 = warning (giallo) · 3 = functional (verde) */
     --pain: 0 72% 51%;
+    --pain-foreground: 0 0% 100%;
     --dysfunction: 24 95% 53%;
     --dysfunction-foreground: 0 0% 100%;
     --functional: 160 60% 40%;
@@ -116,6 +117,7 @@
     --success-foreground: 0 0% 100%;
 
     --pain: 0 62% 55%;
+    --pain-foreground: 0 0% 100%;
     --dysfunction: 24 90% 58%;
     --dysfunction-foreground: 0 0% 100%;
     --functional: 160 50% 45%;
