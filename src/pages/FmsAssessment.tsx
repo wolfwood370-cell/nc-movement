@@ -16,6 +16,8 @@ import {
 } from '@/lib/fms';
 import ScoreSelector from '@/components/fms/ScoreSelector';
 import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSelector';
+import FmsProgressRing from '@/components/fms/FmsProgressRing';
+import FmsPatternRail from '@/components/fms/FmsPatternRail';
 import FmsClientReport from '@/components/fms/FmsClientReport';
 import AssessedAtPicker from '@/components/assessments/AssessedAtPicker';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -107,6 +109,8 @@ export default function FmsAssessment() {
   const [reportOpen, setReportOpen] = useState(false);
   const [assessedAt, setAssessedAt] = useState<string | null>(null);
   const [packResult, setPackResult] = useState<PackResult | null>(null);
+  // Chrome sticky: pattern attualmente al centro del viewport (scroll-spy del rail).
+  const [activePattern, setActivePattern] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -171,6 +175,26 @@ export default function FmsAssessment() {
   const corrective = useMemo(() => primaryCorrective(patterns), [patterns]);
   const modified = isModifiedFms(scores);
   const maxTotal = fmsMaxTotal(scores);
+
+  // Scroll-spy (solo UI): evidenzia nel rail il pattern al centro del viewport.
+  // Ri-osserva quando cambia il set di ancore (modified) o quando il form compare (loading).
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-fms-pattern]'));
+    if (els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const key = visible[0]?.target.getAttribute('data-fms-pattern');
+        if (key) setActivePattern(key);
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: 0 },
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+    // Ri-osserva anche quando il form si ri-monta (skeleton di salvataggio / schermata pacchetto).
+  }, [modified, loading, saving, packResult]);
 
   const setField = <K extends keyof FmsScores>(k: K, v: FmsScores[K]) =>
     setScores(p => ({ ...p, [k]: v }));
@@ -403,6 +427,18 @@ export default function FmsAssessment() {
     AlertTriangle;
   const Icon = correctiveIcon;
 
+  // Chrome derivati (solo lettura dei risultati già calcolati da computePatterns).
+  const completed = patterns.filter((p) => p.final !== null).length;
+  const provTotal = patterns.reduce((sum, p) => sum + (p.final ?? 0), 0);
+  const ringTone =
+    corrective.level === 'pain' ? 'text-pain' :
+    corrective.level === 'clear' ? 'text-functional' :
+    corrective.level === 'incomplete' ? 'text-primary' :
+    'text-warning';
+  const jumpToPattern = (key: string) => {
+    document.getElementById(`fms-pat-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // ---- Reusable pieces ---------------------------------------------------
 
   const renderPatternBody = (p: PatternDef) => {
@@ -462,7 +498,7 @@ export default function FmsAssessment() {
   };
 
   const renderPattern = (p: PatternDef) => (
-    <div key={p.key} className="surface-card p-4">
+    <div key={p.key} id={`fms-pat-${p.key}`} data-fms-pattern={p.key} className="surface-card p-4 scroll-mt-60">
       {renderPatternBody(p)}
     </div>
   );
@@ -477,47 +513,52 @@ export default function FmsAssessment() {
         <ChevronLeft className="w-4 h-4" /> Indietro
       </button>
 
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-widest text-primary font-semibold">FMS</p>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-display font-bold text-2xl">{clientName || 'Valutazione'}</h1>
-            <p className="text-sm text-muted-foreground">
-              {readOnly ? 'Sola lettura — tocca Modifica per aggiornare i punteggi' : 'Tocca per assegnare un punteggio. Conta il valore più basso L/R.'}
-            </p>
-          </div>
+      {/* Chrome sticky: anello progresso + rail pattern + chip focus (solo UI, scoring invariato). */}
+      <div className="sticky top-14 z-20 -mx-4 px-4 py-3 space-y-3 bg-background/90 backdrop-blur-sm border-b border-border">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-widest text-primary font-semibold">
+            FMS{modified ? ' · Modificato' : ''}
+          </p>
           <div className="flex items-center gap-2 shrink-0">
-            {isExisting && (
-              readOnly ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setReadOnly(false)}
-                >
+            {readOnly && (
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Sola lettura</span>
+            )}
+            {isExisting &&
+              (readOnly ? (
+                <Button variant="outline" size="sm" onClick={() => setReadOnly(false)}>
                   <Pencil className="w-4 h-4 mr-1.5" /> Modifica
                 </Button>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setReadOnly(true)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setReadOnly(true)}>
                   <X className="w-4 h-4 mr-1.5" /> Annulla
                 </Button>
-              )
-            )}
+              ))}
             {total !== null && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setReportOpen(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setReportOpen(true)}>
                 <FileText className="w-4 h-4 mr-1.5" /> Report
               </Button>
             )}
           </div>
         </div>
-      </header>
+
+        <div className="flex items-center gap-3">
+          <FmsProgressRing
+            value={provTotal}
+            max={maxTotal}
+            progress={completed / (patterns.length || 1)}
+            toneClass={ringTone}
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display font-bold text-lg truncate leading-tight">{clientName || 'Valutazione'}</h1>
+            <span className={cn('inline-flex items-center gap-1.5 mt-1 max-w-full rounded-full px-2.5 py-0.5 text-xs font-semibold', correctiveTone)}>
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{corrective.label}</span>
+            </span>
+          </div>
+        </div>
+
+        <FmsPatternRail patterns={patterns} activeKey={activePattern} onJump={jumpToPattern} />
+      </div>
 
       {hasDraft && draft && !readOnly && (() => {
         // Only surface the recovery banner when the cached draft contains
@@ -616,7 +657,7 @@ export default function FmsAssessment() {
 
         {/* Lunghezza Tibia + Hurdle Step (full only) */}
         {!modified && (
-          <div className="surface-card p-4">
+          <div id="fms-pat-hurdle_step" data-fms-pattern="hurdle_step" className="surface-card p-4 scroll-mt-60">
             <div className="font-display font-semibold text-sm mb-2">Lunghezza Tibia (cm)</div>
             <NumberInput
               disabled={readOnly}
@@ -633,7 +674,9 @@ export default function FmsAssessment() {
         <div className="surface-card p-4">
           {!modified && (
             <>
-              {renderPatternBody(get('inline_lunge'))}
+              <div id="fms-pat-inline_lunge" data-fms-pattern="inline_lunge" className="scroll-mt-60">
+                {renderPatternBody(get('inline_lunge'))}
+              </div>
               <Divider />
             </>
           )}
@@ -674,7 +717,7 @@ export default function FmsAssessment() {
         </div>
 
         {/* Shoulder Mobility + Shoulder Impingement Clearing + Lunghezza Mano */}
-        <div className="surface-card p-4">
+        <div id="fms-pat-shoulder_mobility" data-fms-pattern="shoulder_mobility" className="surface-card p-4 scroll-mt-60">
           {renderPatternBody(get('shoulder_mobility'))}
           <Divider />
           <div className="space-y-3">
@@ -710,7 +753,7 @@ export default function FmsAssessment() {
 
         {/* TSPU + Spinal Extension Clearing (full only) */}
         {!modified && (
-          <div className="surface-card p-4">
+          <div id="fms-pat-trunk_stability_pushup" data-fms-pattern="trunk_stability_pushup" className="surface-card p-4 scroll-mt-60">
             {renderPatternBody(get('trunk_stability_pushup'))}
             <Divider />
             <div className="font-display font-semibold text-sm mb-2">Spinal Extension Clearing</div>
@@ -726,7 +769,7 @@ export default function FmsAssessment() {
 
         {/* Rotary Stability + Spinal Flexion Clearing (full only) */}
         {!modified && (
-          <div className="surface-card p-4">
+          <div id="fms-pat-rotary_stability" data-fms-pattern="rotary_stability" className="surface-card p-4 scroll-mt-60">
             {renderPatternBody(get('rotary_stability'))}
             <Divider />
             <div className="font-display font-semibold text-sm mb-2">Spinal Flexion Clearing</div>
