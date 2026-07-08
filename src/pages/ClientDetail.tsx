@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { captureBug } from '@/lib/bugReporter';
@@ -23,6 +23,7 @@ import BiometricGuard from '@/components/clients/BiometricGuard';
 import ClientAvatar from '@/components/ClientAvatar';
 import LastFmsCard from '@/components/client/LastFmsCard';
 import NextStepCard from '@/components/client/NextStepCard';
+import ClientMovementReport from '@/components/fms/ClientMovementReport';
 
 interface Client {
   id: string; full_name: string;
@@ -186,6 +187,7 @@ export default function ClientDetail() {
 
   // ---- FCS biometric pre-flight ------------------------------------------
   const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const launchFcs = (extra?: { foot_length_cm: number }) => {
     if (!client) return;
     const missing = !client.height_cm || !client.weight_kg
@@ -210,9 +212,21 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground tap-target -ml-1">
-        <ChevronLeft className="w-4 h-4" /> Scheda cliente
-      </button>
+      <div className="flex items-center justify-between -ml-1">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground tap-target">
+          <ChevronLeft className="w-4 h-4" /> Scheda cliente
+        </button>
+        {fms[0] && (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            aria-label="Report cliente"
+            className="tap-target h-8 w-8 rounded-full grid place-items-center text-foreground/70 hover:text-foreground hover:bg-accent"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       <div className="surface-card p-4 flex items-start gap-3">
         <ClientAvatar fullName={client.full_name} className="w-12 h-12 text-base font-display" />
@@ -454,6 +468,17 @@ export default function ClientDetail() {
           launchFcs({ foot_length_cm });
         }}
       />
+
+      {fms[0] && (
+        <ClientMovementReport
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          clientName={client.full_name}
+          practitionerName={practitioner?.display_name ?? null}
+          assessedAt={fms[0].assessed_at}
+          scores={fms[0] as unknown as Parameters<typeof ClientMovementReport>[0]['scores']}
+        />
+      )}
     </div>
   );
 }
