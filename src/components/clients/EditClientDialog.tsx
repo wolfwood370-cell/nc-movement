@@ -66,8 +66,8 @@ export default function EditClientDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm">
-          <Pencil className="w-4 h-4 mr-1.5" /> Modifica
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" aria-label="Modifica cliente">
+          <Pencil className="w-4 h-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">

@@ -40,8 +40,8 @@ export default function DeleteClientDialog({ clientId, clientName, navigateAfter
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-          <Trash2 className="w-4 h-4 mr-1.5" /> Elimina
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive hover:text-destructive" aria-label="Elimina cliente">
+          <Trash2 className="w-4 h-4" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
