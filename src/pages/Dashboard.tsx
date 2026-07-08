@@ -148,8 +148,7 @@ export default function Dashboard() {
     setPickTestOpen(null);
   };
 
-  const lastByClient: Map<string, { time: number; kind: string; score?: number | null }> =
-    (typeof window !== 'undefined' && (window as any).__lastByClient) || new Map();
+  const lastByClient = lastByClientRef.current;
 
   const relTime = (ms: number) => {
     const diff = Date.now() - ms;
