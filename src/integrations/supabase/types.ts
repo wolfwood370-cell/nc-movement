@@ -964,6 +964,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_organization_invitation: {
+        Args: { _token: string }
+        Returns: string
+      }
       current_user_org_id: { Args: never; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
