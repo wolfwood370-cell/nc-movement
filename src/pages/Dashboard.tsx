@@ -121,8 +121,7 @@ export default function Dashboard() {
     });
     setClients(sorted);
     setLoading(false);
-    // Attach last activity for rendering
-    (window as any).__lastByClient = lastByClient;
+    lastByClientRef.current = lastByClient;
   }, []);
 
   useEffect(() => { load(); }, [load]);
