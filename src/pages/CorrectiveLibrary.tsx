@@ -19,9 +19,10 @@ const PATTERNS: PatternDef[] = [
 ];
 
 const PHASES: { key: CorrectivePhase; label: string; range: string }[] = [
-  { key: 'Reset',      label: 'Reset',      range: 'L 1-3' },
-  { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8' },
-  { key: 'Reinforce',  label: 'Reinforce',  range: 'L 9-12' },
+const PHASES: { key: CorrectivePhase; label: string; range: string; activeClass: string }[] = [
+  { key: 'Reset',      label: 'Reset',      range: 'L 1-3',  activeClass: 'data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:hover:bg-blue-500 data-[state=on]:hover:text-white' },
+  { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8',  activeClass: 'data-[state=on]:bg-green-500 data-[state=on]:text-white data-[state=on]:hover:bg-green-500 data-[state=on]:hover:text-white' },
+  { key: 'Reinforce',  label: 'Reinforce',  range: 'L 9-12', activeClass: 'data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:hover:bg-orange-500 data-[state=on]:hover:text-white' },
 ];
 
 export default function CorrectiveLibrary() {
