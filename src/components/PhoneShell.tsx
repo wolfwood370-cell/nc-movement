@@ -12,8 +12,8 @@ export default function PhoneShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-full bg-background sm:bg-desk sm:grid sm:place-items-center sm:p-6">
       <div
         className="
-          w-full min-h-screen bg-background overflow-hidden flex flex-col
-          sm:min-h-0 sm:w-[390px] sm:h-[844px] sm:rounded-phone sm:border sm:border-border sm:shadow-phone
+          w-full h-[100dvh] bg-background overflow-hidden flex flex-col
+          sm:h-[844px] sm:w-[390px] sm:rounded-phone sm:border sm:border-border sm:shadow-phone
         "
       >
         {children}
