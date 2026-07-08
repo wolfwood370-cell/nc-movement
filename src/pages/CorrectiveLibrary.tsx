@@ -118,7 +118,7 @@ export default function CorrectiveLibrary() {
             <ToggleGroupItem
               value={p.key}
               aria-label={p.label}
-              className="group flex-1 h-auto min-w-0 rounded-2xl px-2 py-2 flex flex-col items-center gap-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground data-[state=on]:bg-functional data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-functional data-[state=on]:hover:text-primary-foreground"
+              className={`group flex-1 h-auto min-w-0 rounded-2xl px-2 py-2 flex flex-col items-center gap-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground ${p.activeClass}`}
             >
               <span className="text-xs sm:text-sm font-semibold truncate">{p.label}</span>
               <span className="text-[10px] font-medium opacity-80 group-data-[state=on]:opacity-90 tabular-nums">
