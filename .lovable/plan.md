@@ -1,104 +1,66 @@
-# Valutazione di vendita di NC Movement come SaaS / asset tech
+# Piano: Bridge Gaps per Vendita a FMS
 
-## 1. Executive summary
+Obiettivo: portare la valutazione da €30-120k → €200-500k (exit) o preparare SaaS da €900k-3M in 3 anni.
 
-NC Movement è un MVP maturo per la registrazione, analisi e prescrizione di valutazioni funzionali (FMS, SFMA, YBT, FCS). L'obiettivo dichiarato è venderlo a Functional Movement Systems (FMS) come sostituto della loro suite software per professionisti certificati. Il progetto è attualmente single-tenant, pre-revenue, con un prescription engine e un PT Pack generator già implementati.
+## Fase 1 — Multi-tenancy (settimana 1-2)
+**Perché:** oggi l'app è single-tenant. FMS ha migliaia di professionisti certificati → serve isolamento dati per organizzazione/studio.
 
-**Verdetto di valutazione (range):**
-- **Exit tech oggi:** €30.000 – €120.000, con upside fino a €200.000-€300.000 se presentato come acquisizione strategica a FMS.
-- **Potenziale SaaS:** €900.000 – €3.000.000 se portato a €300k-€1M ARR con un modello B2C pro / B2B cliniche.
+- Nuova tabella `organizations` (id, name, plan, created_at)
+- Nuova tabella `organization_members` (org_id, user_id, role: owner/admin/member)
+- Colonna `organization_id` su tutte le tabelle dati (clients, assessments, sessions, prescriptions, insights, pt_packs)
+- RLS aggiornate: accesso solo se `organization_id` appartiene alle org dell'utente (via `has_org_access(auth.uid(), org_id)` SECURITY DEFINER)
+- Migrazione dati esistenti: creare org default per ogni utente attuale
+- UI: switcher organizzazione in header, pagina "Team" per invitare membri
 
-## 2. Stima di valutazione come exit tech (oggi)
+## Fase 2 — Billing (settimana 2-3)
+**Perché:** senza monetizzazione non c'è SaaS vendibile.
 
-Per un progetto pre-revenue la valutazione si basa su:
+- Integrazione **Paddle** (merchant of record, gestisce tasse globali — ideale per SaaS internazionale FMS)
+- Piani:
+  - **Free trial** 14 giorni
+  - **Pro** €49/mese (singolo professionista, assessments illimitati)
+  - **Team** €199/mese (fino a 5 professionisti, org sharing)
+  - **Enterprise** custom (FMS-branded, SSO, API)
+- Tabella `subscriptions` collegata a `organizations`
+- Webhook Paddle per attivare/disattivare accesso
+- Gating: limite clienti/assessments su piano free
 
-| Driver | Valutazione |
-|--------|-------------|
-| Codice pulito, testato, TypeScript, RLS sicura, edge functions | Positivo |
-| Prescription engine clinico (FMS -> tier -> RAMP -> esercizi) | Asset di differenziazione |
-| Multi-assessment (FMS, SFMA, YBT, FCS) | Completo rispetto alla concorrenza |
-| Single-tenant, nessun billing, nessun utente pagante | Deprezza |
-| Dipendenza da framework proprietari (FMS/SFMA/YBT/FCS) | Rischio legale/licenze |
+## Fase 3 — White-label FMS-ready (settimana 3-4)
+**Perché:** rende il progetto "drop-in replacement" per la suite FMS attuale.
 
-**Range di mercato per MVP pre-revenue con IP clinico:** €30k-€120k.
+- Config `branding` per org: logo, colori primari, nome brand
+- Env `VITE_BRAND_MODE` per build "FMS edition" (logo FMS, palette rosso/nero FMS)
+- Rimozione riferimenti "NC Movement" dai componenti (già token-based dopo)
+- Pagina onboarding con verifica certificazione FMS (upload attestato, review manuale MVP)
 
-**Upside strategico verso FMS:** se il prodotto viene posizionato come "nuova piattaforma ufficiale FMS" che sostituisce la loro suite esistente, l'acquirente strategico può pagare un premio. Stima realistica: **€100k-€300k**, con tetto superiore solo se dimostri traction o esclusività.
+## Fase 4 — Data portability + Compliance (settimana 5)
+- Export CSV/JSON di tutti i dati cliente (GDPR art. 20)
+- Import da CSV (per migrare da FMS Pro App)
+- Pagina Privacy + DPA template
+- Cookie banner + consent tracking
 
-## 3. Stima di valutazione come SaaS ricorrente
+## Fase 5 — Beta program (settimana 6-8)
+- Landing page dedicata (fuori dall'app) per raccogliere iscrizioni FMS pros
+- Outreach: 200 professionisti FMS certificati via LinkedIn
+- Onboarding 20-50 beta tester gratuiti in cambio di feedback + testimonial
+- KPI: DAU, retention 4 settimane, NPS, feature request
 
-### 3.1 Mercato potenziale
+## Fase 6 — Pitch a FMS (settimana 8)
+- Deck con: prodotto live, 20-50 utenti attivi, roadmap, ask
+- Contatto: CEO FMS (Gray Cook / Lee Burton team) via warm intro o email diretta
+- Due opzioni concrete: (A) acquisizione tech €200-500k, (B) partnership + revenue share + equity
 
-- **TAM:** professionisti certificati FMS/SFMA/YBT/FCS nel mondo. Stima indicativa: 50.000-100.000 professionisti.
-- **SAM:** professionisti attivi che usano regolarmente screening e hanno budget software: ~10.000-20.000.
-- **SOM realistico a 3 anni:** 500-2.000 utenti paganti.
+## Ordine di attacco proposto ORA
+Comincio da **Fase 1 (multi-tenancy)** perché blocca tutto il resto. Include:
+1. Migration: `organizations`, `organization_members`, funzione `has_org_access`
+2. Migration: aggiungere `organization_id` alle tabelle esistenti + backfill
+3. Update RLS su tutte le tabelle
+4. Update client Supabase queries per filtrare per org attiva
+5. UI org switcher + pagina team
 
-### 3.2 Modello di pricing
+**Tempo stimato Fase 1:** 3-5 sessioni Lovable.
 
-| Piano | Target | Prezzo indicativo |
-|-------|--------|-------------------|
-| Pro (singolo professionista) | PT, strength coach, personal trainer | €39-€79/mese |
-| Team/Clinica | Centri fisioterapici, squadre sportive | €149-€399/mese |
-| Enterprise | Catene, federazioni, militari | custom |
-
-### 3.3 Scenario ARR e valuation
-
-````text
-Scenario conservativo:   500 utenti Pro a €49/mese  → €294k ARR → valuation €900k-€1.5M
-Scenario base:          1.500 utenti Pro a €59/mese → €1.06M ARR → valuation €3M-€5M
-Scenario ottimistico:   3.000 utenti + 100 cliniche → €3M+ ARR  → valuation €10M+
-````
-
-Multipli applicati: **3x-8x ARR** per SaaS bootstrapped con crescita moderata; **5x-12x ARR** se c'è crescita >100% YoY e margini alti.
-
-**Valuation potenziale realistico a 3 anni:** €900.000 – €3.000.000.
-
-## 4. Cosa rende il progetto appetibile per FMS
-
-- **Sostituzione della suite legacy:** FMS ha FMS Pro App e Move2Perform; una piattaforma web moderna, multi-tenant e white-label è un upgrade naturale.
-- **Prescription engine integrato:** la maggior parte dei competitor si ferma alla raccolta dati; NC Movement genera programmi correttivi e PT Pack.
-- **Multi-assessment:** FMS, SFMA, YBT, FCS in un unico flusso clinico.
-- **Codice pronto per la produzione:** RLS blindata, edge functions, autenticazione, audit di sicurezza già effettuato.
-
-## 5. Gap da colmare prima di una vendita a FMS
-
-Per massimizzare il prezzo di vendita o il potenziale SaaS, servono questi interventi:
-
-1. **Multi-tenancy:** ogni professionista deve avere il proprio tenant, team e ruoli.
-2. **White-label / branding FMS:** skin, colori, logo e dominio customizzabili.
-3. **Verifica certificazione FMS:** integrazione con il registro certificati dell'acquirente.
-4. **Billing e subscription:** Paddle/Stripe, trial, piani Pro/Team/Enterprise.
-5. **Import/export dati:** migrazione dalla suite software attuale di FMS.
-6. **Mobile / PWA:** l'app deve funzionare bene su tablet in campo sportivo/clinica.
-7. **Compliance:** GDPR, HIPAA (se target US), terms of service.
-8. **Traction:** anche 20-50 beta tester paganti aumentano enormemente la valuation.
-
-## 6. Strategia di approccio a FMS
-
-1. **Preparare un pitch deck tecnico-commerciale** che mostri:
-   - screenshot del flusso assessment -> prescription -> PT Pack
-   - architettura sicura (RLS, edge functions)
-   - piano di migrazione dalla loro suite attuale
-   - modello di business e pricing
-2. **Contattare il CEO/Head of Product di FMS** con una demo personalizzata, non una vendita generica.
-3. **Proporre due opzioni:**
-   - **Acquisizione tech:** vendita del codice e IP per €100k-€300k.
-   - **Partnership + equity:** FMS ottiene licenza esclusiva, tu resti CTO/founder con equity sul SaaS futuro.
-4. **Negoziare la licenza dei framework FMS/SFMA/YBT/FCS** prima o in parallelo: senza poter usare i loro marchi, il valore strategico crolla.
-
-## 7. Rischi e ipotesi chiave
-
-| Rischio | Impatto | Mitigazione |
-|---------|---------|-------------|
-| FMS sviluppa internamente | Alto | Mostra velocità e IP unico (prescription engine) |
-| Dipendenza da marchi FMS | Alto | Negozia licenza ufficiale o partnership |
-| Nessuna traction | Medio | Lancia beta a 20-50 professionisti certificati |
-| Single-tenant limita scalabilità | Medio | Trasforma in multi-tenant prima della vendita |
-| Concorrenza da app generiche (PhysioMaster, PromptEMR) | Medio | Differenziazione sul prescription engine clinico |
-
-## 8. Conclusione e raccomandazione
-
-**Oggi**, come asset tech pre-revenue, NC Movement vale **€30k-€120k** in una vendita generica, con potenziale **€100k-€300k** se venduto strategicamente a FMS.
-
-**Come SaaS**, con il giusto go-to-market e 500-2.000 utenti paganti, può raggiungere una valuation di **€900k-€3M** in 2-3 anni.
-
-**Raccomandazione:** prima di contattare FMS, investire 4-8 settimane per aggiungere multi-tenancy, billing e una beta con 20-50 utenti. Questo può raddoppiare o triplicare il prezzo di vendita.
+## Da confermare prima di iniziare
+1. **OK a partire da Fase 1 multi-tenancy?** (raccomandato)
+2. **Preferisci saltare a Paddle billing subito** (più veloce da mostrare, ma senza multi-tenancy limita il valore)?
+3. **Vuoi che prepari prima il deck FMS** con lo stato attuale, senza toccare codice?
