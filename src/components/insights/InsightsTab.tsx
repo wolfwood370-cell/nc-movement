@@ -203,8 +203,44 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
 
+  // Compact FMS hero range label (es. "28 mag → 25 giu")
+  const rangeLabel = useMemo(() => {
+    if (fmsHistory.length < 1) return null;
+    const fmt = (d: string) => new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }).replace('.', '');
+    const first = fmsHistory[fmsHistory.length - 1]?.assessed_at;
+    const last = fmsHistory[0]?.assessed_at;
+    if (!first || !last) return null;
+    return fmsHistory.length === 1 ? fmt(last) : `${fmt(first)} → ${fmt(last)}`;
+  }, [fmsHistory]);
+
   return (
     <div className="space-y-5">
+      {/* Hero compatto — Andamento FMS (screenshot 09) */}
+      {totalTrend.length > 0 && (
+        <section className="surface-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Andamento FMS</span>
+            {rangeLabel && <span className="text-[11px] text-muted-foreground tabular-nums">{rangeLabel}</span>}
+          </div>
+          <div className="h-24 -mx-2">
+            <ResponsiveContainer>
+              <LineChart data={totalTrend} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
+                <YAxis hide domain={[0, 21]} />
+                <Line
+                  type="monotone"
+                  dataKey="Totale"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: 'hsl(var(--card))', stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
+
       {isModified && (
         <div className="surface-card border border-primary/40 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
           <span className="self-start shrink-0 whitespace-nowrap inline-block px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
