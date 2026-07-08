@@ -18,10 +18,11 @@ const PATTERNS: PatternDef[] = [
   { key: 'rotary_stability', label: 'Rotary Stability' },
 ];
 
-const PHASES: { key: CorrectivePhase; label: string; range: string }[] = [
-  { key: 'Reset',      label: 'Reset',      range: 'L 1-3' },
-  { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8' },
-  { key: 'Reinforce',  label: 'Reinforce',  range: 'L 9-12' },
+
+const PHASES: { key: CorrectivePhase; label: string; range: string; activeClass: string }[] = [
+  { key: 'Reset',      label: 'Reset',      range: 'L 1-3',  activeClass: 'data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:hover:bg-blue-500 data-[state=on]:hover:text-white' },
+  { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8',  activeClass: 'data-[state=on]:bg-green-500 data-[state=on]:text-white data-[state=on]:hover:bg-green-500 data-[state=on]:hover:text-white' },
+  { key: 'Reinforce',  label: 'Reinforce',  range: 'L 9-12', activeClass: 'data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:hover:bg-orange-500 data-[state=on]:hover:text-white' },
 ];
 
 export default function CorrectiveLibrary() {
@@ -117,7 +118,7 @@ export default function CorrectiveLibrary() {
             <ToggleGroupItem
               value={p.key}
               aria-label={p.label}
-              className="group flex-1 h-auto min-w-0 rounded-2xl px-2 py-2 flex flex-col items-center gap-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground data-[state=on]:bg-functional data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-functional data-[state=on]:hover:text-primary-foreground"
+              className={`group flex-1 h-auto min-w-0 rounded-2xl px-2 py-2 flex flex-col items-center gap-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground ${p.activeClass}`}
             >
               <span className="text-xs sm:text-sm font-semibold truncate">{p.label}</span>
               <span className="text-[10px] font-medium opacity-80 group-data-[state=on]:opacity-90 tabular-nums">
