@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, Bug, Users, LayoutDashboard, LogOut, Library } from 'lucide-react';
+import { Activity, Bug, Users, LayoutDashboard, LogOut, Library, Users2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsStaff } from '@/hooks/useIsStaff';
 import { toast } from 'sonner';
@@ -43,6 +43,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </button>
           <div className="flex items-center gap-1">
+            <button onClick={() => navigate('/team')}
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+              aria-label="Team">
+              <Users2 className="w-4 h-4" />
+            </button>
             {isStaff && (
               <button onClick={() => navigate('/admin/bugs')}
                 className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
