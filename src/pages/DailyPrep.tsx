@@ -260,7 +260,7 @@ export default function DailyPrep() {
           </div>
 
           <div>
-            <SectionHeader icon={Sparkles} label="2. REACTIVATE" hint="Riattiva il controllo motorio" />
+            <SectionHeader icon={Sparkles} tone="green" label="2. REACTIVATE" hint="Riattiva il controllo motorio" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reactivate" exercise={reactivate} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
