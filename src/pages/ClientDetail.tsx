@@ -242,7 +242,7 @@ export default function ClientDetail() {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-1.5 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0 -mr-1 -mt-1">
           <EditClientDialog client={client} onSaved={loadAll} />
           <DeleteClientDialog clientId={client.id} clientName={client.full_name} navigateAfter />
         </div>
