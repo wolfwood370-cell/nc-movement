@@ -13,6 +13,7 @@ import ClientDetail from "./pages/ClientDetail";
 import Assessments from "./pages/Assessments";
 import FmsAssessment from "./pages/FmsAssessment";
 import FmsSetup from "./pages/FmsSetup";
+import FmsWizardPage from "./pages/FmsWizardPage";
 import FcsAssessment from "./pages/FcsAssessment";
 import SfmaAssessment from "./pages/SfmaAssessment";
 import YbtAssessment from "./pages/YbtAssessment";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/clients/:id" element={<Shell><ClientDetail /></Shell>} />
             <Route path="/assessments" element={<Shell><Assessments /></Shell>} />
             <Route path="/assessments/fms/setup" element={<ProtectedRoute><FmsSetup /></ProtectedRoute>} />
+            <Route path="/assessments/fms/new" element={<ProtectedRoute><FmsWizardPage /></ProtectedRoute>} />
             <Route path="/assessments/fms/:id" element={<Shell><FmsAssessment /></Shell>} />
             <Route path="/assessments/fcs/:id" element={<Shell><FcsAssessment /></Shell>} />
             <Route path="/assessments/sfma/:id" element={<Shell><SfmaAssessment /></Shell>} />
