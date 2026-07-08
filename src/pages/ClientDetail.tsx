@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { generatePtPackSet, PT_GOALS, type PtGoal, type PtPackProgram } from '@/lib/ptPackProgram';
 import InsightsTab from '@/components/insights/InsightsTab';
 import TrialSessionModal from '@/components/insights/TrialSessionModal';
-import { calcAge, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
+import { calcAge, computeRisk, riskTone, riskShortLabel, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
 import { analyzeSfma, type SfmaFormValues } from '@/lib/sfma';
 import { computeFcsMetrics, type FcsFormValues } from '@/lib/fcs';
 import { hasCriticalRedFlags, fmsMaxTotal, isModifiedFms } from '@/lib/fms';
@@ -21,6 +21,8 @@ import DeleteClientDialog from '@/components/clients/DeleteClientDialog';
 import DeleteAssessmentButton from '@/components/assessments/DeleteAssessmentButton';
 import BiometricGuard from '@/components/clients/BiometricGuard';
 import ClientAvatar from '@/components/ClientAvatar';
+import LastFmsCard from '@/components/client/LastFmsCard';
+import NextStepCard from '@/components/client/NextStepCard';
 
 interface Client {
   id: string; full_name: string;
@@ -89,9 +91,9 @@ export default function ClientDetail() {
     if (sessions.length > 0) return;
     const lastModified = fms.find(a => isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]));
     if (!lastModified) return;
-    // Lock clinico: se l'ultima FMS ha red flag (dolore / clearing / asimmetria critica),
-    // NON auto-generare il PT Pack — vanno risolti con una SFMA prima.
-    if (hasCriticalRedFlags(fms[0] ?? null).hasFlags) return;
+    // Lock clinico: se la FMS sorgente (lastModified) o l'ultima FMS (stato clinico corrente)
+    // hanno red flag, NON auto-generare il PT Pack — vanno risolti con una SFMA prima.
+    if (hasCriticalRedFlags(lastModified).hasFlags || hasCriticalRedFlags(fms[0] ?? null).hasFlags) return;
     let cancelled = false;
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -124,6 +126,16 @@ export default function ClientDetail() {
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
   const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
+  // Rischio per il badge profilo — stessi input del gauge Insights (coerenza sulla pagina).
+  const risk = useMemo(
+    () => computeRisk(
+      fms[0] ?? null,
+      ybtHistory[0] ?? null,
+      latestSfma ?? null,
+      { hasPreviousInjury: (client as { has_previous_injury?: boolean | null } | null)?.has_previous_injury ?? false },
+    ),
+    [fms, ybtHistory, latestSfma, client],
+  );
 
   // ---- FCS biometric pre-flight ------------------------------------------
   const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
@@ -158,7 +170,13 @@ export default function ClientDetail() {
       <div className="surface-card p-5 flex items-center gap-4">
         <ClientAvatar fullName={client.full_name} className="w-14 h-14 text-xl font-display" />
         <div className="min-w-0 flex-1">
-          <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
+            <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${riskTone[risk.level].chip}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              {riskShortLabel[risk.level]}
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
           {(client.height_cm || client.weight_kg) && (
             <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap">
@@ -171,6 +189,15 @@ export default function ClientDetail() {
           <DeleteClientDialog clientId={client.id} clientName={client.full_name} navigateAfter />
         </div>
       </div>
+
+      <LastFmsCard fmsHistory={fms} />
+
+      <NextStepCard
+        clientId={client.id}
+        hasFms={fms.length > 0}
+        redFlag={redFlags.hasFlags}
+        hasPtPack={sessions.some(s => s.fms_assessment_id === (fms[0]?.id ?? null) && s.session_type === 'PT Pack')}
+      />
 
       {sfmaAlert?.hasPain && (
         <div className="surface-card border-pain/40 bg-pain/5 p-3 flex items-center gap-3">
