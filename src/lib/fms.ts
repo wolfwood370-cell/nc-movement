@@ -195,7 +195,7 @@ export function primaryCorrective(patterns: PatternResult[]): {
 
 /**
  * Color tokens per score:
- *  0 = rosso (pain), 1 = giallo (warning), 2 = arancione (dysfunction), 3 = verde (functional)
+ *  0 = rosso (pain), 1 = arancione (dysfunction), 2 = giallo (warning), 3 = verde (functional)
  */
 // =============================================================================
 // Cook's Corrective Priority Engine
