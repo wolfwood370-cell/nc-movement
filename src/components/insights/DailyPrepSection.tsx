@@ -87,10 +87,17 @@ function ExerciseCard({ title, exercise, fallbackText, staticDose, onPlay }: Car
   );
 }
 
-function SectionHeader({ icon: Icon, label, hint }: { icon: typeof Flame; label: string; hint?: string }) {
+const PHASE_TONE = {
+  blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-400' },
+  green:  { bg: 'bg-green-500/10',  text: 'text-green-600 dark:text-green-400' },
+  orange: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
+} as const;
+
+function SectionHeader({ icon: Icon, label, hint, tone = 'blue' }: { icon: typeof Flame; label: string; hint?: string; tone?: keyof typeof PHASE_TONE }) {
+  const t = PHASE_TONE[tone];
   return (
     <div className="flex items-center gap-2 mb-2">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+      <div className={`w-8 h-8 rounded-lg ${t.bg} ${t.text} flex items-center justify-center`}>
         <Icon className="w-4 h-4" />
       </div>
       <div>
