@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Users, Activity, ChevronRight, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,10 +11,10 @@ import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
 import { useMacroAnalytics } from '@/hooks/useMacroAnalytics';
-import logoFms from '@/assets/logo-fms.png';
-import logoSfma from '@/assets/logo-sfma.png';
-import logoFcs from '@/assets/logo-fcs.png';
-import logoYbt from '@/assets/logo-ybt.png';
+import logoFms from '@/assets/logo-fms.webp';
+import logoSfma from '@/assets/logo-sfma.webp';
+import logoFcs from '@/assets/logo-fcs.webp';
+import logoYbt from '@/assets/logo-ybt.webp';
 
 interface Client { id: string; full_name: string; created_at: string }
 
@@ -68,6 +68,7 @@ export default function Dashboard() {
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
   const [practitionerName, setPractitionerName] = useState<string | null>(null);
   const { data: analytics } = useMacroAnalytics();
+  const lastByClientRef = useRef<Map<string, { time: number; kind: string; score?: number | null }>>(new Map());
 
   const todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
     .format(new Date())
@@ -120,8 +121,7 @@ export default function Dashboard() {
     });
     setClients(sorted);
     setLoading(false);
-    // Attach last activity for rendering
-    (window as any).__lastByClient = lastByClient;
+    lastByClientRef.current = lastByClient;
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -148,8 +148,7 @@ export default function Dashboard() {
     setPickTestOpen(null);
   };
 
-  const lastByClient: Map<string, { time: number; kind: string; score?: number | null }> =
-    (typeof window !== 'undefined' && (window as any).__lastByClient) || new Map();
+  const lastByClient = lastByClientRef.current;
 
   const relTime = (ms: number) => {
     const diff = Date.now() - ms;

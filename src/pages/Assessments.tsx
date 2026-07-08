@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import logoFms from '@/assets/logo-fms.png';
-import logoSfma from '@/assets/logo-sfma.png';
-import logoFcs from '@/assets/logo-fcs.png';
-import logoYbt from '@/assets/logo-ybt.png';
+import logoFms from '@/assets/logo-fms.webp';
+import logoSfma from '@/assets/logo-sfma.webp';
+import logoFcs from '@/assets/logo-fcs.webp';
+import logoYbt from '@/assets/logo-ybt.webp';
 
 interface TestItem {
   key: string;
