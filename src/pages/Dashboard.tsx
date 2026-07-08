@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Activity, ChevronRight, ClipboardList, Target, Compass, Gauge } from 'lucide-react';
+import { Plus, Users, Activity, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ClinicalKpiRow from '@/components/dashboard/ClinicalKpiRow';
 import MacroAnalytics from '@/components/dashboard/MacroAnalytics';
 import logoFms from '@/assets/logo-fms.png';
 import logoSfma from '@/assets/logo-sfma.png';
@@ -24,10 +27,10 @@ interface RecentAssessment {
 }
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen',   logo: logoFms, enabled: true  },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',    logo: logoSfma, enabled: true  },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',                logo: logoYbt, enabled: true  },
-  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',         logo: logoFcs, enabled: true  },
+  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen', logo: logoFms  },
+  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',  logo: logoSfma },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',             logo: logoYbt  },
+  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',      logo: logoFcs  },
 ];
 
 export default function Dashboard() {
@@ -40,6 +43,11 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
   const [practitionerName, setPractitionerName] = useState<string | null>(null);
+
+  // Today's date, it-IT, uppercased — used as the header eyebrow.
+  const todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+    .format(new Date())
+    .toUpperCase();
 
   useEffect(() => {
     if (!user?.id) { setPractitionerName(null); return; }
@@ -118,40 +126,52 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Benvenuto</p>
-        <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary">{practitionerName ?? 'Benvenuto'}</h1>
-        <p className="text-muted-foreground text-sm mt-1">Scegli un cliente o avvia una nuova valutazione.</p>
-      </section>
+      {/* Header: date eyebrow + greeting + Test dropdown */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">{todayLabel}</p>
+          <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary truncate">
+            Ciao, {practitionerName ?? 'Nicolò'}
+          </h1>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="rounded-full shrink-0 active:scale-[0.94]">
+              <Plus className="w-4 h-4 mr-1" /> Test
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {quickTests.map(t => (
+              <DropdownMenuItem
+                key={t.key}
+                onClick={() => setPickTestOpen(t.key)}
+                className="gap-2 cursor-pointer"
+              >
+                <img src={t.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
+                <span className="font-medium">{t.label}</span>
+                <span className="text-xs text-muted-foreground ml-auto truncate">{t.desc}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
 
-      <Tabs defaultValue="clients" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="analytics">Panoramica Clinica</TabsTrigger>
-          <TabsTrigger value="clients">I Miei Clienti</TabsTrigger>
-        </TabsList>
+      {/* Clinical KPIs */}
+      <ClinicalKpiRow />
 
-        <TabsContent value="analytics" className="mt-5">
-          <MacroAnalytics />
-        </TabsContent>
-
-        <TabsContent value="clients" className="mt-5 space-y-6">
-
-      {/* Quick start tests */}
+      {/* Quick start — compact tiles */}
       <section>
         <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {quickTests.map(t => (
             <button
               key={t.key}
               onClick={() => setPickTestOpen(t.key)}
-              disabled={!t.enabled && clients.length === 0}
               aria-label={`${t.label} — ${t.desc}`}
-              className="surface-card aspect-square p-3 tap-target hover:shadow-elevated hover:-translate-y-px active:translate-y-0 transition-all relative overflow-hidden group bg-white grid place-items-center"
+              className="surface-card card-interactive flex flex-col items-center gap-1.5 p-2.5"
             >
-              <img src={t.logo} alt={t.label} className="w-full h-full object-contain" />
-              {!t.enabled && (
-                <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">presto</span>
-              )}
+              <img src={t.logo} alt="" className="w-8 h-8 object-contain" />
+              <span className="text-[11px] font-medium">{t.label}</span>
             </button>
           ))}
         </div>
@@ -233,8 +253,12 @@ export default function Dashboard() {
           </div>
         )}
       </section>
-        </TabsContent>
-      </Tabs>
+
+      {/* Clinical overview — charts */}
+      <section>
+        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Panoramica clinica</h2>
+        <MacroAnalytics />
+      </section>
 
       {/* Pick client for selected test */}
       <Dialog open={!!pickTestOpen} onOpenChange={(o) => !o && setPickTestOpen(null)}>
