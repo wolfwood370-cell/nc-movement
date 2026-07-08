@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ export default function Clients() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<ClientFilter>('all');
+  const [query, setQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -40,7 +41,6 @@ export default function Clients() {
     setClients(list);
 
     if (list.length) {
-      // Fetch only the latest 1 FMS per client (limit acts as a safety cap on the 1000-row default).
       const { data: fms, error: fmsErr } = await supabase
         .from('fms_assessments')
         .select('*')
@@ -60,7 +60,6 @@ export default function Clients() {
     setLoading(false);
   };
 
-  // Reload only when the authenticated user's id changes.
   useEffect(() => {
     if (!user) return;
     load();
@@ -78,7 +77,6 @@ export default function Clients() {
     load();
   };
 
-  // Derive risk once per client — single source for badge, border, counts, filter.
   const enriched = useMemo<EnrichedClient[]>(() => clients.map((c) => {
     const latest = latestByClient[c.id];
     return { ...c, risk: computeRisk(latest), fmsScore: latest?.total_score ?? null };
@@ -91,23 +89,32 @@ export default function Clients() {
   }), [enriched]);
 
   const visible = useMemo(() => {
-    if (filter === 'atRisk') return enriched.filter(e => isAtRisk(e.risk.level));
-    if (filter === 'toAssess') return enriched.filter(e => e.risk.level === 'unknown');
-    return enriched;
-  }, [enriched, filter]);
+    let list = enriched;
+    if (filter === 'atRisk') list = list.filter(e => isAtRisk(e.risk.level));
+    else if (filter === 'toAssess') list = list.filter(e => e.risk.level === 'unknown');
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter(e => e.full_name.toLowerCase().includes(q) || (e.primary_sport ?? '').toLowerCase().includes(q));
+    return list;
+  }, [enriched, filter, query]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="font-display font-bold text-2xl">Clienti</h1>
-          <p className="text-sm text-muted-foreground whitespace-nowrap">
-            {clients.length} {clients.length === 1 ? 'cliente' : 'clienti'} · {counts.atRisk} a rischio
+    <div className="space-y-4">
+      {/* Header: title + subtitle + Nuovo pill */}
+      <div className="flex items-start justify-between gap-3 pt-1">
+        <div className="min-w-0">
+          <h1 className="font-display font-bold text-[26px] leading-none tracking-tight">Clienti</h1>
+          <p className="text-[12px] text-muted-foreground mt-1.5 whitespace-nowrap">
+            {clients.length} {clients.length === 1 ? 'cliente' : 'clienti'}
+            {counts.atRisk > 0 && (
+              <> · <span className="text-primary font-semibold">{counts.atRisk} a rischio</span></>
+            )}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-full active:scale-[0.94]"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
+            <Button className="rounded-full shrink-0 shadow-cta h-9 px-4 active:scale-[0.96]">
+              <Plus className="w-4 h-4 mr-1" />Nuovo
+            </Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
@@ -116,8 +123,21 @@ export default function Clients() {
         </Dialog>
       </div>
 
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Cerca cliente…"
+          className="w-full h-11 rounded-full border border-border bg-card pl-10 pr-4 text-[14px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-shadow"
+        />
+      </div>
+
+      {/* Filter chips (no counts to match screenshot 02) */}
       {!loading && clients.length > 0 && (
-        <ClientFilterChips value={filter} onChange={setFilter} counts={counts} />
+        <ClientFilterChips value={filter} onChange={setFilter} counts={counts} showCounts={false} />
       )}
 
       {loading ? (
@@ -126,10 +146,15 @@ export default function Clients() {
         <div className="surface-card p-8 text-center">
           <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="font-medium">Nessun cliente</p>
+          <Button onClick={() => setOpen(true)} className="mt-4"><Plus className="w-4 h-4 mr-1" />Aggiungi cliente</Button>
         </div>
       ) : visible.length === 0 ? (
         <div className="surface-card p-8 text-center text-sm text-muted-foreground">
-          {filter === 'atRisk' ? 'Nessun cliente a rischio.' : 'Nessun cliente da valutare.'}
+          {query
+            ? 'Nessun cliente corrisponde alla ricerca.'
+            : filter === 'atRisk'
+              ? 'Nessun cliente a rischio.'
+              : 'Nessun cliente da valutare.'}
         </div>
       ) : (
         <div className="space-y-2">
