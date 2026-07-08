@@ -964,34 +964,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_organization_invitation: {
-        Args: { _token: string }
-        Returns: string
-      }
-      current_user_org_id: { Args: never; Returns: string }
-      has_org_access: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_org_admin: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_org_role: {
-        Args: {
-          _org_id: string
-          _role: Database["public"]["Enums"]["org_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       ankle_clearing_position: "Beyond" | "Within" | "Behind"

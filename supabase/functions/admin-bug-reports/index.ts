@@ -25,9 +25,9 @@ Deno.serve(async (req) => {
   );
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-  if (claimsErr || !claims?.claims?.sub) return json({ error: 'Unauthorized' }, 401);
-  const userId = claims.claims.sub as string;
+  const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+  if (userErr || !userData?.user) return json({ error: 'Unauthorized' }, 401);
+  const userId = userData.user.id;
 
   // Server-side staff check (admin OR coach).
   const admin = createClient(
