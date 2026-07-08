@@ -210,25 +210,36 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground tap-target">
-        <ChevronLeft className="w-4 h-4" /> Indietro
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground tap-target -ml-1">
+        <ChevronLeft className="w-4 h-4" /> Scheda cliente
       </button>
 
-      <div className="surface-card p-5 flex items-center gap-4">
-        <ClientAvatar fullName={client.full_name} className="w-14 h-14 text-xl font-display" />
+      <div className="surface-card p-4 flex items-start gap-3">
+        <ClientAvatar fullName={client.full_name} className="w-12 h-12 text-base font-display" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="font-display font-bold text-xl truncate">{client.full_name}</h1>
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <h1 className="font-display font-bold text-[17px] leading-tight truncate">{client.full_name}</h1>
             <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${riskTone[risk.level].chip}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-current" />
               {riskShortLabel[risk.level]}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground truncate">{meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}</p>
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+            {meta || `${fms.length} valutazion${fms.length === 1 ? 'e' : 'i'}`}
+          </p>
           {(client.height_cm || client.weight_kg) && (
-            <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap">
-              {client.height_cm ? `${client.height_cm} cm` : ''} {client.weight_kg ? `· ${client.weight_kg} kg` : ''}
-            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {client.height_cm && (
+                <span className="inline-flex items-center rounded-lg border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                  {client.height_cm} cm
+                </span>
+              )}
+              {client.weight_kg && (
+                <span className="inline-flex items-center rounded-lg border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                  {client.weight_kg} kg
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="flex flex-col gap-1.5 shrink-0">
