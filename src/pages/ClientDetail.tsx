@@ -23,6 +23,7 @@ import BiometricGuard from '@/components/clients/BiometricGuard';
 import ClientAvatar from '@/components/ClientAvatar';
 import LastFmsCard from '@/components/client/LastFmsCard';
 import NextStepCard from '@/components/client/NextStepCard';
+import ClientMovementReport from '@/components/fms/ClientMovementReport';
 
 interface Client {
   id: string; full_name: string;
