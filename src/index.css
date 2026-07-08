@@ -52,6 +52,17 @@
     --warning-foreground: 38 92% 15%;
     --success: 160 60% 40%;
     --success-foreground: 0 0% 100%;
+    --success-dark: 160 60% 34%;
+
+    /* Desk background (visible around PhoneShell on desktop). */
+    --desk-bg: 210 16% 91%;
+
+    /* Risk levels (client cards, risk badges). */
+    --risk-critico: 0 72% 48%;
+    --risk-alto: 38 92% 40%;
+    --risk-medio: 24 95% 45%;
+    --risk-basso: 160 60% 36%;
+    --risk-idle: 210 10% 55%;
 
     /* Movement-specific score tokens
        0 = pain (rosso) · 1 = dysfunction (arancione) · 2 = warning (giallo) · 3 = functional (verde) */
