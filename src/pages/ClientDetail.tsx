@@ -187,6 +187,7 @@ export default function ClientDetail() {
 
   // ---- FCS biometric pre-flight ------------------------------------------
   const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const launchFcs = (extra?: { foot_length_cm: number }) => {
     if (!client) return;
     const missing = !client.height_cm || !client.weight_kg
