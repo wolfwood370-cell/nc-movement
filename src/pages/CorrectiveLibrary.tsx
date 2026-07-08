@@ -18,10 +18,10 @@ const PATTERNS: PatternDef[] = [
   { key: 'rotary_stability', label: 'Rotary Stability' },
 ];
 
-const PHASES: { key: CorrectivePhase; label: string }[] = [
-  { key: 'Reset', label: 'Reset' },
-  { key: 'Reactivate', label: 'Reactivate' },
-  { key: 'Reinforce', label: 'Reinforce' },
+const PHASES: { key: CorrectivePhase; label: string; range: string }[] = [
+  { key: 'Reset',      label: 'Reset',      range: 'L 1-3' },
+  { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8' },
+  { key: 'Reinforce',  label: 'Reinforce',  range: 'L 9-12' },
 ];
 
 export default function CorrectiveLibrary() {
