@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock, Zap } from 'lucide-react';
+import { AlertTriangle, Sparkles, FileText, RefreshCw, CalendarClock, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RiskGauge from './RiskGauge';
 import MedicalReferralReport from './MedicalReferralReport';
@@ -12,7 +12,7 @@ import TrialSessionModal from './TrialSessionModal';
 
 import { Button } from '@/components/ui/button';
 import { computeRisk, mobilityStability, ybtAnteriorAsymmetry, type FmsAssessmentRow, type YbtRow } from '@/lib/insights';
-import { getCorrectivePriority, isModifiedFms, type FmsScores } from '@/lib/fms';
+import { computePatterns, getCorrectivePriority, isModifiedFms, type FmsScores } from '@/lib/fms';
 import type { computeFcsMetrics } from '@/lib/fcs';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -106,6 +106,7 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
 
   // ---- FMS total trend ----------------------------------------------------
   const totalTrend = useMemo(() => [...fmsHistory].reverse().map((f) => ({
+    id: f.id,
     date: new Date(f.assessed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
     Totale: f.total_score ?? 0,
   })), [fmsHistory]);
@@ -134,6 +135,70 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
         Asimmetria: asym,
       }));
   }, [ybtHistory]);
+
+  // ---- Evoluzione per pattern (prima → ora), stat row, best/worst mover ----
+  const evolution = useMemo(() => {
+    if (fmsHistory.length < 2) return null;
+    const oldest = fmsHistory[fmsHistory.length - 1];
+    const newest = fmsHistory[0];
+    const oldP = computePatterns(oldest as unknown as FmsScores);
+    const newP = computePatterns(newest as unknown as FmsScores);
+    return newP.map((np) => {
+      const op = oldP.find((p) => p.key === np.key);
+      const before = op?.final ?? null;
+      const now = np.final ?? null;
+      const delta = before != null && now != null ? now - before : null;
+      return { key: np.key, label: np.label, before, now, delta };
+    });
+  }, [fmsHistory]);
+
+  const stats = useMemo(() => {
+    const newest = fmsHistory[0];
+    const oldest = fmsHistory[fmsHistory.length - 1];
+    const newestModified = newest ? isModifiedFms(newest as unknown as FmsScores) : false;
+    // Media/Variazione solo tra FMS dello STESSO tipo dell'ultima: le scale Full (0-21)
+    // e Modified (0-9) non sono confrontabili (stesso principio del delta in LastFmsCard).
+    const sameTypeTotals = fmsHistory
+      .filter((f) => isModifiedFms(f as unknown as FmsScores) === newestModified)
+      .map((f) => f.total_score)
+      .filter((v): v is number => typeof v === 'number');
+    const avg = sameTypeTotals.length
+      ? Math.round((sameTypeTotals.reduce((s, v) => s + v, 0) / sameTypeTotals.length) * 10) / 10
+      : null;
+    const sameType = oldest ? isModifiedFms(oldest as unknown as FmsScores) === newestModified : false;
+    const variation = fmsHistory.length >= 2 && sameType && newest?.total_score != null && oldest?.total_score != null
+      ? newest.total_score - oldest.total_score : null;
+    const asym = newest ? computePatterns(newest as unknown as FmsScores).filter((p) => p.asymmetric).length : 0;
+    return { avg, variation, asym };
+  }, [fmsHistory]);
+
+  const movers = useMemo(() => {
+    if (!evolution) return null;
+    const withDelta = evolution.filter((r): r is typeof r & { delta: number } => r.delta != null && r.delta !== 0);
+    if (withDelta.length === 0) return null;
+    const best = withDelta.reduce((a, b) => (b.delta > a.delta ? b : a));
+    const worst = withDelta.reduce((a, b) => (b.delta < a.delta ? b : a));
+    return { best: best.delta > 0 ? best : null, worst: worst.delta < 0 ? worst : null };
+  }, [evolution]);
+
+  const renderFmsDot = (props: unknown) => {
+    const { cx, cy, index, payload } = props as { cx?: number; cy?: number; index?: number; payload?: { id?: string } };
+    if (typeof cx !== 'number' || typeof cy !== 'number') return <g key={`fd-${index ?? 0}`} />;
+    const pid = payload?.id;
+    return (
+      <circle
+        key={`fd-${index ?? 0}`}
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill="hsl(var(--primary))"
+        stroke="hsl(var(--card))"
+        strokeWidth={2}
+        style={{ cursor: pid ? 'pointer' : undefined }}
+        onClick={pid ? () => navigate(`/assessments/fms/${pid}`) : undefined}
+      />
+    );
+  };
 
   const axisStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
   const tooltipStyle = { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 };
@@ -311,6 +376,68 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
         </section>
       </div>
 
+      {/* ============ Evoluzione per pattern ============ */}
+      {evolution && (
+        <section className="surface-card p-4 space-y-4">
+          <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+            Evoluzione per pattern
+          </h3>
+
+          <div className="grid grid-cols-3 gap-2">
+            <StatTile label="Media" value={stats.avg != null ? String(stats.avg) : '—'} />
+            <StatTile
+              label="Variazione"
+              value={stats.variation == null ? '—' : stats.variation > 0 ? `+${stats.variation}` : String(stats.variation)}
+              tone={stats.variation == null || stats.variation === 0 ? undefined : stats.variation > 0 ? 'up' : 'down'}
+            />
+            <StatTile label="Asimmetrie" value={String(stats.asym)} tone={stats.asym > 0 ? 'down' : undefined} />
+          </div>
+
+          {movers && (movers.best || movers.worst) && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              {movers.best && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-functional/10 text-functional px-2.5 py-1 font-medium">
+                  <TrendingUp className="w-3.5 h-3.5" /> Migliora: {movers.best.label} (+{movers.best.delta})
+                </span>
+              )}
+              {movers.worst && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-pain/10 text-pain px-2.5 py-1 font-medium">
+                  <TrendingDown className="w-3.5 h-3.5" /> Peggiora: {movers.worst.label} ({movers.worst.delta})
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="text-left font-semibold py-1.5">Pattern</th>
+                  <th className="text-center font-semibold py-1.5 w-14">Prima</th>
+                  <th className="text-center font-semibold py-1.5 w-14">Ora</th>
+                  <th className="text-center font-semibold py-1.5 w-12">Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {evolution.map((r) => (
+                  <tr key={r.key} className="border-t border-border/50">
+                    <td className="py-1.5 pr-2">{r.label}</td>
+                    <td className="text-center tabular-nums text-muted-foreground">{r.before ?? '—'}</td>
+                    <td className="text-center tabular-nums font-medium">{r.now ?? '—'}</td>
+                    <td className={`text-center tabular-nums font-semibold ${
+                      r.delta == null || r.delta === 0 ? 'text-muted-foreground' : r.delta > 0 ? 'text-functional' : 'text-pain'
+                    }`}>
+                      {r.delta == null ? '—' : r.delta > 0 ? `+${r.delta}` : r.delta}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[10px] text-muted-foreground">Confronto tra la prima e l'ultima FMS registrata.</p>
+        </section>
+      )}
+
       {/* ============ Longitudinal Progress ============ */}
       <div className="pt-2">
         <h2 className="font-display font-bold text-lg mb-3">Progressione Longitudinale</h2>
@@ -337,7 +464,7 @@ export default function InsightsTab({ fmsHistory, ybtHistory, fcsMetrics, sfmaLa
                       strokeDasharray="4 4"
                       label={{ value: 'Soglia rischio (14)', fill: 'hsl(var(--warning))', fontSize: 10, position: 'insideTopRight' }}
                     />
-                    <Line type="monotone" dataKey="Totale" stroke="hsl(var(--primary))" strokeWidth={2.5} dot />
+                    <Line type="monotone" dataKey="Totale" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={renderFmsDot} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -424,3 +551,13 @@ const EmptyChart = forwardRef<HTMLDivElement, { label: string }>(({ label }, ref
   </div>
 ));
 EmptyChart.displayName = 'EmptyChart';
+
+function StatTile({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
+  const toneClass = tone === 'up' ? 'text-functional' : tone === 'down' ? 'text-pain' : 'text-foreground';
+  return (
+    <div className="rounded-lg border border-border p-2 text-center">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</div>
+      <div className={`font-display font-bold text-xl mt-0.5 ${toneClass}`}>{value}</div>
+    </div>
+  );
+}

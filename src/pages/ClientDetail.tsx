@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { captureBug } from '@/lib/bugReporter';
@@ -36,6 +36,25 @@ interface Client {
   notes: string | null;
 }
 
+// Meta per la timeline Storico: etichetta, icona, colori (token) per tipo di test.
+const TEST_META: Record<'FMS' | 'SFMA' | 'YBT' | 'FCS', { label: string; icon: typeof ClipboardList; dot: string; iconWrap: string }> = {
+  FMS:  { label: 'FMS',  icon: ClipboardList, dot: 'bg-primary',     iconWrap: 'bg-primary/10 text-primary' },
+  SFMA: { label: 'SFMA', icon: Compass,       dot: 'bg-dysfunction', iconWrap: 'bg-dysfunction/10 text-dysfunction' },
+  YBT:  { label: 'YBT',  icon: Activity,      dot: 'bg-functional',  iconWrap: 'bg-functional/10 text-functional' },
+  FCS:  { label: 'FCS',  icon: Gauge,         dot: 'bg-warning',     iconWrap: 'bg-warning/10 text-warning' },
+};
+
+interface TimelineEvent {
+  id: string;
+  type: 'FMS' | 'SFMA' | 'YBT' | 'FCS';
+  date: string;
+  score?: number | null;
+  max?: number;
+  subtitle?: string;
+  modified?: boolean;
+  to: string;
+}
+
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -47,6 +66,8 @@ export default function ClientDetail() {
   const [ybtHistory, setYbtHistory] = useState<YbtRow[]>([]);
   const [sessions, setSessions] = useState<Array<{ id: string; session_type: string; session_number: number | null; status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null }>>([]);
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
+  const [sfmaHistory, setSfmaHistory] = useState<Array<{ id: string; assessed_at: string }>>([]);
+  const [fcsHistory, setFcsHistory] = useState<Array<{ id: string; assessed_at: string }>>([]);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -60,9 +81,9 @@ export default function ClientDetail() {
       supabase.from('fms_assessments').select('*')
         .eq('client_id', id).order('assessed_at', { ascending: false }),
       supabase.from('sfma_assessments').select('*')
-        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
       supabase.from('fcs_assessments').select('*')
-        .eq('client_id', id).order('assessed_at', { ascending: false }).limit(1).maybeSingle(),
+        .eq('client_id', id).order('assessed_at', { ascending: false }),
       supabase.from('ybt_assessments').select('*')
         .eq('client_id', id).order('assessed_at', { ascending: false }),
       profilePromise,
@@ -73,9 +94,14 @@ export default function ClientDetail() {
     ]);
     setClient((c ?? null) as Client | null);
     setFms((a ?? []) as unknown as FmsAssessmentRow[]);
-    setLatestSfma((s ?? null) as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
-    setLatestSfmaBreakouts(parseBreakoutResults((s as { breakout_results?: unknown } | null)?.breakout_results));
-    setLatestFcs((f ?? null) as unknown as FcsFormValues | null);
+    const sArr = (s ?? []) as Array<{ id: string; assessed_at: string; breakout_results?: unknown }>;
+    const latestS = sArr[0] ?? null;
+    setLatestSfma((latestS ?? null) as unknown as (SfmaFormValues & { breakout_results?: unknown; assessed_at?: string }) | null);
+    setLatestSfmaBreakouts(parseBreakoutResults(latestS?.breakout_results));
+    setSfmaHistory(sArr.map((r) => ({ id: r.id, assessed_at: r.assessed_at })));
+    const fArr = (f ?? []) as Array<{ id: string; assessed_at: string }>;
+    setLatestFcs((fArr[0] ?? null) as unknown as FcsFormValues | null);
+    setFcsHistory(fArr.map((r) => ({ id: r.id, assessed_at: r.assessed_at })));
     setYbtHistory((y ?? []) as unknown as YbtRow[]);
     setPractitioner((p ?? null) as { display_name: string | null; professional_title: string | null } | null);
     setSessions((sess ?? []) as typeof sessions);
@@ -136,6 +162,27 @@ export default function ClientDetail() {
     ),
     [fms, ybtHistory, latestSfma, client],
   );
+
+  // Timeline Storico multi-test: FMS + SFMA + YBT + FCS, ordinati per data desc.
+  const timeline = useMemo<TimelineEvent[]>(() => {
+    const ev: TimelineEvent[] = [];
+    for (const a of fms) {
+      ev.push({
+        id: a.id, type: 'FMS', date: a.assessed_at,
+        score: a.total_score,
+        max: fmsMaxTotal(a as unknown as Parameters<typeof fmsMaxTotal>[0]),
+        subtitle: a.primary_corrective ?? undefined,
+        modified: isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]),
+        to: `/assessments/fms/${a.id}`,
+      });
+    }
+    for (const s of sfmaHistory) ev.push({ id: s.id, type: 'SFMA', date: s.assessed_at, to: `/assessments/sfma/${s.id}` });
+    for (const y of ybtHistory) ev.push({ id: y.id, type: 'YBT', date: y.assessed_at, to: `/assessments/ybt/${y.id}` });
+    for (const fc of fcsHistory) ev.push({ id: fc.id, type: 'FCS', date: fc.assessed_at, to: `/assessments/fcs/${fc.id}` });
+    return ev
+      .filter((e) => e.date)
+      .sort((x, z) => new Date(z.date).getTime() - new Date(x.date).getTime());
+  }, [fms, sfmaHistory, ybtHistory, fcsHistory]);
 
   // ---- FCS biometric pre-flight ------------------------------------------
   const [biometricGuardOpen, setBiometricGuardOpen] = useState(false);
@@ -319,38 +366,56 @@ export default function ClientDetail() {
 
 
         <TabsContent value="history" className="mt-4">
-          {fms.length === 0 ? (
+          {timeline.length === 0 ? (
             <div className="surface-card p-8 text-center">
               <ClipboardList className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">Nessuna valutazione FMS.</p>
+              <p className="text-sm text-muted-foreground">Nessuna valutazione registrata.</p>
             </div>
           ) : (
-            <div className="surface-card divide-y divide-border overflow-hidden">
-              {fms.map(a => (
-                <div key={a.id} className="flex items-center justify-between p-2 pl-4 hover:bg-accent/40">
-                  <Link to={`/assessments/fms/${a.id}`} className="flex items-center justify-between flex-1 min-w-0 py-2 min-h-[44px] transition-opacity active:opacity-[0.55]">
-                    <div className="min-w-0">
-                      <div className="font-medium">{new Date(a.assessed_at).toLocaleDateString('it-IT')}</div>
-                      <div className="text-xs text-muted-foreground truncate">{a.primary_corrective ?? '—'}</div>
-                    </div>
-                    <div className="text-right shrink-0 ml-3">
-                      <div className="font-display font-bold text-2xl">{a.total_score ?? '—'}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">
-                        / {fmsMaxTotal(a as unknown as Parameters<typeof fmsMaxTotal>[0])}
-                        {isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]) && (
-                          <span className="ml-1 text-primary font-bold">· Mod</span>
+            <div className="surface-card p-4">
+              <div className="relative pl-6">
+                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
+                {timeline.map((e) => {
+                  const m = TEST_META[e.type];
+                  const Ico = m.icon;
+                  return (
+                    <div key={`${e.type}-${e.id}`} className="relative pb-4 last:pb-0">
+                      <div className={`absolute -left-6 top-2 w-3.5 h-3.5 rounded-full ring-2 ring-card ${m.dot}`} aria-hidden="true" />
+                      <div className="flex items-center gap-1 rounded-lg -mx-2 px-2 hover:bg-accent/40">
+                        <Link to={e.to} className="flex items-center gap-3 flex-1 min-w-0 py-2 min-h-[44px] transition-opacity active:opacity-[0.55]">
+                          <div className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${m.iconWrap}`}>
+                            <Ico className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-sm flex items-center gap-1.5">
+                              {m.label}
+                              {e.modified && <span className="text-[9px] uppercase tracking-wider font-bold text-primary">Mod</span>}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {new Date(e.date).toLocaleDateString('it-IT')}{e.subtitle ? ` · ${e.subtitle}` : ''}
+                            </div>
+                          </div>
+                          {e.type === 'FMS' && (
+                            <div className="text-right shrink-0">
+                              <span className="font-display font-bold text-lg">{e.score ?? '—'}</span>
+                              <span className="text-[10px] text-muted-foreground">/{e.max}</span>
+                            </div>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </Link>
+                        {e.type === 'FMS' && (
+                          <DeleteAssessmentButton
+                            table="fms_assessments"
+                            id={e.id}
+                            label={`FMS ${new Date(e.date).toLocaleDateString('it-IT')}`}
+                            onDeleted={loadAll}
+                          />
                         )}
                       </div>
                     </div>
-                  </Link>
-                  <DeleteAssessmentButton
-                    table="fms_assessments"
-                    id={a.id}
-                    label={`FMS ${new Date(a.assessed_at).toLocaleDateString('it-IT')}`}
-                    onDeleted={loadAll}
-                  />
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
           )}
         </TabsContent>
