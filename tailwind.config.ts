@@ -68,6 +68,14 @@ export default {
           foreground: "hsl(var(--dysfunction-foreground))",
         },
         functional: "hsl(var(--functional))",
+        desk: "hsl(var(--desk-bg))",
+        risk: {
+          critico: "hsl(var(--risk-critico))",
+          alto: "hsl(var(--risk-alto))",
+          medio: "hsl(var(--risk-medio))",
+          basso: "hsl(var(--risk-basso))",
+          idle: "hsl(var(--risk-idle))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
