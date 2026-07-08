@@ -87,7 +87,7 @@ export type Database = {
           id?: string
           injury_notes?: string | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           practitioner_id: string
           primary_sport?: string | null
           updated_at?: string
@@ -262,7 +262,7 @@ export type Database = {
           mcs_wrist_extension_r?: number | null
           motor_score?: number | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           postural_carry_distance_m?: number | null
           postural_carry_load_kg?: number | null
           postural_carry_time_sec?: number | null
@@ -392,7 +392,7 @@ export type Database = {
           inline_lunge_left?: number | null
           inline_lunge_right?: number | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           practitioner_id: string
           primary_corrective?: string | null
           rotary_stability_left?: number | null
@@ -683,7 +683,7 @@ export type Database = {
           goal?: string | null
           id?: string
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           practitioner_id: string
           program?: Json | null
           scheduled_at?: string | null
@@ -787,7 +787,7 @@ export type Database = {
           multi_segmental_rotation_r?:
             | Database["public"]["Enums"]["sfma_score"]
             | null
-          organization_id: string
+          organization_id?: string
           practitioner_id: string
           single_leg_stance_l?: Database["public"]["Enums"]["sfma_score"] | null
           single_leg_stance_r?: Database["public"]["Enums"]["sfma_score"] | null
@@ -915,7 +915,7 @@ export type Database = {
           id?: string
           limb_length_cm?: number | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string
           posterolateral_left_cm?: number | null
           posterolateral_right_cm?: number | null
           posteromedial_left_cm?: number | null
@@ -964,6 +964,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_org_id: { Args: never; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
