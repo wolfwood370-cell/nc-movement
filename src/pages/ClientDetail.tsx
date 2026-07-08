@@ -406,11 +406,15 @@ export default function ClientDetail() {
                               {new Date(e.date).toLocaleDateString('it-IT')}{e.subtitle ? ` · ${e.subtitle}` : ''}
                             </div>
                           </div>
-                          {e.type === 'FMS' && (
-                            <div className="text-right shrink-0">
-                              <span className="font-display font-bold text-lg">{e.score ?? '—'}</span>
-                              <span className="text-[10px] text-muted-foreground">/{e.max}</span>
-                            </div>
+                          {e.type === 'FMS' && e.score != null && (
+                            <span
+                              className={`shrink-0 grid place-items-center w-8 h-8 rounded-full font-display font-bold text-[13px] text-primary-foreground ${
+                                e.score <= 10 ? 'bg-pain' : e.score <= 13 ? 'bg-warning' : 'bg-functional'
+                              }`}
+                              title={`Punteggio ${e.score}/${e.max}`}
+                            >
+                              {e.score}
+                            </span>
                           )}
                           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                         </Link>
