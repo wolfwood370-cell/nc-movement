@@ -18,7 +18,7 @@ const PATTERNS: PatternDef[] = [
   { key: 'rotary_stability', label: 'Rotary Stability' },
 ];
 
-const PHASES: { key: CorrectivePhase; label: string; range: string }[] = [
+
 const PHASES: { key: CorrectivePhase; label: string; range: string; activeClass: string }[] = [
   { key: 'Reset',      label: 'Reset',      range: 'L 1-3',  activeClass: 'data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:hover:bg-blue-500 data-[state=on]:hover:text-white' },
   { key: 'Reactivate', label: 'Reactivate', range: 'L 4-8',  activeClass: 'data-[state=on]:bg-green-500 data-[state=on]:text-white data-[state=on]:hover:bg-green-500 data-[state=on]:hover:text-white' },
