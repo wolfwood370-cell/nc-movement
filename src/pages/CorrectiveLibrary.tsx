@@ -74,23 +74,24 @@ export default function CorrectiveLibrary() {
 
   const list = grouped[activePattern][phase];
 
+  // Postures uniche presenti nella lista corrente (mostrate a destra dell'eyebrow)
+  const postures = useMemo(() => {
+    const set = new Set<string>();
+    for (const ex of list) if (ex.posture_name) set.add(ex.posture_name);
+    return Array.from(set);
+  }, [list]);
+
   return (
     <div className="space-y-4">
-      <header className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Library className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-display font-bold">Libreria Esercizi Correttivi</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Esplora l'intero database correttivo per pattern FMS e fase neuro-evolutiva.
-        </p>
+      <header className="space-y-3">
+        <h1 className="text-2xl font-display font-bold tracking-tight">Libreria correttivi</h1>
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cerca esercizio o postura…"
-            className="pl-9"
+            className="pl-9 rounded-full bg-muted/40 border-transparent focus-visible:border-border"
           />
         </div>
       </header>
@@ -103,7 +104,7 @@ export default function CorrectiveLibrary() {
         counts={patternCounts}
       />
 
-      {/* Selettore fasi a segmenti: Reset → Reactivate → Reinforce (single-select) */}
+      {/* Selettore fasi con range livelli (Reset L 1-3 → Reactivate L 4-8 → Reinforce L 9-12) */}
       <ToggleGroup
         type="single"
         value={phase}
@@ -116,21 +117,25 @@ export default function CorrectiveLibrary() {
             <ToggleGroupItem
               value={p.key}
               aria-label={p.label}
-              className="group flex-1 h-auto min-w-0 rounded-full px-2 py-2 text-xs sm:text-sm font-medium gap-1.5 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+              className="group flex-1 h-auto min-w-0 rounded-2xl px-2 py-2 flex flex-col items-center gap-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground data-[state=on]:bg-functional data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-functional data-[state=on]:hover:text-primary-foreground"
             >
-              <span className="truncate">{p.label}</span>
-              <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[1.25rem] h-4 bg-background/70 text-foreground group-data-[state=on]:bg-primary-foreground/20 group-data-[state=on]:text-primary-foreground">
-                {grouped[activePattern][p.key].length}
+              <span className="text-xs sm:text-sm font-semibold truncate">{p.label}</span>
+              <span className="text-[10px] font-medium opacity-80 group-data-[state=on]:opacity-90 tabular-nums">
+                {p.range}
               </span>
             </ToggleGroupItem>
           </Fragment>
         ))}
       </ToggleGroup>
 
-      <div className="text-xs text-muted-foreground px-1">
-        {loading
-          ? 'Caricamento…'
-          : `${list.length} esercizi · ${PHASES.find((p) => p.key === phase)?.label}`}
+      {/* Eyebrow: fase corrente · N   ·   postures elencate a destra */}
+      <div className="flex items-center justify-between px-1 text-[11px]">
+        <span className="font-semibold tracking-wide">
+          {PHASES.find((p) => p.key === phase)?.label} · <span className="tabular-nums">{loading ? '…' : list.length}</span>
+        </span>
+        {postures.length > 0 && (
+          <span className="text-muted-foreground truncate ml-3">{postures.join(' · ')}</span>
+        )}
       </div>
 
       {list.length === 0 ? (
@@ -138,7 +143,7 @@ export default function CorrectiveLibrary() {
           {loading ? 'Caricamento…' : 'Nessun esercizio per questa combinazione.'}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {list.map((ex) => (
             <ExerciseCard key={ex.id} ex={ex} onPlay={(e) => setVideo({ url: e.video_url!, title: e.name })} />
           ))}
