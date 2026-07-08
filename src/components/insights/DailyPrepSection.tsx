@@ -87,10 +87,17 @@ function ExerciseCard({ title, exercise, fallbackText, staticDose, onPlay }: Car
   );
 }
 
-function SectionHeader({ icon: Icon, label, hint }: { icon: typeof Flame; label: string; hint?: string }) {
+const PHASE_TONE = {
+  blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-400' },
+  green:  { bg: 'bg-green-500/10',  text: 'text-green-600 dark:text-green-400' },
+  orange: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
+} as const;
+
+function SectionHeader({ icon: Icon, label, hint, tone = 'blue' }: { icon: typeof Flame; label: string; hint?: string; tone?: keyof typeof PHASE_TONE }) {
+  const t = PHASE_TONE[tone];
   return (
     <div className="flex items-center gap-2 mb-2">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+      <div className={`w-8 h-8 rounded-lg ${t.bg} ${t.text} flex items-center justify-center`}>
         <Icon className="w-4 h-4" />
       </div>
       <div>
@@ -252,19 +259,19 @@ export default function DailyPrepSection({ latestFms }: Props) {
           </div>
 
           <div>
-            <SectionHeader icon={Flame} label="1. RESET" hint="Ripristina mobilità e input sensoriale" />
+            <SectionHeader icon={Flame} tone="blue" label="1. RESET" hint="Ripristina mobilità e input sensoriale" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reset" exercise={reset} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
 
           <div>
-            <SectionHeader icon={Sparkles} label="2. REACTIVATE" hint="Riattiva il controllo motorio" />
+            <SectionHeader icon={Sparkles} tone="green" label="2. REACTIVATE" hint="Riattiva il controllo motorio" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reactivate" exercise={reactivate} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
 
           <div>
-            <SectionHeader icon={Dumbbell} label="3. REINFORCE" hint="Consolida lo schema motorio" />
+            <SectionHeader icon={Dumbbell} tone="orange" label="3. REINFORCE" hint="Consolida lo schema motorio" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reinforce" exercise={reinforce} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
