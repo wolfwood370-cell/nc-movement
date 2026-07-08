@@ -68,6 +68,14 @@ export default {
           foreground: "hsl(var(--dysfunction-foreground))",
         },
         functional: "hsl(var(--functional))",
+        desk: "hsl(var(--desk-bg))",
+        risk: {
+          critico: "hsl(var(--risk-critico))",
+          alto: "hsl(var(--risk-alto))",
+          medio: "hsl(var(--risk-medio))",
+          basso: "hsl(var(--risk-basso))",
+          idle: "hsl(var(--risk-idle))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -84,12 +92,17 @@ export default {
       },
       boxShadow: {
         'card': 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
         'elevated': 'var(--shadow-elevated)',
+        'cta': 'var(--shadow-cta)',
+        'phone': 'var(--shadow-phone)',
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        phone: "44px",
+        card: "16px",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
