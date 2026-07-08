@@ -254,7 +254,7 @@ export default function DailyPrep() {
           </div>
 
           <div>
-            <SectionHeader icon={Flame} label="1. RESET" hint="Ripristina mobilità e input sensoriale" />
+            <SectionHeader icon={Flame} tone="blue" label="1. RESET" hint="Ripristina mobilità e input sensoriale" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reset" exercise={reset} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
