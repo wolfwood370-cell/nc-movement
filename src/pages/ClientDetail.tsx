@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, ClipboardList, Gauge, Compass, AlertTriangle, Lock, Activity, Sparkles, Dumbbell, ShieldCheck, Zap, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { captureBug } from '@/lib/bugReporter';
