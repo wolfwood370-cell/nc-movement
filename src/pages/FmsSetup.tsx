@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import PhoneShell from '@/components/PhoneShell';
 import { calcAge, computeRisk, riskTone, type FmsAssessmentRow, type RiskResult } from '@/lib/insights';
 
 interface Client {
@@ -25,9 +26,9 @@ function initials(name: string): string {
 }
 
 /**
- * Setup schermata prima di lanciare uno screening FMS:
- * mostra l'elenco clienti da cui partire. Selezione del cliente + CTA "Avvia valutazione".
- * Rotta `/assessments/fms/setup`. Al click Avvia → `/assessments/fms/new?clientId=...`.
+ * FMS Setup — schermata modale prima di avviare uno screening FMS.
+ * Non usa AppShell: sostituisce header e bottom nav con proprio chrome
+ * (back "Nuova FMS" / close X in alto; CTA sticky "Avvia valutazione" in basso).
  */
 export default function FmsSetup() {
   const { user } = useAuth();
@@ -77,9 +78,9 @@ export default function FmsSetup() {
   };
 
   return (
-    <div className="flex flex-col h-full -mx-4 -mt-4 -mb-24">
+    <PhoneShell>
       {/* Header locale con back + close */}
-      <div className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-border bg-card">
+      <header className="h-12 shrink-0 flex items-center justify-between px-3 border-b border-border bg-card">
         <Link
           to="/assessments"
           className="flex items-center gap-1 text-[14px] font-medium text-foreground/80 hover:text-foreground px-2 py-1 -ml-1"
@@ -93,10 +94,9 @@ export default function FmsSetup() {
         >
           <X className="w-4 h-4" />
         </Link>
-      </div>
+      </header>
 
-      {/* Scrollable list */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 scrollbar-none">
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-2 scrollbar-none animate-fade-in">
         <p className="text-[11px] uppercase tracking-widest font-bold text-primary">Nuova valutazione</p>
         <h1 className="font-display font-bold text-[22px] leading-tight mt-1">Functional Movement Screen</h1>
 
@@ -152,9 +152,8 @@ export default function FmsSetup() {
             })}
           </ul>
         )}
-      </div>
+      </main>
 
-      {/* Sticky footer CTA */}
       <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button
           onClick={start}
@@ -164,6 +163,6 @@ export default function FmsSetup() {
           Avvia valutazione <ChevronRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
-    </div>
+    </PhoneShell>
   );
 }
