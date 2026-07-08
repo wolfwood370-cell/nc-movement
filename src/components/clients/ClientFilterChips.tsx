@@ -6,6 +6,8 @@ interface Props {
   value: ClientFilter;
   onChange: (v: ClientFilter) => void;
   counts: Record<ClientFilter, number>;
+  /** Show the count badge on each chip. Default true. Set false for a cleaner pill-only look. */
+  showCounts?: boolean;
 }
 
 const CHIPS: { value: ClientFilter; label: string }[] = [
@@ -18,11 +20,11 @@ const CHIPS: { value: ClientFilter; label: string }[] = [
  * Chip filtro clienti. Firma pubblica invariata ({value,onChange,counts}); internamente
  * costruisce gli items e delega al componente generico FilterChips.
  */
-export default function ClientFilterChips({ value, onChange, counts }: Props) {
+export default function ClientFilterChips({ value, onChange, counts, showCounts = true }: Props) {
   const items: ChipItem<ClientFilter>[] = CHIPS.map((c) => ({
     value: c.value,
     label: c.label,
-    count: counts[c.value],
+    count: showCounts ? counts[c.value] : undefined,
   }));
   return <FilterChips items={items} value={value} onChange={onChange} />;
 }
