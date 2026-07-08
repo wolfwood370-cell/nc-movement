@@ -307,7 +307,7 @@ export default function ClientDetail() {
       )}
 
       <TooltipProvider delayDuration={150}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl active:scale-[0.97]">
             <Plus className="w-5 h-5 mr-2" /> Nuova FMS
           </Button>
