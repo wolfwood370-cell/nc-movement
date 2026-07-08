@@ -190,13 +190,28 @@ const SFMA_LABELS: Record<string, string> = {
 };
 function humanSfma(k: string): string { return SFMA_LABELS[k] ?? k; }
 
-export const riskTone: Record<RiskLevel, { bg: string; text: string; ring: string; chip: string }> = {
-  critical: { bg: 'bg-pain', text: 'text-destructive-foreground', ring: 'ring-pain/40', chip: 'bg-pain text-destructive-foreground' },
-  high:     { bg: 'bg-warning', text: 'text-warning-foreground', ring: 'ring-warning/40', chip: 'bg-warning text-warning-foreground' },
-  moderate: { bg: 'bg-dysfunction', text: 'text-warning-foreground', ring: 'ring-dysfunction/40', chip: 'bg-dysfunction text-warning-foreground' },
-  low:      { bg: 'bg-functional', text: 'text-success-foreground', ring: 'ring-functional/40', chip: 'bg-functional text-success-foreground' },
-  unknown:  { bg: 'bg-muted', text: 'text-muted-foreground', ring: 'ring-border', chip: 'bg-muted text-muted-foreground' },
+export const riskTone: Record<RiskLevel, { bg: string; text: string; ring: string; chip: string; border: string }> = {
+  critical: { bg: 'bg-pain', text: 'text-destructive-foreground', ring: 'ring-pain/40', chip: 'bg-pain text-destructive-foreground', border: 'border-l-pain' },
+  high:     { bg: 'bg-warning', text: 'text-warning-foreground', ring: 'ring-warning/40', chip: 'bg-warning text-warning-foreground', border: 'border-l-warning' },
+  moderate: { bg: 'bg-dysfunction', text: 'text-warning-foreground', ring: 'ring-dysfunction/40', chip: 'bg-dysfunction text-warning-foreground', border: 'border-l-dysfunction' },
+  low:      { bg: 'bg-functional', text: 'text-success-foreground', ring: 'ring-functional/40', chip: 'bg-functional text-success-foreground', border: 'border-l-functional' },
+  unknown:  { bg: 'bg-muted', text: 'text-muted-foreground', ring: 'ring-border', chip: 'bg-muted text-muted-foreground', border: 'border-l-border' },
 };
+
+/** Etichetta breve del livello, per badge/chip compatti (diversa dal `label` clinico). */
+export const riskShortLabel: Record<RiskLevel, string> = {
+  critical: 'Critico',
+  high: 'Alto',
+  moderate: 'Medio',
+  low: 'Basso',
+  unknown: 'Da valutare',
+};
+
+/** "A rischio" = livelli che attivano un'azione clinica (Rinvio Medico / Rischio Elevato). */
+export const AT_RISK_LEVELS: RiskLevel[] = ['critical', 'high'];
+export function isAtRisk(level: RiskLevel): boolean {
+  return AT_RISK_LEVELS.includes(level);
+}
 
 export function calcAge(dob: string | null | undefined): number | null {
   if (!dob) return null;

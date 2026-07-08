@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, ChevronRight, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import ClientForm, { toClientPayload } from '@/components/clients/ClientForm';
-import ClientAvatar from '@/components/ClientAvatar';
-import { calcAge, computeRisk, riskTone, type FmsAssessmentRow } from '@/lib/insights';
+import ClientFilterChips, { type ClientFilter } from '@/components/clients/ClientFilterChips';
+import ClientCard from '@/components/clients/ClientCard';
+import { computeRisk, isAtRisk, type FmsAssessmentRow, type RiskResult } from '@/lib/insights';
 
 interface Client {
   id: string; full_name: string; created_at: string;
   date_of_birth: string | null; primary_sport: string | null;
+}
+
+interface EnrichedClient extends Client {
+  risk: RiskResult;
+  fmsScore: number | null;
 }
 
 export default function Clients() {
@@ -22,6 +27,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState<ClientFilter>('all');
 
   const load = async () => {
     setLoading(true);
@@ -53,8 +59,8 @@ export default function Clients() {
     }
     setLoading(false);
   };
-  // Reload only when the authenticated user's id changes (not on every token
-  // refresh that yields a new-but-equivalent user object).
+
+  // Reload only when the authenticated user's id changes.
   useEffect(() => {
     if (!user) return;
     load();
@@ -72,12 +78,32 @@ export default function Clients() {
     load();
   };
 
+  // Derive risk once per client — single source for badge, border, counts, filter.
+  const enriched = useMemo<EnrichedClient[]>(() => clients.map((c) => {
+    const latest = latestByClient[c.id];
+    return { ...c, risk: computeRisk(latest), fmsScore: latest?.total_score ?? null };
+  }), [clients, latestByClient]);
+
+  const counts = useMemo(() => ({
+    all: enriched.length,
+    atRisk: enriched.filter(e => isAtRisk(e.risk.level)).length,
+    toAssess: enriched.filter(e => e.risk.level === 'unknown').length,
+  }), [enriched]);
+
+  const visible = useMemo(() => {
+    if (filter === 'atRisk') return enriched.filter(e => isAtRisk(e.risk.level));
+    if (filter === 'toAssess') return enriched.filter(e => e.risk.level === 'unknown');
+    return enriched;
+  }, [enriched, filter]);
+
   return (
     <div className="space-y-5">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-display font-bold text-2xl">Clienti</h1>
-          <p className="text-sm text-muted-foreground whitespace-nowrap">{clients.length} in lista</p>
+          <p className="text-sm text-muted-foreground whitespace-nowrap">
+            {clients.length} {clients.length === 1 ? 'cliente' : 'clienti'} · {counts.atRisk} a rischio
+          </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -90,6 +116,10 @@ export default function Clients() {
         </Dialog>
       </div>
 
+      {!loading && clients.length > 0 && (
+        <ClientFilterChips value={filter} onChange={setFilter} counts={counts} />
+      )}
+
       {loading ? (
         <div className="surface-card p-6 text-center text-sm text-muted-foreground">Caricamento…</div>
       ) : clients.length === 0 ? (
@@ -97,35 +127,24 @@ export default function Clients() {
           <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="font-medium">Nessun cliente</p>
         </div>
+      ) : visible.length === 0 ? (
+        <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+          {filter === 'atRisk' ? 'Nessun cliente a rischio.' : 'Nessun cliente da valutare.'}
+        </div>
       ) : (
-        <div className="surface-card divide-y divide-border overflow-hidden">
-          {clients.map(c => {
-            const latest = latestByClient[c.id];
-            const risk = computeRisk(latest);
-            const tone = riskTone[risk.level];
-            const age = calcAge(c.date_of_birth);
-            return (
-              <Link key={c.id} to={`/clients/${c.id}`} className="flex items-center justify-between p-4 hover:bg-accent/40 tap-target">
-                <div className="flex items-center gap-3 min-w-0">
-                  <ClientAvatar fullName={c.full_name} className="w-10 h-10 text-sm" />
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{c.full_name}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[age !== null ? `${age} anni` : null, c.primary_sport].filter(Boolean).join(' · ') ||
-                        `Aggiunto il ${new Date(c.created_at).toLocaleDateString('it-IT')}`}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${tone.chip}`}>
-                    {risk.level === 'unknown' ? '—' : risk.level === 'critical' ? 'critico'
-                      : risk.level === 'high' ? 'alto' : risk.level === 'moderate' ? 'medio' : 'basso'}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </Link>
-            );
-          })}
+        <div className="space-y-2">
+          {visible.map(e => (
+            <ClientCard
+              key={e.id}
+              id={e.id}
+              fullName={e.full_name}
+              createdAt={e.created_at}
+              dateOfBirth={e.date_of_birth}
+              primarySport={e.primary_sport}
+              fmsScore={e.fmsScore}
+              risk={e.risk}
+            />
+          ))}
         </div>
       )}
     </div>
