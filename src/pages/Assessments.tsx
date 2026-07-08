@@ -38,7 +38,7 @@ export default function Assessments() {
         {tests.map(t => (
           <Link
             key={t.key}
-            to="/clients"
+            to={t.key === 'fms' ? '/assessments/fms/setup' : '/clients'}
             className={
               t.primary
                 ? 'bg-card rounded-card border-2 border-primary shadow-cta card-interactive flex items-center gap-3 p-3.5'
