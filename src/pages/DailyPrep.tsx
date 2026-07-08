@@ -266,7 +266,7 @@ export default function DailyPrep() {
           </div>
 
           <div>
-            <SectionHeader icon={Dumbbell} label="3. REINFORCE" hint="Consolida lo schema motorio" />
+            <SectionHeader icon={Dumbbell} tone="orange" label="3. REINFORCE" hint="Consolida lo schema motorio" />
             {loading ? <Skeleton className="h-20 w-full" /> :
               <ExerciseCard title="Reinforce" exercise={reinforce} fallbackText="Nessun esercizio trovato" onPlay={onPlay} />}
           </div>
