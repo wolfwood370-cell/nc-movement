@@ -77,6 +77,29 @@ export default function Auth() {
     document.title = 'Accedi · NC Movement';
   }, []);
 
+  // If arriving with ?invite=<token>, redeem it once a session exists.
+  useEffect(() => {
+    if (!session) return;
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (!inviteToken) return;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke('accept-invite', {
+        body: { token: inviteToken },
+      });
+      if (error || (data && (data as { error?: string }).error)) {
+        const msg = (data as { error?: string } | null)?.error ?? error?.message ?? 'Impossibile accettare l\'invito.';
+        toast.error(msg);
+      } else {
+        toast.success('Invito accettato.');
+      }
+      // Strip the token from the URL either way so it isn't retried.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, '', url.toString());
+    })();
+  }, [session]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
