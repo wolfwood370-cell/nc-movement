@@ -1,20 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Library, Search, PlayCircle } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Library, Search, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import PatternChips, { type PatternDef } from '@/components/library/PatternChips';
+import ExerciseCard from '@/components/library/ExerciseCard';
 import ExerciseVideoDialog from '@/components/insights/ExerciseVideoDialog';
 import type { CorrectivePhase, ExerciseRow } from '@/hooks/useCorrectiveExercises';
 
-const PATTERNS: { key: string; label: string }[] = [
+const PATTERNS: PatternDef[] = [
   { key: 'deep_squat', label: 'Deep Squat' },
   { key: 'hurdle_step', label: 'Hurdle Step' },
   { key: 'inline_lunge', label: 'Inline Lunge' },
@@ -24,10 +18,10 @@ const PATTERNS: { key: string; label: string }[] = [
   { key: 'rotary_stability', label: 'Rotary Stability' },
 ];
 
-const PHASES: { key: CorrectivePhase; label: string; sublabel: string }[] = [
-  { key: 'Reset', label: 'Reset', sublabel: 'Livelli 1–3 · Supine, Prone, Side Lying' },
-  { key: 'Reactivate', label: 'Reactivate', sublabel: 'Livelli 4–8 · Quadruped → Half Kneeling' },
-  { key: 'Reinforce', label: 'Reinforce', sublabel: 'Livelli 9–12 · Split Stance → Standing' },
+const PHASES: { key: CorrectivePhase; label: string }[] = [
+  { key: 'Reset', label: 'Reset' },
+  { key: 'Reactivate', label: 'Reactivate' },
+  { key: 'Reinforce', label: 'Reinforce' },
 ];
 
 export default function CorrectiveLibrary() {
@@ -35,6 +29,7 @@ export default function CorrectiveLibrary() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activePattern, setActivePattern] = useState(PATTERNS[0].key);
+  const [phase, setPhase] = useState<CorrectivePhase>('Reset');
   const [video, setVideo] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -67,8 +62,17 @@ export default function CorrectiveLibrary() {
     return map;
   }, [rows, search]);
 
-  const totalForPattern = (key: string) =>
-    grouped[key].Reset.length + grouped[key].Reactivate.length + grouped[key].Reinforce.length;
+  // Conteggio esercizi per pattern (rispetta la ricerca) — alimenta i chip.
+  const patternCounts = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const p of PATTERNS) {
+      const g = grouped[p.key];
+      out[p.key] = g.Reset.length + g.Reactivate.length + g.Reinforce.length;
+    }
+    return out;
+  }, [grouped]);
+
+  const list = grouped[activePattern][phase];
 
   return (
     <div className="space-y-4">
@@ -91,79 +95,55 @@ export default function CorrectiveLibrary() {
         </div>
       </header>
 
-      <Tabs value={activePattern} onValueChange={setActivePattern}>
-        <div className="overflow-x-auto -mx-4 px-4 pb-1">
-          <TabsList className="inline-flex w-max">
-            {PATTERNS.map(p => (
-              <TabsTrigger key={p.key} value={p.key} className="whitespace-nowrap">
-                {p.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      {/* Chip pattern (single-select, scrollabili) */}
+      <PatternChips
+        patterns={PATTERNS}
+        value={activePattern}
+        onChange={setActivePattern}
+        counts={patternCounts}
+      />
 
-        {PATTERNS.map(p => (
-          <TabsContent key={p.key} value={p.key} className="space-y-3">
-            <div className="text-xs text-muted-foreground px-1">
-              {loading ? 'Caricamento…' : `${totalForPattern(p.key)} esercizi`}
-            </div>
-            <Accordion type="multiple" defaultValue={['Reset', 'Reactivate', 'Reinforce']}>
-              {PHASES.map(phase => {
-                const list = grouped[p.key][phase.key];
-                return (
-                  <AccordionItem key={phase.key} value={phase.key}>
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex flex-col items-start text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{phase.label}</span>
-                          <Badge variant="secondary" className="text-[10px]">{list.length}</Badge>
-                        </div>
-                        <span className="text-xs text-muted-foreground font-normal">{phase.sublabel}</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {list.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-2">Nessun esercizio.</p>
-                      ) : (
-                        <div className="grid gap-2">
-                          {list.map(ex => {
-                            const playable = !!ex.video_url;
-                            return (
-                              <Card
-                                key={ex.id}
-                                className={`border-border ${playable ? 'card-interactive cursor-pointer hover:border-primary/50' : 'transition-colors'}`}
-                                onClick={playable ? () => setVideo({ url: ex.video_url!, title: ex.name }) : undefined}
-                              >
-                                <CardContent className="p-3 space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline" className="text-[10px]">
-                                      L{ex.posture_level} · {ex.posture_name}
-                                    </Badge>
-                                    {playable && (
-                                      <PlayCircle className="w-4 h-4 text-primary ml-auto" />
-                                    )}
-                                  </div>
-                                  <div className="text-sm font-medium leading-snug">{ex.name}</div>
-                                  {ex.goal && (
-                                    <div className="text-xs text-muted-foreground">{ex.goal}</div>
-                                  )}
-                                  {ex.dose && (
-                                    <div className="text-xs text-muted-foreground italic">{ex.dose}</div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </TabsContent>
+      {/* Selettore fasi a segmenti: Reset → Reactivate → Reinforce (single-select) */}
+      <ToggleGroup
+        type="single"
+        value={phase}
+        onValueChange={(v) => v && setPhase(v as CorrectivePhase)}
+        className="w-full justify-between gap-1"
+      >
+        {PHASES.map((p, i) => (
+          <Fragment key={p.key}>
+            {i > 0 && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />}
+            <ToggleGroupItem
+              value={p.key}
+              aria-label={p.label}
+              className="group flex-1 h-auto min-w-0 rounded-full px-2 py-2 text-xs sm:text-sm font-medium gap-1.5 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+            >
+              <span className="truncate">{p.label}</span>
+              <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[1.25rem] h-4 bg-background/70 text-foreground group-data-[state=on]:bg-primary-foreground/20 group-data-[state=on]:text-primary-foreground">
+                {grouped[activePattern][p.key].length}
+              </span>
+            </ToggleGroupItem>
+          </Fragment>
         ))}
-      </Tabs>
+      </ToggleGroup>
+
+      <div className="text-xs text-muted-foreground px-1">
+        {loading
+          ? 'Caricamento…'
+          : `${list.length} esercizi · ${PHASES.find((p) => p.key === phase)?.label}`}
+      </div>
+
+      {list.length === 0 ? (
+        <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+          {loading ? 'Caricamento…' : 'Nessun esercizio per questa combinazione.'}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {list.map((ex) => (
+            <ExerciseCard key={ex.id} ex={ex} onPlay={(e) => setVideo({ url: e.video_url!, title: e.name })} />
+          ))}
+        </div>
+      )}
 
       <ExerciseVideoDialog
         open={!!video}
