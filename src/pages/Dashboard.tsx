@@ -1,50 +1,74 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Users, Activity, ChevronRight } from 'lucide-react';
+import { Plus, Users, Activity, ChevronRight, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import ClientForm, { type ClientFormValues, toClientPayload } from '@/components/clients/ClientForm';
 import ClientAvatar from '@/components/ClientAvatar';
-import ClinicalKpiRow from '@/components/dashboard/ClinicalKpiRow';
-import MacroAnalytics from '@/components/dashboard/MacroAnalytics';
+import { useMacroAnalytics } from '@/hooks/useMacroAnalytics';
 import logoFms from '@/assets/logo-fms.png';
 import logoSfma from '@/assets/logo-sfma.png';
 import logoFcs from '@/assets/logo-fcs.png';
 import logoYbt from '@/assets/logo-ybt.png';
 
 interface Client { id: string; full_name: string; created_at: string }
-interface RecentAssessment {
-  id: string; assessed_at: string; total_score: number | null; primary_corrective: string | null;
-  client_id: string; clients: { full_name: string } | null;
-}
 
 const quickTests = [
-  { key: 'fms',  label: 'FMS',  desc: 'Functional Movement Screen', logo: logoFms  },
-  { key: 'sfma', label: 'SFMA', desc: 'Selective Functional Mvt.',  logo: logoSfma },
-  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance Test',             logo: logoYbt  },
-  { key: 'fcs',  label: 'FCS',  desc: 'Capacità Fondamentali',      logo: logoFcs  },
+  { key: 'fms',  label: 'FMS',  desc: 'Movement Screen',      logo: logoFms  },
+  { key: 'sfma', label: 'SFMA', desc: 'Functional Mvt.',      logo: logoSfma },
+  { key: 'ybt',  label: 'YBT',  desc: 'Y-Balance',            logo: logoYbt  },
+  { key: 'fcs',  label: 'FCS',  desc: 'Cap. Fondamentali',    logo: logoFcs  },
 ];
 
+/* ---------- KPI card (tinted border, colored value) ---------- */
+type KpiTone = 'default' | 'functional' | 'warning' | 'dysfunction' | 'pain';
+const KPI_TONE: Record<KpiTone, { border: string; iconBg: string; iconText: string; value: string }> = {
+  default:     { border: 'border-border',          iconBg: 'bg-primary/10',     iconText: 'text-primary',     value: 'text-foreground' },
+  functional:  { border: 'border-functional/40',   iconBg: 'bg-functional/15',  iconText: 'text-functional',  value: 'text-functional' },
+  warning:     { border: 'border-warning/40',      iconBg: 'bg-warning/15',     iconText: 'text-warning',     value: 'text-warning' },
+  dysfunction: { border: 'border-dysfunction/40',  iconBg: 'bg-dysfunction/15', iconText: 'text-dysfunction', value: 'text-dysfunction' },
+  pain:        { border: 'border-pain/40',         iconBg: 'bg-pain/15',        iconText: 'text-pain',        value: 'text-pain' },
+};
+
+function KpiCard({
+  icon: Icon, label, value, hint, tone = 'default',
+}: {
+  icon: typeof Users; label: string; value: string; hint?: string; tone?: KpiTone;
+}) {
+  const t = KPI_TONE[tone];
+  return (
+    <div className={`bg-card rounded-card border ${t.border} shadow-card p-3.5`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-8 h-8 rounded-lg ${t.iconBg} ${t.iconText} flex items-center justify-center shrink-0`}>
+          <Icon className="w-4 h-4" strokeWidth={2.25} />
+        </div>
+        <div className="text-[9px] uppercase tracking-[0.09em] text-muted-foreground font-semibold truncate">
+          {label}
+        </div>
+      </div>
+      <div className={`font-display font-bold text-[30px] leading-none mt-2.5 ${t.value}`}>{value}</div>
+      {hint && <div className="text-[10px] text-muted-foreground mt-1 truncate">{hint}</div>}
+    </div>
+  );
+}
+
+/* ---------- Dashboard ---------- */
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
-  const [recent, setRecent] = useState<RecentAssessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
   const [practitionerName, setPractitionerName] = useState<string | null>(null);
+  const { data: analytics } = useMacroAnalytics();
 
-  // Today's date, it-IT, uppercased — used as the header eyebrow.
   const todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
     .format(new Date())
     .toUpperCase();
@@ -65,39 +89,39 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [clientsRes, recentRes, fms, fcs, sfma, ybt] = await Promise.all([
+    const [clientsRes, fms, fcs, sfma, ybt] = await Promise.all([
       supabase.from('clients').select('id, full_name, created_at').order('created_at', { ascending: false }),
-      supabase.from('fms_assessments')
-        .select('id, assessed_at, total_score, primary_corrective, client_id, clients(full_name)')
-        .order('assessed_at', { ascending: false }).limit(5),
-      // Bound the per-table activity scan (only the most recent rows matter for
-      // sorting clients by last activity). Avoids transferring the whole table.
-      supabase.from('fms_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
+      supabase.from('fms_assessments').select('client_id, assessed_at, total_score').order('assessed_at', { ascending: false }).limit(500),
       supabase.from('fcs_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
       supabase.from('sfma_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
       supabase.from('ybt_assessments').select('client_id, assessed_at').order('assessed_at', { ascending: false }).limit(500),
     ]);
-    const c = clientsRes.data;
-    const r = recentRes.data;
-    if (clientsRes.error || recentRes.error || fms.error || fcs.error || sfma.error || ybt.error) {
+    if (clientsRes.error || fms.error || fcs.error || sfma.error || ybt.error) {
       toast.error('Errore nel caricamento della dashboard.');
     }
-    const lastByClient = new Map<string, number>();
-    for (const rows of [fms.data, fcs.data, sfma.data, ybt.data]) {
-      for (const a of (rows ?? []) as { client_id: string; assessed_at: string }[]) {
+    const c = clientsRes.data ?? [];
+    // Last activity per client → sort recent clients
+    const lastByClient = new Map<string, { time: number; kind: string; score?: number | null }>();
+    const push = (rows: { client_id: string; assessed_at: string; total_score?: number | null }[] | null, kind: string) => {
+      for (const a of rows ?? []) {
         const t = new Date(a.assessed_at).getTime();
-        const prev = lastByClient.get(a.client_id) ?? 0;
-        if (t > prev) lastByClient.set(a.client_id, t);
+        const prev = lastByClient.get(a.client_id);
+        if (!prev || t > prev.time) lastByClient.set(a.client_id, { time: t, kind, score: a.total_score ?? null });
       }
-    }
-    const sorted = [...(c ?? [])].sort((a, b) => {
-      const ta = lastByClient.get(a.id) ?? new Date(a.created_at).getTime();
-      const tb = lastByClient.get(b.id) ?? new Date(b.created_at).getTime();
+    };
+    push(fms.data as any, 'FMS');
+    push(sfma.data as any, 'SFMA');
+    push(fcs.data as any, 'FCS');
+    push(ybt.data as any, 'YBT');
+    const sorted = [...c].sort((a, b) => {
+      const ta = lastByClient.get(a.id)?.time ?? new Date(a.created_at).getTime();
+      const tb = lastByClient.get(b.id)?.time ?? new Date(b.created_at).getTime();
       return tb - ta;
     });
     setClients(sorted);
-    setRecent((r ?? []) as RecentAssessment[]);
     setLoading(false);
+    // Attach last activity for rendering
+    (window as any).__lastByClient = lastByClient;
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -124,72 +148,120 @@ export default function Dashboard() {
     setPickTestOpen(null);
   };
 
+  const lastByClient: Map<string, { time: number; kind: string; score?: number | null }> =
+    (typeof window !== 'undefined' && (window as any).__lastByClient) || new Map();
+
+  const relTime = (ms: number) => {
+    const diff = Date.now() - ms;
+    const day = 24 * 60 * 60 * 1000;
+    if (diff < day) return 'oggi';
+    if (diff < 2 * day) return 'ieri';
+    if (diff < 7 * day) return `${Math.floor(diff / day)}g fa`;
+    if (diff < 30 * day) return `${Math.floor(diff / (7 * day))}sett fa`;
+    return `${Math.floor(diff / (30 * day))}m fa`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header: date eyebrow + greeting + Test dropdown */}
-      <header className="flex items-start justify-between gap-3">
+      {/* Header: date eyebrow + greeting + Test pill */}
+      <header className="flex items-start justify-between gap-3 pt-1">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">{todayLabel}</p>
-          <h1 className="font-display text-3xl font-bold mt-1 text-gradient-primary truncate">
-            Ciao, {practitionerName ?? 'Nicolò'}
+          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">{todayLabel}</p>
+          <h1 className="font-display text-[26px] font-bold mt-1.5 tracking-tight leading-none">
+            Ciao, <span className="text-primary">{practitionerName ?? 'Nicolò'}</span>
           </h1>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="rounded-full shrink-0 active:scale-[0.94]">
-              <Plus className="w-4 h-4 mr-1" /> Test
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {quickTests.map(t => (
-              <DropdownMenuItem
-                key={t.key}
-                onClick={() => setPickTestOpen(t.key)}
-                className="gap-2 cursor-pointer"
-              >
-                <img src={t.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
-                <span className="font-medium">{t.label}</span>
-                <span className="text-xs text-muted-foreground ml-auto truncate">{t.desc}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          onClick={() => setPickTestOpen('fms')}
+          className="rounded-full shrink-0 shadow-cta h-9 px-4 active:scale-[0.96]"
+        >
+          <Plus className="w-4 h-4 mr-1" /> Test
+        </Button>
       </header>
 
-      {/* Clinical KPIs */}
-      <ClinicalKpiRow />
-
-      {/* Quick start — compact tiles */}
+      {/* Panoramica clinica — 2×2 tinted KPIs */}
       <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Avvio rapido</h2>
-        <div className="grid grid-cols-4 gap-2">
+        <h2 className="font-display font-semibold text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-2.5">
+          Panoramica clinica
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5">
+          <KpiCard
+            icon={Users}
+            label="Clienti attivi"
+            value={String(analytics?.totalClients ?? '—')}
+            hint={analytics ? `${analytics.clientsWithFms} con FMS` : undefined}
+          />
+          <KpiCard
+            icon={Activity}
+            label="Score FMS medio"
+            value={analytics?.averageFmsScore != null ? `${analytics.averageFmsScore}` : '—'}
+            hint="su 21"
+            tone={analytics?.averageFmsScore != null && analytics.averageFmsScore < 14 ? 'warning' : 'functional'}
+          />
+          <KpiCard
+            icon={ArrowLeftRight}
+            label="Asimmetrie"
+            value={analytics ? `${analytics.asymmetryRate}%` : '—'}
+            hint="≥1 asimmetria"
+            tone={analytics && analytics.asymmetryRate >= 40 ? 'dysfunction' : 'default'}
+          />
+          <KpiCard
+            icon={AlertTriangle}
+            label="Red flag"
+            value={analytics ? `${analytics.redFlagRate}%` : '—'}
+            hint="clearing / dolore"
+            tone={analytics && analytics.redFlagRate > 0 ? 'pain' : 'functional'}
+          />
+        </div>
+      </section>
+
+      {/* Avvio rapido — 2×2 test cards with logo + label + subtitle */}
+      <section>
+        <h2 className="font-display font-semibold text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-2.5">
+          Avvio rapido
+        </h2>
+        <div className="grid grid-cols-2 gap-2.5">
           {quickTests.map(t => (
             <button
               key={t.key}
               onClick={() => setPickTestOpen(t.key)}
               aria-label={`${t.label} — ${t.desc}`}
-              className="surface-card card-interactive flex flex-col items-center gap-1.5 p-2.5"
+              className="surface-card card-interactive flex items-center gap-3 p-3.5 text-left"
             >
-              <img src={t.logo} alt="" className="w-8 h-8 object-contain" />
-              <span className="text-[11px] font-medium">{t.label}</span>
+              <img src={t.logo} alt="" className="w-9 h-9 object-contain shrink-0" />
+              <div className="min-w-0">
+                <div className="font-display font-bold text-[15px] leading-tight">{t.label}</div>
+                <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">{t.desc}</div>
+              </div>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Clients */}
+      {/* Clienti recenti */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground">Clienti</h2>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full active:scale-[0.94]"><Plus className="w-4 h-4 mr-1" />Nuovo</Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
-              <ClientForm onSubmit={createClient} submitting={submitting} submitLabel="Aggiungi e avvia FMS" />
-            </DialogContent>
-          </Dialog>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <h2 className="font-display font-semibold text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            Clienti recenti
+          </h2>
+          <div className="flex items-center gap-3">
+            {clients.length > 0 && (
+              <Link to="/clients" className="text-[11px] font-semibold text-primary tracking-wide">
+                Tutti ({clients.length})
+              </Link>
+            )}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <button className="text-primary" aria-label="Nuovo cliente">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Aggiungi cliente</DialogTitle></DialogHeader>
+                <ClientForm onSubmit={createClient} submitting={submitting} submitLabel="Aggiungi e avvia FMS" />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {loading ? (
@@ -202,62 +274,30 @@ export default function Dashboard() {
             <Button onClick={() => setOpen(true)} className="mt-4"><Plus className="w-4 h-4 mr-1" />Aggiungi cliente</Button>
           </div>
         ) : (
-          <div className="surface-card divide-y divide-border overflow-hidden">
-            {clients.slice(0, 5).map(c => (
-              <Link key={c.id} to={`/clients/${c.id}`}
-                className="flex items-center justify-between p-4 hover:bg-accent/40 transition-colors tap-target">
-                <div className="flex items-center gap-3 min-w-0">
-                  <ClientAvatar fullName={c.full_name} className="w-10 h-10 text-sm font-display" />
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{c.full_name}</div>
-                    <div className="text-xs text-muted-foreground">Aggiunto il {new Date(c.created_at).toLocaleDateString('it-IT')}</div>
+          <div className="space-y-2">
+            {clients.slice(0, 4).map(c => {
+              const last = lastByClient.get(c.id);
+              return (
+                <Link key={c.id} to={`/clients/${c.id}`}
+                  className="surface-card card-interactive flex items-center justify-between gap-3 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ClientAvatar fullName={c.full_name} className="w-10 h-10 text-sm font-display" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[14px] truncate">{c.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-functional inline-block" />
+                        {last
+                          ? `${last.kind}${last.score != null ? ' ' + last.score : ''} · ${relTime(last.time)}`
+                          : `Aggiunto ${new Date(c.created_at).toLocaleDateString('it-IT')}`}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </Link>
-            ))}
-            {clients.length > 5 && (
-              <Link to="/clients" className="flex items-center justify-center p-3 text-sm text-primary font-medium hover:bg-accent/40">
-                Vedi tutti i {clients.length} clienti
-              </Link>
-            )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </Link>
+              );
+            })}
           </div>
         )}
-      </section>
-
-      {/* Recent FMS */}
-      <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Valutazioni recenti</h2>
-        {recent.length === 0 ? (
-          <div className="surface-card p-6 text-center text-sm text-muted-foreground">
-            <Activity className="w-8 h-8 mx-auto mb-2 opacity-60" />
-            Ancora nessuna valutazione.
-          </div>
-        ) : (
-          <div className="surface-card divide-y divide-border overflow-hidden">
-            {recent.map(a => (
-              <Link key={a.id} to={`/assessments/fms/${a.id}`}
-                className="flex items-center justify-between p-4 hover:bg-accent/40 transition-colors tap-target">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{a.clients?.full_name ?? 'Sconosciuto'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    FMS · {new Date(a.assessed_at).toLocaleDateString('it-IT')} · {a.primary_corrective ?? '—'}
-                  </div>
-                </div>
-                <div className="text-right shrink-0 ml-3">
-                  <div className="font-display font-bold text-xl">{a.total_score ?? '—'}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">/ 21</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Clinical overview — charts */}
-      <section>
-        <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Panoramica clinica</h2>
-        <MacroAnalytics />
       </section>
 
       {/* Pick client for selected test */}
@@ -278,7 +318,7 @@ export default function Dashboard() {
               {clients.map(c => (
                 <button key={c.id}
                   onClick={() => pickTestOpen && startTest(pickTestOpen, c.id)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-accent/40 tap-target text-left">
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-accent/40 text-left">
                   <ClientAvatar fullName={c.full_name} className="w-9 h-9 text-sm" />
                   <span className="font-medium">{c.full_name}</span>
                 </button>
