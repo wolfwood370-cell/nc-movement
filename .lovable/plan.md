@@ -64,3 +64,60 @@ Comincio da **Fase 1 (multi-tenancy)** perché blocca tutto il resto. Include:
 1. **OK a partire da Fase 1 multi-tenancy?** (raccomandato)
 2. **Preferisci saltare a Paddle billing subito** (più veloce da mostrare, ma senza multi-tenancy limita il valore)?
 3. **Vuoi che prepari prima il deck FMS** con lo stato attuale, senza toccare codice?
+
+---
+
+# Piano: Integrazione Design Handoff Claude (rifacimento schermata per schermata)
+
+Riferimento: `/tmp/ncm/design_handoff_lovable/` (già letto e mappato).
+
+## Fase A — Foundations (tokens + PhoneShell + BottomNav) ← IN CORSO
+- Aggiungere token CSS mancanti (`--desk-bg`, `--risk-critico/alto/medio/basso/idle`, ombra `cta`, radius `phone`)
+- Estendere `tailwind.config.ts` con `risk.*`, `boxShadow.cta`, `borderRadius.phone`
+- Nuovo componente `<PhoneShell>` che su desktop rende cornice 390×844 rounded-[44px] su sfondo desk-bg
+- Refactor `AppShell` per usare PhoneShell (mobile: full-screen; desktop: framed)
+
+## Fase B — Dashboard (screenshot 01)
+- Riordinare sezioni: Panoramica clinica (2×2 tinted) → Avvio rapido (2×2 grandi con logo+desc) → Clienti recenti (eyebrow con "Tutti (N)")
+- KPI card più grande con valore in colore del tono
+- Rimuovere MacroAnalytics dalla Dashboard (o spostarla in fondo come sezione secondaria)
+
+## Fase C — Clienti (screenshot 02)
+- Header "Clienti · N clienti · X a rischio" + pill "+ Nuovo"
+- Chip filtro Tutti / A rischio / Da valutare (funzionali)
+- Righe con barra rischio sinistra + avatar + meta + badge rischio + chevron
+
+## Fase D — Test picker (screenshot 03)
+- Route `/assessments` come picker: FMS attivo (glow rosso + pill Avvia), SFMA/YBT/FCS card info
+
+## Fase E — FMS Setup (screenshot 05)
+- Header "Nuova FMS" + eyebrow + titolo
+- Sezione "Assegna a un cliente" (lista selezionabile)
+- Sezione "Tipo di screening" (Completo/Modificato cards)
+- CTA sticky footer
+
+## Fase F — FMS Wizard (screenshot 06)
+- Header sticky con anello progresso + rail 7/3 segmenti colorati + chip focus live
+- Corpo pattern: label+hint+box punteggio live colorato+badge asimmetria+bottoni 0/1/2/3 (bilaterale = 2 gruppi L/R)
+- Moduli condizionali (misure, ankle clearing, clearing pain toggles)
+
+## Fase G — Scheda cliente + PT Pack (screenshot 07)
+- Card profilo + Ultima FMS con anello + Prossimo passo + Banner Lock
+- Griglia 4 CTA test (con lucchetto se lock)
+- Tab PT Pack / Storico / Insights
+
+## Fase H — Storico + Past Test (screenshot 08)
+- Timeline verticale + overlay Past Test read-only
+
+## Fase I — Insights (screenshot 09)
+- Line chart + stat row + banner mover + tabella evoluzione per pattern
+
+## Fase J — Libreria correttivi (screenshot 04)
+- Chip pattern + selettore 3R (Reset/Reactivate/Reinforce) + griglia card esercizio
+
+## Fase K — Report cliente (screenshot 10)
+- Overlay "Il tuo report di movimento" consumer-friendly
+
+## Fase L — QA finale
+- Confronto pixel con tutti i 10 screenshot
+- Responsive check (< 430px full-screen, ≥ 430px cornice desktop)
