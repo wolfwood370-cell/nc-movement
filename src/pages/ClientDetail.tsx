@@ -468,6 +468,17 @@ export default function ClientDetail() {
           launchFcs({ foot_length_cm });
         }}
       />
+
+      {fms[0] && (
+        <ClientMovementReport
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+          clientName={client.full_name}
+          practitionerName={practitioner?.display_name ?? null}
+          assessedAt={fms[0].assessed_at}
+          scores={fms[0] as unknown as Parameters<typeof ClientMovementReport>[0]['scores']}
+        />
+      )}
     </div>
   );
 }
