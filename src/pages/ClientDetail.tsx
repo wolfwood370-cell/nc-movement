@@ -89,6 +89,9 @@ export default function ClientDetail() {
     if (sessions.length > 0) return;
     const lastModified = fms.find(a => isModifiedFms(a as unknown as Parameters<typeof isModifiedFms>[0]));
     if (!lastModified) return;
+    // Lock clinico: se l'ultima FMS ha red flag (dolore / clearing / asimmetria critica),
+    // NON auto-generare il PT Pack — vanno risolti con una SFMA prima.
+    if (hasCriticalRedFlags(fms[0] ?? null).hasFlags) return;
     let cancelled = false;
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -205,9 +208,9 @@ export default function ClientDetail() {
         <div className="surface-card border-pain/40 bg-pain/5 p-3 flex items-start gap-3">
           <Lock className="w-5 h-5 text-pain shrink-0 mt-0.5" />
           <div className="text-xs space-y-1">
-            <div className="font-semibold text-pain">Lock Clinico: FCS e YBT bloccati</div>
+            <div className="font-semibold text-pain">Lock Clinico: FCS, YBT e generazione PT Pack bloccati</div>
             <div className="text-muted-foreground">
-              Risolvi i red flag della FMS (Dolore / Asimmetria) tramite SFMA prima di procedere con i test di capacità dinamica.
+              Risolvi i red flag della FMS (Dolore / Asimmetria) tramite SFMA prima di procedere con i test di capacità dinamica o generare il PT Pack.
             </div>
             {redFlags.reasons.length > 0 && (
               <ul className="list-disc list-inside text-muted-foreground/80">
@@ -283,7 +286,7 @@ export default function ClientDetail() {
         </TabsList>
 
         <TabsContent value="ptpack" className="mt-4">
-          <PtPackPanel sessions={sessions} clientId={client.id} clientName={client.full_name} latestFms={fms[0] ?? null} onChanged={loadAll} />
+          <PtPackPanel sessions={sessions} clientId={client.id} clientName={client.full_name} latestFms={fms[0] ?? null} onChanged={loadAll} redFlagBlock={redFlags.hasFlags} />
         </TabsContent>
 
 
@@ -357,8 +360,8 @@ type SessionRow = {
   status: string; scheduled_at: string | null; created_at: string; fms_assessment_id: string | null;
 };
 
-function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
-  sessions: SessionRow[]; clientId: string; clientName: string; latestFms: FmsAssessmentRow | null; onChanged: () => void;
+function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged, redFlagBlock }: {
+  sessions: SessionRow[]; clientId: string; clientName: string; latestFms: FmsAssessmentRow | null; onChanged: () => void; redFlagBlock: boolean;
 }) {
   const navigate = useNavigate();
   // Scope to the latest FMS assessment only. Each saved FMS spawns its own
@@ -437,6 +440,20 @@ function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
   };
 
   if (scoped.length === 0) {
+    if (redFlagBlock) {
+      return (
+        <div className="surface-card border-pain/40 bg-pain/5 p-8 text-center space-y-3">
+          <Lock className="w-10 h-10 mx-auto text-pain" />
+          <p className="text-sm font-medium text-pain">Generazione PT Pack bloccata</p>
+          <p className="text-sm text-muted-foreground">
+            Risolvi i red flag della FMS con una SFMA prima di generare il pacchetto.
+          </p>
+          <Button variant="secondary" onClick={() => navigate(`/assessments/sfma/new?clientId=${clientId}`)}>
+            <Compass className="w-4 h-4 mr-2" /> Nuova SFMA
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="surface-card p-8 text-center space-y-3">
         <Sparkles className="w-10 h-10 mx-auto text-muted-foreground" />
@@ -472,19 +489,21 @@ function PtPackPanel({ sessions, clientId, clientName, latestFms, onChanged }: {
       {/* Single Genera CTA — produces all 3 coherent sessions at once */}
       <div className="surface-card p-4 flex items-center gap-3">
         <div className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${
-          generated ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+          redFlagBlock ? 'bg-pain/10 text-pain' : generated ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
         }`}>
-          <Sparkles className="w-5 h-5" />
+          {redFlagBlock ? <Lock className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-display font-semibold text-sm">PT Pack — 3 Sessioni</div>
-          <div className="text-[11px] text-muted-foreground">
-            {generated
-              ? <>Obiettivo: <span className="font-semibold text-foreground">{sharedGoal}</span> · Riscaldamento dalla scheda <span className="font-semibold">Insights</span></>
-              : 'Genera in un click tutte e 3 le sessioni con coerenza unificante'}
+          <div className={`text-[11px] ${redFlagBlock ? 'text-pain' : 'text-muted-foreground'}`}>
+            {redFlagBlock
+              ? 'Lock clinico: risolvi i red flag della FMS con una SFMA prima di generare.'
+              : generated
+                ? <>Obiettivo: <span className="font-semibold text-foreground">{sharedGoal}</span> · Riscaldamento dalla scheda <span className="font-semibold">Insights</span></>
+                : 'Genera in un click tutte e 3 le sessioni con coerenza unificante'}
           </div>
         </div>
-        <Button size="sm" onClick={() => setGoalDialogOpen(true)} disabled={generating}>
+        <Button size="sm" onClick={() => setGoalDialogOpen(true)} disabled={generating || redFlagBlock}>
           {generating ? 'Generazione…' : generated ? 'Rigenera' : 'Genera'}
         </Button>
       </div>
