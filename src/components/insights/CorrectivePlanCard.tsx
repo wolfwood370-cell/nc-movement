@@ -228,9 +228,21 @@ export default function CorrectivePlanCard({ fms, client }: Props) {
 
         <CardContent>
           <Tabs defaultValue="threer" className="w-full">
-            <TabsList className="grid grid-cols-2 w-full h-auto">
-              <TabsTrigger value="threer" className="text-[11px] sm:text-sm whitespace-normal leading-tight px-2 py-2 h-auto">Daily 3R<span className="hidden sm:inline">&nbsp;(Routine Quotidiana)</span></TabsTrigger>
-              <TabsTrigger value="ramp" className="text-[11px] sm:text-sm whitespace-normal leading-tight px-2 py-2 h-auto">RAMP-6<span className="hidden sm:inline">&nbsp;(Pre-Workout)</span></TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full h-auto gap-1">
+              <TabsTrigger
+                value="threer"
+                className="flex flex-col items-center gap-0.5 whitespace-nowrap leading-tight px-2 py-2 h-auto"
+              >
+                <span className="text-xs sm:text-sm font-semibold">Daily 3R</span>
+                <span className="text-[10px] opacity-70">Routine Quotidiana</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="ramp"
+                className="flex flex-col items-center gap-0.5 whitespace-nowrap leading-tight px-2 py-2 h-auto"
+              >
+                <span className="text-xs sm:text-sm font-semibold">RAMP-6</span>
+                <span className="text-[10px] opacity-70">Pre-Workout</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* ---- TAB 1: Daily 3R ---- */}
