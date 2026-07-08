@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsStaff } from '@/hooks/useIsStaff';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/nc-movement-logo.png';
+import PhoneShell from '@/components/PhoneShell';
 
 const tabs = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -25,9 +26,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-30 glass-card border-b border-border rounded-none">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+    <PhoneShell>
+      {/* Header 56px */}
+      <header className="h-14 shrink-0 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30">
+        <div className="h-full px-4 flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
             <div className="w-9 h-9 rounded-lg overflow-hidden shadow-sm flex-shrink-0 bg-white border border-border">
               <img
@@ -39,24 +41,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
               />
             </div>
             <div className="text-left leading-tight">
-              <div className="font-display font-bold text-sm text-primary">NC MOVEMENT</div>
+              <div className="font-display font-bold text-sm text-primary tracking-tight">NC MOVEMENT</div>
             </div>
           </button>
           <div className="flex items-center gap-1">
             <button onClick={() => navigate('/team')}
-              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
               aria-label="Team">
               <Users2 className="w-4 h-4" />
             </button>
             {isStaff && (
               <button onClick={() => navigate('/admin/bugs')}
-                className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
                 aria-label="Segnalazioni Bug">
                 <Bug className="w-4 h-4" />
               </button>
             )}
             <button onClick={onSignOut}
-              className="text-muted-foreground hover:text-foreground p-2 rounded-lg tap-target"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
               aria-label="Esci">
               <LogOut className="w-4 h-4" />
             </button>
@@ -64,19 +66,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 pb-28 animate-fade-in">
+      {/* Main scroll area */}
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24 animate-fade-in scrollbar-none">
         {children}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-30 glass-card border-t border-border rounded-none pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-3xl mx-auto grid grid-cols-4">
+      {/* BottomNav 66px */}
+      <nav className="h-[66px] shrink-0 border-t border-border bg-card/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-4 h-full">
           {tabs.map(t => (
             <NavLink
               key={t.to}
               to={t.to}
               end={t.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-3 text-xs font-medium min-h-[56px] transition-[color,opacity] active:opacity-50 ${
+                `flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-[color,opacity] active:opacity-50 ${
                   isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`
               }
@@ -87,6 +91,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
           ))}
         </div>
       </nav>
-    </div>
+    </PhoneShell>
   );
 }
