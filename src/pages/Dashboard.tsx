@@ -68,6 +68,7 @@ export default function Dashboard() {
   const [pickTestOpen, setPickTestOpen] = useState<string | null>(null);
   const [practitionerName, setPractitionerName] = useState<string | null>(null);
   const { data: analytics } = useMacroAnalytics();
+  const lastByClientRef = useRef<Map<string, { time: number; kind: string; score?: number | null }>>(new Map());
 
   const todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
     .format(new Date())
