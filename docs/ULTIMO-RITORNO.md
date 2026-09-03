@@ -322,6 +322,21 @@ finita in git al primo `git add -A`.
 
 ---
 
+## Push e PR — **da lanciare a mano**
+
+Il `git push` e' stato **bloccato** dal classificatore della modalita' automatica di Claude Code:
+non e' un errore di git ne' un problema del ramo, e' un permesso che questa sessione non ha. I sei
+commit sono locali su `claude/stacco-lovable` e l'albero di lavoro e' pulito.
+
+```bash
+git push -u origin claude/stacco-lovable
+```
+
+Poi la PR si apre da qui:
+<https://github.com/wolfwood370-cell/nc-movement/compare/main...claude/stacco-lovable?expand=1>
+
+---
+
 ## Le righe per Nicolò
 
 ### 1. Le tre variabili da mettere su Vercel
