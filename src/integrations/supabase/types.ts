@@ -12,7 +12,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  public: {
+  movement: {
     Tables: {
       bug_reports: {
         Row: {
@@ -131,7 +131,7 @@ export type Database = {
           id: string
           name: string
           pattern: string
-          phase: Database["public"]["Enums"]["corrective_phase"]
+          phase: Database["movement"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
           posture_tier: number | null
@@ -152,7 +152,7 @@ export type Database = {
           id?: string
           name: string
           pattern: string
-          phase: Database["public"]["Enums"]["corrective_phase"]
+          phase: Database["movement"]["Enums"]["corrective_phase"]
           posture_level: number
           posture_name: string
           posture_tier?: number | null
@@ -173,7 +173,7 @@ export type Database = {
           id?: string
           name?: string
           pattern?: string
-          phase?: Database["public"]["Enums"]["corrective_phase"]
+          phase?: Database["movement"]["Enums"]["corrective_phase"]
           posture_level?: number
           posture_name?: string
           posture_tier?: number | null
@@ -203,10 +203,10 @@ export type Database = {
           impact_212_bound_r: number | null
           impact_score: number | null
           mcs_ankle_clearing_l:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_clearing_r:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_pain_l: boolean
           mcs_ankle_pain_r: boolean
@@ -245,10 +245,10 @@ export type Database = {
           impact_212_bound_r?: number | null
           impact_score?: number | null
           mcs_ankle_clearing_l?:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_clearing_r?:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_pain_l?: boolean
           mcs_ankle_pain_r?: boolean
@@ -287,10 +287,10 @@ export type Database = {
           impact_212_bound_r?: number | null
           impact_score?: number | null
           mcs_ankle_clearing_l?:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_clearing_r?:
-            | Database["public"]["Enums"]["ankle_clearing_position"]
+            | Database["movement"]["Enums"]["ankle_clearing_position"]
             | null
           mcs_ankle_pain_l?: boolean
           mcs_ankle_pain_r?: boolean
@@ -537,7 +537,7 @@ export type Database = {
           id: string
           invited_by: string
           organization_id: string
-          role: Database["public"]["Enums"]["org_role"]
+          role: Database["movement"]["Enums"]["org_role"]
           token: string
         }
         Insert: {
@@ -547,7 +547,7 @@ export type Database = {
           id?: string
           invited_by: string
           organization_id: string
-          role?: Database["public"]["Enums"]["org_role"]
+          role?: Database["movement"]["Enums"]["org_role"]
           token?: string
         }
         Update: {
@@ -557,7 +557,7 @@ export type Database = {
           id?: string
           invited_by?: string
           organization_id?: string
-          role?: Database["public"]["Enums"]["org_role"]
+          role?: Database["movement"]["Enums"]["org_role"]
           token?: string
         }
         Relationships: [
@@ -575,21 +575,21 @@ export type Database = {
           created_at: string
           id: string
           organization_id: string
-          role: Database["public"]["Enums"]["org_role"]
+          role: Database["movement"]["Enums"]["org_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           organization_id: string
-          role?: Database["public"]["Enums"]["org_role"]
+          role?: Database["movement"]["Enums"]["org_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           organization_id?: string
-          role?: Database["public"]["Enums"]["org_role"]
+          role?: Database["movement"]["Enums"]["org_role"]
           user_id?: string
         }
         Relationships: [
@@ -672,8 +672,8 @@ export type Database = {
           program: Json | null
           scheduled_at: string | null
           session_number: number | null
-          session_type: Database["public"]["Enums"]["session_type"]
-          status: Database["public"]["Enums"]["session_status"]
+          session_type: Database["movement"]["Enums"]["session_type"]
+          status: Database["movement"]["Enums"]["session_status"]
           updated_at: string
         }
         Insert: {
@@ -688,8 +688,8 @@ export type Database = {
           program?: Json | null
           scheduled_at?: string | null
           session_number?: number | null
-          session_type: Database["public"]["Enums"]["session_type"]
-          status?: Database["public"]["Enums"]["session_status"]
+          session_type: Database["movement"]["Enums"]["session_type"]
+          status?: Database["movement"]["Enums"]["session_status"]
           updated_at?: string
         }
         Update: {
@@ -704,8 +704,8 @@ export type Database = {
           program?: Json | null
           scheduled_at?: string | null
           session_number?: number | null
-          session_type?: Database["public"]["Enums"]["session_type"]
-          status?: Database["public"]["Enums"]["session_status"]
+          session_type?: Database["movement"]["Enums"]["session_type"]
+          status?: Database["movement"]["Enums"]["session_status"]
           updated_at?: string
         }
         Relationships: [
@@ -720,133 +720,163 @@ export type Database = {
       }
       sfma_assessments: {
         Row: {
-          arms_down_deep_squat: Database["public"]["Enums"]["sfma_score"] | null
+          arms_down_deep_squat:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           assessed_at: string
           breakout_results: Json
-          cervical_extension: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_flexion: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_l: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_r: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_extension: Database["movement"]["Enums"]["sfma_score"] | null
+          cervical_flexion: Database["movement"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          cervical_rotation_r:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           client_id: string
           clinical_notes: string | null
           created_at: string
           id: string
           multi_segmental_extension:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_flexion:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_l:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_r:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           organization_id: string
           practitioner_id: string
-          single_leg_stance_l: Database["public"]["Enums"]["sfma_score"] | null
-          single_leg_stance_r: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_l:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          single_leg_stance_r:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           updated_at: string
           upper_extremity_pattern_1_l:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_1_r:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_l:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_r:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
         }
         Insert: {
           arms_down_deep_squat?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           assessed_at?: string
           breakout_results?: Json
-          cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_r?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_extension?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          cervical_flexion?: Database["movement"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          cervical_rotation_r?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           client_id: string
           clinical_notes?: string | null
           created_at?: string
           id?: string
           multi_segmental_extension?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_flexion?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           organization_id?: string
           practitioner_id: string
-          single_leg_stance_l?: Database["public"]["Enums"]["sfma_score"] | null
-          single_leg_stance_r?: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_l?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          single_leg_stance_r?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           updated_at?: string
           upper_extremity_pattern_1_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_1_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
         }
         Update: {
           arms_down_deep_squat?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           assessed_at?: string
           breakout_results?: Json
-          cervical_extension?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_flexion?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_l?: Database["public"]["Enums"]["sfma_score"] | null
-          cervical_rotation_r?: Database["public"]["Enums"]["sfma_score"] | null
+          cervical_extension?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          cervical_flexion?: Database["movement"]["Enums"]["sfma_score"] | null
+          cervical_rotation_l?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          cervical_rotation_r?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           client_id?: string
           clinical_notes?: string | null
           created_at?: string
           id?: string
           multi_segmental_extension?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_flexion?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           multi_segmental_rotation_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           organization_id?: string
           practitioner_id?: string
-          single_leg_stance_l?: Database["public"]["Enums"]["sfma_score"] | null
-          single_leg_stance_r?: Database["public"]["Enums"]["sfma_score"] | null
+          single_leg_stance_l?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
+          single_leg_stance_r?:
+            | Database["movement"]["Enums"]["sfma_score"]
+            | null
           updated_at?: string
           upper_extremity_pattern_1_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_1_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_l?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
           upper_extremity_pattern_2_r?:
-            | Database["public"]["Enums"]["sfma_score"]
+            | Database["movement"]["Enums"]["sfma_score"]
             | null
         }
         Relationships: [
@@ -870,19 +900,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["movement"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["movement"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: Database["movement"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -903,7 +933,7 @@ export type Database = {
           posteromedial_left_cm: number | null
           posteromedial_right_cm: number | null
           practitioner_id: string
-          test_type: Database["public"]["Enums"]["ybt_test_type"]
+          test_type: Database["movement"]["Enums"]["ybt_test_type"]
           updated_at: string
         }
         Insert: {
@@ -921,7 +951,7 @@ export type Database = {
           posteromedial_left_cm?: number | null
           posteromedial_right_cm?: number | null
           practitioner_id: string
-          test_type?: Database["public"]["Enums"]["ybt_test_type"]
+          test_type?: Database["movement"]["Enums"]["ybt_test_type"]
           updated_at?: string
         }
         Update: {
@@ -939,7 +969,7 @@ export type Database = {
           posteromedial_left_cm?: number | null
           posteromedial_right_cm?: number | null
           practitioner_id?: string
-          test_type?: Database["public"]["Enums"]["ybt_test_type"]
+          test_type?: Database["movement"]["Enums"]["ybt_test_type"]
           updated_at?: string
         }
         Relationships: [
@@ -997,12 +1027,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1026,11 +1056,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1051,11 +1081,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1076,11 +1106,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1093,11 +1123,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1107,7 +1137,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  movement: {
     Enums: {
       ankle_clearing_position: ["Beyond", "Within", "Behind"],
       app_role: ["admin", "coach", "athlete"],
