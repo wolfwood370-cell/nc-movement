@@ -44,7 +44,7 @@ La maggior parte delle app di screening si ferma alla raccolta dati. NC Movement
 ## 4. Tecnologia
 
 - **Frontend:** Vite + React 18 + TypeScript + TailwindCSS + shadcn/ui
-- **Backend:** Lovable Cloud / Supabase (Postgres + Auth + RLS + Edge Functions)
+- **Backend:** Supabase — progetto NC-TOOLS, schema `movement` (Postgres + Auth + RLS + Edge Functions); host Vercel
 - **Forms:** react-hook-form + zod
 - **Routing:** react-router-dom v6
 - **Testing:** vitest + React Testing Library

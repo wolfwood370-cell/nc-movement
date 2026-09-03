@@ -76,7 +76,8 @@ supabase/
 
 ## Deploy
 
-Lovable / Vercel / Netlify — qualsiasi host statico per la SPA + Supabase per il backend.
+Frontend su **Vercel** (SPA statica, riscrittura di tutte le rotte su `index.html` — vedi `vercel.json`).
+Backend su **Supabase, progetto NC-TOOLS, schema `movement`**.
 
 ## Licenza
 
