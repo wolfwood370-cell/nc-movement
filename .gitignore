@@ -28,3 +28,11 @@ bun.lockb
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets e cartelle di lavoro: fuori dall'indice, sempre.
+.env
+.env.backup
+.claude/
+
+# Cache locale della CLI Supabase.
+supabase/.temp/
