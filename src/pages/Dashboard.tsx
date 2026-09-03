@@ -110,10 +110,10 @@ export default function Dashboard() {
         if (!prev || t > prev.time) lastByClient.set(a.client_id, { time: t, kind, score: a.total_score ?? null });
       }
     };
-    push(fms.data as any, 'FMS');
-    push(sfma.data as any, 'SFMA');
-    push(fcs.data as any, 'FCS');
-    push(ybt.data as any, 'YBT');
+    push(fms.data, 'FMS');
+    push(sfma.data, 'SFMA');
+    push(fcs.data, 'FCS');
+    push(ybt.data, 'YBT');
     const sorted = [...c].sort((a, b) => {
       const ta = lastByClient.get(a.id)?.time ?? new Date(a.created_at).getTime();
       const tb = lastByClient.get(b.id)?.time ?? new Date(b.created_at).getTime();
