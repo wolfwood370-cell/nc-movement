@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ChevronDown, FileQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import InvitoIntakeCard from '@/components/client/InvitoIntakeCard';
+import NeurotipoCard from '@/components/client/NeurotipoCard';
+import { useNeurotipo } from '@/hooks/useNeurotipo';
 import type { HealthSafe, SubmissionSafe, ConsentBadge } from '@/lib/intake';
 
 /**
@@ -42,6 +44,12 @@ const PARQ: Array<[keyof HealthSafe, string]> = [
 
 export default function IntakeTab({ clientId, submission, screening, consent, intakeAssente }: Props) {
   const [aperto, setAperto] = useState<string | null>(null);
+
+  // Le 30 risposte del neurotipo vivono in una tabella a parte dello stesso schema
+  // `public`, e si leggono da qui perché è qui che si mostrano. La chiamata sta PRIMA
+  // del ritorno anticipato: un hook dopo un `if` cambia l'ordine degli hook fra un
+  // render e l'altro, ed è il modo classico di rompere React senza accorgersene.
+  const neuro = useNeurotipo(submission?.id);
 
   if (!submission) {
     return (
@@ -148,26 +156,49 @@ export default function IntakeTab({ clientId, submission, screening, consent, in
     {
       key: 'neurotipo',
       titolo: 'Neurotipo',
-      // 30 risposte esistono, ma neurotype_result ha zero righe: il calcolo non c'è.
-      // Dichiararlo è l'unica forma onesta; inventare un esito no.
-      corpo: <p className="text-xs text-muted-foreground">Il calcolo del neurotipo non esiste ancora: in arrivo.</p>,
+      // Il calcolo adesso c'è, e sta nella scheda in cima a questa linguetta: qui
+      // dentro resterebbe chiuso dietro un tocco, e un tipo che decide come si parla
+      // a una persona non si nasconde in un gruppo richiudibile. Questo riquadro dice
+      // solo dove guardare — o perché non c'è niente da guardare.
+      corpo: (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {neuro.status === 'presente'
+            ? `Calcolato dalle ${neuro.compilate} risposte lette: il risultato è nella scheda in cima a questa linguetta.`
+            : neuro.status === 'caricamento'
+              ? 'Sto leggendo le 30 risposte.'
+              : neuro.status === 'errore'
+                ? 'Non sono riuscito a leggere le risposte: il neurotipo non è calcolabile adesso, e non è detto che manchi.'
+                : 'Le 30 risposte non ci sono: il questionario è collegato ma la sezione neurotipo non è stata compilata.'}
+        </p>
+      ),
     },
   ];
 
   return (
-    <div className="surface-card overflow-hidden">
-      {gruppi.map((g, i) => (
-        <div key={g.key} className={cn(i > 0 && 'border-t border-border')}>
-          <button
-            onClick={() => setAperto(aperto === g.key ? null : g.key)}
-            className="flex w-full items-center justify-between gap-2 p-3.5 text-left"
-          >
-            <span className="text-sm font-medium">{g.titolo}</span>
-            <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', aperto === g.key && 'rotate-180')} />
-          </button>
-          {aperto === g.key && <div className="px-3.5 pb-3.5">{g.corpo}</div>}
-        </div>
-      ))}
+    <div className="flex flex-col gap-3">
+      {/* Il neurotipo sta in cima alla linguetta, sotto il riassunto della scheda e
+          sopra gli otto gruppi: è un verdetto che si legge, non un dettaglio che si
+          apre. Compare SOLO quando le risposte ci sono davvero — in caricamento, in
+          errore e senza risposte non esiste una card vuota da mostrare, e il gruppo
+          «Neurotipo» qui sotto dice quale dei tre casi è. */}
+      {neuro.status === 'presente' && (
+        <NeurotipoCard answers={neuro.answers} compilate={neuro.compilate} />
+      )}
+
+      <div className="surface-card overflow-hidden">
+        {gruppi.map((g, i) => (
+          <div key={g.key} className={cn(i > 0 && 'border-t border-border')}>
+            <button
+              onClick={() => setAperto(aperto === g.key ? null : g.key)}
+              className="flex w-full items-center justify-between gap-2 p-3.5 text-left"
+            >
+              <span className="text-sm font-medium">{g.titolo}</span>
+              <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', aperto === g.key && 'rotate-180')} />
+            </button>
+            {aperto === g.key && <div className="px-3.5 pb-3.5">{g.corpo}</div>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
