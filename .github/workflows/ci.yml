@@ -25,8 +25,11 @@ jobs:
       - name: Test
         run: bun run test
 
-      # Type-check is non-blocking for now: the project's tsconfig is intentionally
-      # lax and some legacy files have latent type warnings. Surfaced, not enforced.
-      - name: Type-check (non-blocking)
-        run: bunx tsc --noEmit
-        continue-on-error: true
+      # Il -p non e' un dettaglio: e' tutto il passo. Fino al 2026-09-04 qui girava
+      # `bunx tsc --noEmit`, che non compilava NIENTE. tsconfig.json ha "files": [] e
+      # delega a due project reference, quindi senza -p tsc guarda il progetto radice,
+      # cioe' zero file, ed esce 0 qualunque cosa ci sia nel codice: sonde deliberatamente
+      # sbagliate restavano verdi. Non era "surfaced, not enforced" — non era nulla.
+      # Con -p compila i 141 file di src/ e puo' bocciare, quindi niente continue-on-error.
+      - name: Type-check
+        run: bunx tsc --noEmit -p tsconfig.app.json
