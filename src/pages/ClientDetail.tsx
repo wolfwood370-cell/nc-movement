@@ -23,6 +23,24 @@ import BiometricGuard from '@/components/clients/BiometricGuard';
 import ClientAvatar from '@/components/ClientAvatar';
 import LastFmsCard from '@/components/client/LastFmsCard';
 import NextStepCard from '@/components/client/NextStepCard';
+import TwoTracks from '@/components/client/TwoTracks';
+import UnifiedFlagsBand from '@/components/client/UnifiedFlagsBand';
+import IntakeSummaryCard from '@/components/client/IntakeSummaryCard';
+import IntakeTab from '@/components/client/IntakeTab';
+import { ConsentPill, WorkModePill } from '@/components/client/IntakeBadges';
+import { useIntake } from '@/hooks/useIntake';
+import { buildReferralData } from '@/lib/medicalReferral';
+import {
+  deriveConsent, deriveWorkMode, buildUnifiedFlags, buildIntakeSummary,
+} from '@/lib/intake';
+
+/**
+ * La versione del consenso in vigore arriva da FUORI: non si scrive in pagina e non
+ * si legge dal database, dove esiste solo la versione che ciascuno ha firmato. Oggi
+ * è una costante di configurazione; il giorno che il testo cambia si tocca qui, e
+ * tutti i consensi firmati sulla precedente diventano «superati» da soli.
+ */
+const CONSENT_VERSION_CORRENTE = 'v2.1';
 import ClientMovementReport from '@/components/fms/ClientMovementReport';
 
 interface Client {
@@ -69,6 +87,8 @@ export default function ClientDetail() {
   const [practitioner, setPractitioner] = useState<{ display_name: string | null; professional_title: string | null } | null>(null);
   const [sfmaHistory, setSfmaHistory] = useState<Array<{ id: string; assessed_at: string }>>([]);
   const [fcsHistory, setFcsHistory] = useState<Array<{ id: string; assessed_at: string }>>([]);
+  /** Controllata, così i link delle due tracce possono portare alla linguetta giusta. */
+  const [tab, setTab] = useState('ptpack');
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -153,6 +173,34 @@ export default function ClientDetail() {
   const sfmaAlert = useMemo(() => (latestSfma ? analyzeSfma(latestSfma) : null), [latestSfma]);
   const fcsMetrics = useMemo(() => (latestFcs ? computeFcsMetrics(latestFcs) : null), [latestFcs]);
   const redFlags = useMemo(() => hasCriticalRedFlags(fms[0] ?? null), [fms]);
+
+  // ---- L'intervista d'ingresso, che vive nello schema `public` ----------------
+  const intake = useIntake(id);
+  const submission = intake.status === 'presente' ? intake.submission : null;
+  const screening = intake.status === 'presente' ? intake.screening : null;
+
+  const consent = useMemo(
+    () => deriveConsent(submission, CONSENT_VERSION_CORRENTE),
+    [submission],
+  );
+  // `work_mode` vive su `submissions`, non su `clients`: senza intervista la modalità
+  // non è ignota per caso, è proprio una cosa che nessuno ha mai chiesto.
+  const workMode = useMemo(() => deriveWorkMode(submission?.work_mode), [submission]);
+
+  // I clearing si riusano da `medicalReferral`, che già li emette a tre stati: qui
+  // non si riscrive quella logica, la si legge. `not-performed` non è una bandiera.
+  const clearing = useMemo(
+    () => (fms[0] ? buildReferralData(fms[0], null, null).clearing : null),
+    [fms],
+  );
+  const flags = useMemo(
+    () => buildUnifiedFlags(screening, clearing),
+    [screening, clearing],
+  );
+  const summary = useMemo(
+    () => buildIntakeSummary(submission, screening),
+    [submission, screening],
+  );
   // Rischio per il badge profilo — stessi input del gauge Insights (coerenza sulla pagina).
   const risk = useMemo(
     () => computeRisk(
@@ -262,6 +310,27 @@ export default function ClientDetail() {
         </div>
       </div>
 
+      {/* Modalità di lavoro e consenso: due fatti amministrativi, non clinici. */}
+      {intake.status !== 'caricamento' && (
+        <div className="flex flex-wrap gap-1.5 -mt-3">
+          <WorkModePill badge={workMode} />
+          <ConsentPill badge={consent} />
+        </div>
+      )}
+
+      <TwoTracks
+        submission={submission}
+        screening={screening}
+        fmsHistory={fms}
+        workMode={workMode}
+        onOpenIntake={() => setTab('intake')}
+        onOpenHistory={() => setTab('history')}
+      />
+
+      <UnifiedFlagsBand flags={flags} />
+
+      <IntakeSummaryCard summary={summary} hasIntake={!!submission} />
+
       <LastFmsCard fmsHistory={fms} />
 
       <NextStepCard
@@ -322,15 +391,22 @@ export default function ClientDetail() {
 
       <TooltipProvider delayDuration={150}>
         <div className="grid grid-cols-2 gap-2.5">
-          <Button onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)} className="w-full tap-target h-14 rounded-2xl active:scale-[0.97]">
-            <Plus className="w-5 h-5 mr-2" /> Nuova FMS
+          <Button
+            disabled={!workMode.testsEnabled}
+            onClick={() => navigate(`/assessments/fms/new?clientId=${client.id}`)}
+            className="w-full tap-target h-14 rounded-2xl active:scale-[0.97] disabled:opacity-50"
+          >
+            {workMode.testsEnabled ? <Plus className="w-5 h-5 mr-2" /> : <Lock className="w-5 h-5 mr-2" />}
+            Nuova FMS
           </Button>
           <Button
             variant="secondary"
+            disabled={!workMode.testsEnabled}
             onClick={() => navigate(`/assessments/sfma/new?clientId=${client.id}`)}
-            className="w-full tap-target h-14 rounded-2xl"
+            className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
           >
-            <Compass className="w-5 h-5 mr-2" /> Nuova SFMA
+            {workMode.testsEnabled ? <Compass className="w-5 h-5 mr-2" /> : <Lock className="w-5 h-5 mr-2" />}
+            Nuova SFMA
           </Button>
 
           <Tooltip>
@@ -338,7 +414,7 @@ export default function ClientDetail() {
               <span className="w-full">
                 <Button
                   variant="secondary"
-                  disabled={redFlags.hasFlags}
+                  disabled={redFlags.hasFlags || !workMode.testsEnabled}
                   onClick={() => launchFcs()}
                   className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
                 >
@@ -359,7 +435,7 @@ export default function ClientDetail() {
               <span className="w-full">
                 <Button
                   variant="secondary"
-                  disabled={redFlags.hasFlags}
+                  disabled={redFlags.hasFlags || !workMode.testsEnabled}
                   onClick={() => navigate(`/assessments/ybt/new?clientId=${client.id}`)}
                   className="w-full tap-target h-14 rounded-2xl disabled:opacity-50"
                 >
@@ -374,15 +450,31 @@ export default function ClientDetail() {
               </TooltipContent>
             )}
           </Tooltip>
+
+          {/* I test a distanza non si nascondono: restano visibili e spenti, con la
+              ragione scritta. Nasconderli farebbe pensare a un guasto. */}
+          {!workMode.testsEnabled && workMode.disabledReason && (
+            <p className="col-span-2 flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+              <Lock className="w-3 h-3 mt-0.5 shrink-0" />
+              <span>{workMode.disabledReason}</span>
+            </p>
+          )}
         </div>
       </TooltipProvider>
 
-      <Tabs defaultValue="ptpack" className="w-full">
-        <TabsList className="grid grid-cols-3 w-full">
-          <TabsTrigger value="ptpack">PT Pack</TabsTrigger>
-          <TabsTrigger value="history">Storico</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        {/* Da tre linguette a quattro: il testo scende di un punto perché quattro
+            parole ci stiano nei 390px del telaio. */}
+        <TabsList className="grid grid-cols-4 w-full">
+          <TabsTrigger value="ptpack" className="text-[13px]">PT Pack</TabsTrigger>
+          <TabsTrigger value="history" className="text-[13px]">Storico</TabsTrigger>
+          <TabsTrigger value="insights" className="text-[13px]">Insights</TabsTrigger>
+          <TabsTrigger value="intake" className="text-[13px]">Intervista</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="intake" className="mt-4">
+          <IntakeTab submission={submission} screening={screening} consent={consent} />
+        </TabsContent>
 
         <TabsContent value="ptpack" className="mt-4">
           <PtPackPanel sessions={sessions} clientId={client.id} clientName={client.full_name} latestFms={fms[0] ?? null} onChanged={loadAll} redFlagBlock={redFlags.hasFlags} />

@@ -1,431 +1,340 @@
-# Ultimo ritorno — Clearing a tre stati
+# Ultimo ritorno — Scheda unificata
 
-**Data:** 2026-09-04 · **Ramo:** `claude/clearing-tre-stati` · **Base:** `main` = `90d3171`
-**PR:** [#4 — Clearing test a tre stati: il referto non dichiara più negativo ciò che nessuno ha misurato](https://github.com/wolfwood370-cell/nc-movement/pull/4)
-**Run CI:** [33862416691](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33862416691)
-**Prompt conservato:** [`docs/prompts/2026-09-04-clearing-tre-stati.md`](prompts/2026-09-04-clearing-tre-stati.md)
+**Data:** 2026-09-04 · **Ramo:** `claude/scheda-unificata` · **Base:** `main` = `bc564f1`
+**PR:** [#5 — Scheda unificata: l'intervista d'ingresso e i test di movimento nella stessa scheda](https://github.com/wolfwood370-cell/nc-movement/pull/5)
+**Prompt conservato:** [`docs/prompts/2026-09-04-scheda-unificata.md`](prompts/2026-09-04-scheda-unificata.md)
 
-**Commit:** `f9c5006` (il codice) + il commit di documentazione che porta questo file.
-Il ritorno della fetta precedente (type-check vero) resta nella storia di git e nella
-[PR #3](https://github.com/wolfwood370-cell/nc-movement/pull/3).
-
----
-
-## Rituale d'apertura — due divergenze, una delle quali pesa
-
-`git status` era **pulito**, non con i due file attesi: `VALUTAZIONE-VENDITA-FMS.md` non
-esiste nella working copy e `docs/design/` è una cartella **vuota** (git non traccia le
-cartelle vuote). Come nella fetta precedente: due cose in meno, non in più. Nessuno dei due
-è stato toccato o creato.
-
-**La divergenza che pesa:** il prompt dice «Leggi `docs/design/DECISIONI.md` (§ clearing) e
-`docs/design/componente-clearing-tre-stati.html` prima di scrivere: il disegno di questa
-fetta esiste già», e al punto 3 indica l'HTML come riferimento visivo.
-
-**Quei due file non esistono.** Né su disco, né in alcun commit, né su alcun branch:
-
-```
-$ find . -iname "*DECISIONI*" -o -iname "*clearing-tre-stati*" | grep -v node_modules
-(nessun risultato)
-$ git log --all --oneline -- 'docs/design/**'
-(nessun risultato)
-$ git ls-files docs/
-docs/ULTIMO-RITORNO.md
-docs/plan-lovable-storico.md
-docs/prompts/2026-09-03-ci-verde.md
-docs/prompts/2026-09-03-stacco-lovable.md
-docs/prompts/2026-09-04-typecheck-vero.md
-```
-
-**Non ho fermato la fetta**, e la ragione è che il punto 3 il prompt lo descrive comunque in
-prosa con precisione: quattro voci col loro stato, più la riga di nota col testo letterale. La
-parte mancante è solo l'aspetto grafico, e per quello mi sono attenuto allo stile che
-`MedicalReferralReport.tsx` già ha (serif, stampabile, `FindingsBlock` con `<ul><li>`).
-**Se esiste un disegno che non ho visto, il componente va riguardato.**
+**Commit:** `27961fd` (il codice) + il commit di documentazione che porta questo file.
+Il ritorno della fetta precedente (clearing a tre stati) resta nella storia di git e nella
+[PR #4](https://github.com/wolfwood370-cell/nc-movement/pull/4).
 
 ---
 
-## Dove ho messo la costante, e come la leggono wizard e referto
+## Rituale d'apertura
 
-In **`src/lib/fms.ts`**, dopo `fmsMaxTotal` — **56 righe di sole aggiunte, zero rimozioni**:
+`git status` mostrava `?? docs/design/` e nient'altro. `VALUTAZIONE-VENDITA-FMS.md` non
+esiste nella working copy — come nelle due fette precedenti. **`docs/design/` non è stata
+toccata né committata**, e infatti non compare nel diff.
+
+Stavolta il disegno **c'è davvero**: 13 file, non 12 (oltre agli undici attesi ci sono
+`direzione-1a`, `direzione-1c` e `note-messo-da-parte.html`).
+
+---
+
+## Che cosa ho letto del disegno, e dove me ne sono discostato
+
+Letto per intero `DECISIONI.md`, i quattro stati, i tre componenti e `clientdetail-oggi.html`.
+`DECISIONI.md` conferma che i tre stati dei clearing — la fetta precedente — nascevano da qui.
+
+### I discostamenti, con il perché
+
+**1. Gravidanza, ciclo, codice fiscale e indirizzo non compaiono nemmeno nei gruppi Salute e
+Anagrafica.** Il prompt li ammetterebbe lì; io non li leggo affatto dal database.
+
+Il motivo è che una verifica avversariale ha dimostrato che le altre due difese non
+reggono. Un tipo `Omit` blocca solo l'accesso nominato: un componente che fa
+`Object.entries(submission)` compila senza un solo `any` e rende le quattro colonne nel DOM
+— è stato scritto e montato davvero. E con `select('*')` le colonne arrivano comunque nel
+browser anche quando nessuno le mostra: cache di react-query, pannello di rete, qualunque
+dump dello stato.
+
+L'unica barriera che regge è **non chiederle al server**:
 
 ```ts
-export const CLEARING_KEYS = [
-  'shoulder_clearing', 'spinal_extension', 'spinal_flexion', 'ankle_clearing',
-] as const;
-export type ClearingKey = (typeof CLEARING_KEYS)[number];
-
-export const CLEARING_TEST_LABEL: Record<ClearingKey, string> = { /* le 4 etichette */ };
-
-export const CLEARING_BY_TYPE: Record<FmsAssessmentType, readonly ClearingKey[]> = {
-  full: CLEARING_KEYS,
-  modified: ['shoulder_clearing', 'ankle_clearing'],
-};
-
-export const isClearingKey = (k: string): k is ClearingKey => /* ... */;
-export const clearingKeysFor = (s) => CLEARING_BY_TYPE[isModifiedFms(s) ? 'modified' : 'full'];
+export const SUBMISSION_SELECT = 'id,client_id,created_at,status,consent_version,…' as const;
 ```
 
-**Il referto** (`medicalReferral.ts`) ne deriva lo stato con `clearingKeysFor(fms)`, leggendo
-il tipo da `fms.assessment_type`: la riga ce l'aveva già, nessun parametro aggiunto.
+Ciò che non attraversa la rete non si può perdere. Il costo è che i due gruppi mostrano
+meno di quanto il disegno vorrebbe, e i due gruppi lo dichiarano in una riga. Per mostrarli
+servirà una lettura separata, fatta all'apertura del gruppo — che è anche il modo giusto.
 
-**Il wizard** (`FmsWizard.tsx`) fa due cose. Il suo `ExtraKey` ora **è composto** dal tipo
-condiviso, così un typo non compila:
+**2. Il tono della banda non lo decide il conteggio delle righe.** Il disegno lo dice in tre
+file e io l'ho preso alla lettera: quando una delle due metà non è mai stata interrogata la
+banda **non diventa verde**. Zero bandiere dichiarate perché il questionario è pulito e zero
+perché il questionario non esiste sono due cose diverse, e la seconda non autorizza a
+scrivere «nessuna bandiera rossa» addosso a un silenzio. Riguarda 14 clienti su 23.
 
-```diff
--type ExtraKey = 'tibia' | 'hand' | 'ankle_clearing' | 'shoulder_clearing' | 'spinal_extension' | 'spinal_flexion';
-+type ExtraKey = 'tibia' | 'hand' | ClearingKey;
-```
+**3. Il consenso lancia invece di indovinare.** Il disegno dice che la versione corrente
+«arriva da fuori, il disegno la riceve». Ho aggiunto che se **non** arriva, `deriveConsent`
+solleva un errore. Una env var non impostata vale `undefined` a runtime anche se il tipo
+dice `string`, e le due alternative erano entrambe peggiori: affermare la conformità senza
+aver confrontato niente, o stampare «Consenso v2.1 · corrente » con la versione mancante a
+tutti e nove i clienti in regola.
 
-e **filtra** i propri extra attraverso la costante:
+**4. La pillola per `work_mode = 'app'`** non è disegnata da nessuna parte. Ho usato la
+stessa geometria delle altre con l'icona del telefono e l'etichetta «Solo app», e la tratto
+come `remoto` per l'accensione dei test, come dice `DECISIONI.md`.
 
-```ts
-const allowedClearing = useMemo(() => new Set<ClearingKey>(clearingKeysFor(scores)), [scores]);
-const visibleExtras = (step.extras ?? []).filter(
-  ex => !isClearingKey(ex) || allowedClearing.has(ex),
-);
-```
-
-### Perché filtra e non genera — e perché da solo non basterebbe
-
-Una verifica avversariale ha giustamente obiettato che **un filtro non rende la costante la
-fonte unica**: può solo togliere da `step.extras`, mai aggiungere, quindi la conoscenza reale
-resterebbe in `STEPS_MODIFIED`. È vero, e il prompt lo dice: «se le due strade divergessero
-domani, il difetto tornerebbe».
-
-Ma **generare** gli extra dalla costante è peggio, ed è dimostrabile: l'ospite di un clearing
-**cambia col tipo** — `ankle_clearing` sta su *Inline Lunge* nella piena e su *ASLR* nella
-modificata, dove Inline Lunge non esiste come step. Una lista piatta `ClearingKey[]` non
-contiene quell'informazione: chi generasse gli extra da lì aggancerebbe `ankle_clearing` a uno
-step inesistente, e il test **sparirebbe dalla FMS modificata senza un errore e senza un test
-rosso**.
-
-La soluzione è il filtro **più un cordone che rende la divergenza rossa**:
-
-```ts
-it.each([['full','STEPS_FULL'], ['modified','STEPS_MODIFIED']])(
-  'gli step %s del wizard portano esattamente i clearing di CLEARING_BY_TYPE', (tipo, costante) => {
-    expect([...clearingDichiaratiIn(costante)].sort()).toEqual([...CLEARING_BY_TYPE[tipo]].sort());
-  });
-```
-
-Legge il sorgente di `FmsWizard.tsx` dal disco, come già fa il test di cordone in `src/test/`.
-Le prove rosse (a) e (b) qui sotto lo dimostrano: **entrambe lo fanno scattare**.
-
-### Il set di extra renderizzati non cambia
-
-| tipo | step | prima | dopo |
-|---|---|---|---|
-| full | inline_lunge | `[ankle_clearing]` | `[ankle_clearing]` |
-| full | shoulder_mobility | `[shoulder_clearing, hand]` | `[shoulder_clearing, hand]` |
-| full | trunk_stability_pushup | `[spinal_extension]` | `[spinal_extension]` |
-| full | rotary_stability | `[spinal_flexion]` | `[spinal_flexion]` |
-| modified | shoulder_mobility | `[shoulder_clearing, hand]` | `[shoulder_clearing, hand]` |
-| modified | aslr | `[ankle_clearing]` | `[ankle_clearing]` |
-
-Il filtro oggi non toglie nulla: `full` ammette tutti e quattro, e la modificata già non
-presenta i due spinali. `tibia` e `hand` non sono clearing, quindi passano sempre.
+**5. Il gap del `main` da 24px a 16px**, che il disegno prescrive, **non l'ho applicato**:
+avrebbe cambiato la spaziatura di tutta la pagina, comprese le parti che questa fetta non
+tocca. I blocchi nuovi si inseriscono nella spaziatura esistente.
 
 ---
 
-## Il referto prodotto da una modificata, testo com'esce
+## Come legge l'intervista
 
-**A) FMS modificata, pulita** — il caso di 11 clienti su 21:
+`src/hooks/useIntake.ts`. La forma esatta:
 
-```
-REPERTI CLINICI
-  (nessun reperto critico rilevato nelle valutazioni piu recenti)
+```ts
+const { data: subs, error: subErr } = await supabase
+  .schema('public')
+  .from('submissions')
+  .select(SUBMISSION_SELECT)
+  .eq('client_id', clientId)
+  .order('created_at', { ascending: false })
+  .limit(1);
 
-  TEST DI ESCLUSIONE — ESITO
-   • NEGATIVO — Shoulder Clearing: nessun dolore riferito agli atti.
-   • NON ESEGUITO — Spinal Extension Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
-   • NON ESEGUITO — Spinal Flexion Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
-   • NEGATIVO — Ankle Clearing: nessun dolore riferito agli atti.
-   FMS modificata: estensione e flessione spinale non fanno parte del protocollo eseguito.
-
-  hasFindings = false   |   lock clinico = false
-```
-
-**B) FMS modificata con Deep Squat 0** — il caso in cui il referto si apre davvero:
-
-```
-REPERTI CLINICI
-
-  FMS — PATTERN DOLOROSI (PUNTEGGIO 0)
-   • Punteggio 0 (dolore) in Deep Squat.
-
-  TEST DI ESCLUSIONE — ESITO
-   • NEGATIVO — Shoulder Clearing: nessun dolore riferito agli atti.
-   • NON ESEGUITO — Spinal Extension Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
-   • NON ESEGUITO — Spinal Flexion Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
-   • NEGATIVO — Ankle Clearing: nessun dolore riferito agli atti.
-   FMS modificata: estensione e flessione spinale non fanno parte del protocollo eseguito.
-
-  hasFindings = true   |   lock clinico = true
+const { data: hs, error: hsErr } = await supabase
+  .schema('public')
+  .from('health_screening')
+  .select(HEALTH_SELECT)
+  .eq('submission_id', submission.id)
+  .maybeSingle();
 ```
 
-**Prima** di questa fetta, entrambi stampavano lo stesso blocco clearing: **niente**. Il medico
-leggeva un referto senza test di esclusione e concludeva che fossero tutti negativi.
+**È la prima occorrenza di `.schema(` nel repo** — prima non ce n'era nessuna.
+
+Tre cose che vale la pena sapere:
+
+- **`client.ts` non è stato toccato**, benché il prompt lo ammettesse «dimostrando il
+  contrario». Non serve: rigenerati i tipi con due schemi, `createClient<Database, 'movement'>`
+  accetta `.schema('public')` così com'è. Provato con una sonda, poi rimossa: `tsc` exit 0.
+- **La stringa di `select` è letterale e non costruita con `join()`**. Non è estetica:
+  supabase-js inferisce le colonne solo da una stringa letterale, e con un `+` di mezzo il
+  tipo degrada a `string` e la query torna `GenericStringError`. Ci ho sbattuto contro.
+- **Un errore è un errore.** Se la query fallisce l'hook propaga; non restituisce «assente»,
+  che direbbe «non ha mai compilato» di un cliente che magari ha compilato.
 
 ---
 
-## Tre scelte che il prompt non chiedeva, e perché le ho fatte
+## I quattro stati, tre righe per uno
 
-Il referto è un documento medico-legale firmato dal professionista e indirizzato a un medico.
-Tre verifiche avversariali hanno convissuto sullo stesso punto, e avevano ragione.
+Montati davvero con `@testing-library/react` in
+[`src/components/client/schedaStati.test.tsx`](../src/components/client/schedaStati.test.tsx).
 
-### 1. Il dolore viene prima del protocollo, sempre
+**A · in presenza, intervista e FMS piena** (1 cliente, `c2fcfed3…`, `presenza`, 3 FMS)
+Entrambe le tracce piene: a sinistra i PAR-Q positivi su 7 con la data del questionario, a
+destra «FMS piena · 12/08/26» con la scala /21 e il conteggio «3 FMS · 3 piene».
+La banda è rossa e conta le provenienze: «3 bandiere rosse insieme», «2 D · 1 M».
+Il riassunto rende i campi che hanno un valore, e i quattro pulsanti dei test sono accesi.
 
-`hasCriticalRedFlags` è **cieco al tipo di FMS**: si accende su `clearing_spinal_extension_pain
-= true` anche quando `assessment_type = 'modified'`. Se il referto valutasse prima
-l'appartenenza al protocollo, una riga con quel flag a `true` su una modificata verrebbe
-stampata «non eseguito» **mentre nella stessa schermata il cliente è bloccato su FCS/YBT/PT
-Pack**. Il referto negherebbe per iscritto il motivo del blocco: l'unico modo in cui questa
-fetta poteva peggiorare il problema che deve risolvere.
+**B · a distanza** (2 clienti, `856ab95e…`, `app`)
+La colonna Misurato **non sparisce**: prende un fondo neutro e dice «Seguita a distanza»,
+con «L'FMS si somministra di persona. Questa traccia è vuota per come lavoriamo, non per un
+dato mancante.»
+I quattro pulsanti restano **visibili e spenti**, con la ragione scritta sotto la griglia.
+La banda non è verde: dichiara che le bandiere M sono zero perché non è stato misurato niente.
 
-L'ordine è quindi `if (flag) → positive` **prima** di ogni considerazione di protocollo, ed è
-pinnato da un test che asserisce insieme `status === 'positive'` e
-`hasCriticalRedFlags(...).hasFlags === true`.
+**C · test senza intervista** (9 con FMS, 14 in tutto senza intervista, `56519fd8…`)
+La colonna Dichiarato resta e dice «Traccia mai aperta», «Nessun PAR-Q, nessun consenso,
+nessuno degli 8 gruppi. Anagrafica inserita a mano.»
+Il riassunto non stampa otto trattini: una carta tratteggiata dice che i campi compaiono
+appena il modulo viene compilato.
+La banda porta il riquadro ambra: «le bandiere D sono zero perché non gliele ho mai chieste».
 
-### 2. La voce negativa non dice «eseguito»
-
-La formulazione naturale sarebbe «Test di esclusione negativo: X — eseguito, nessun dolore
-riferito». **«Eseguito» è un'asserzione di fatto su un atto clinico che nessun dato sostiene:**
-i flag sono `Switch` che partono a `false` e non richiedono alcuna interazione, quindi nel
-database `false` non distingue «chiesto e risposto no» da «mai chiesto». È esattamente il
-difetto che questa fetta elimina — e scriverlo lo farebbe passare **da omissione a
-dichiarazione firmata**.
-
-Il testo dichiara quindi cosa risulta agli atti, non cosa è stato fatto al paziente:
-
-```
-Shoulder Clearing: nessun dolore riferito agli atti.
-```
-
-Per lo stesso motivo **la lateralità resta solo sui positivi**: «Shoulder Clearing
-(bilaterale): negativo» si leggerebbe come un reperto. C'è un test che lo pinna.
-
-### 3. `hasFindings` conta solo i positivi
-
-`hasFindings` sommava `clearing.length`. Con quattro voci sempre presenti sarebbe diventato
-**sempre vero appena esiste una FMS**, e il referto avrebbe chiesto una valutazione
-specialistica a chiunque. Ora filtra su `status === 'positive'`, e vale esattamente quanto
-valeva prima. Sopra le righe c'è un commento che spiega il perché a chi aggiungerà il prossimo
-blocco.
-
-**Nota onesta:** quel ramo è oggi quasi irraggiungibile, perché il bottone che apre il referto
-è disabilitato salvo `risk === 'critical'` — un gate che vive in `InsightsTab.tsx`, file
-vietato. Non è una rete di sicurezza voluta: basta togliere quel `disabled` e la bugia si
-armerebbe da sola.
-
-Ho inoltre cambiato il **titolo del blocco** da «Test di Esclusione Positivi» a «Test di
-Esclusione — Esito»: intitolare «Positivi» una lista di negativi è peggio del difetto di
-partenza. E la nota richiesta al punto 3 è renderizzata **fuori dalla `<ul>`**, come `<p>` in
-corsivo: dentro avrebbe ereditato il pallino e su carta si sarebbe letta come un quinto reperto.
+**D · solo FMS modificate** (11 clienti: 6 con intervista come `09a46aa8…`, 5 senza)
+La traccia Misurato dice «FMS modificata» e la scala è **/9**, non /21, con «2 FMS ·
+2 modificate».
+I due clearing spinali sono `not-performed` e **non compaiono fra le bandiere**.
+Con entrambe le metà lette e pulite la banda è verde — l'unico caso in cui può esserlo.
 
 ---
 
 ## Acceptance, voce per voce
 
-### 1. Una modificata produce quattro voci, i due spinali `not-performed`, mai `negative` ✅
+### 1. I quattro stati ⚠️ — verificati, ma non come chiede il prompt
 
-Test `una FMS modificata produce quattro voci, con i due spinali NON ESEGUITI e mai negativi`.
-Asserisce `toHaveLength(4)`, `not-performed` su entrambi gli spinali, `negative` sui due
-somministrati, e che `Spinal Extension Clearing` **non** compaia fra i negativi.
+**Va detto chiaro: non li ho visti nella app in locale.** Il dev server gira (l'ho avviato,
+la pagina di login risponde su `localhost:8080`), ma la scheda sta dietro autenticazione e
+**non inserisco credenziali** — è una regola che non aggiro nemmeno per un'acceptance.
 
-### 2. Una piena con tutti i flag a `false` produce quattro `negative` ✅
+Al suo posto ho montato i quattro stati con `@testing-library/react`, sugli stessi dati che
+il database produce, e ho verificato riga per riga cosa mostra la scheda. Sono 7 test che
+restano nel repo: riproducibili, e più duraturi di uno screenshot. **Se serve la prova
+visiva, basta che qualcuno faccia il login e apra i quattro id elencati sopra.**
 
-Test `una FMS piena con tutti i flag a false produce quattro NEGATIVI e nessun non eseguito`:
-`every(status === 'negative')` e `some(status === 'not-performed') === false`.
+### 2. 🔴 Tre prove rosse sul modulo puro ✅
 
-### 3. Un positivo resta positivo e conserva la lateralità ✅
+Tutte con ripristino **byte-identico**, su `src/lib/intake.ts` (md5 sano `76b272ef…`):
 
-Test dedicato su tre casi: `(sinistro)` su una piena, `(destro)` su una **modificata**,
-`(bilaterale)`. Più un test che verifica che la lateralità **non** finisca sulle altre voci.
-
-### 4. 🔴 Tre prove rosse, nei due sensi, con ripristino byte-identico ✅
-
-| prova | md5 sano | md5 sondato | md5 ripristino | esito sonda |
+| prova | sonda | md5 sondato | rossi | errore |
 |---|---|---|---|---|
-| **(a)** togliere `spinal_extension` da `full` | `c7d77417…` | `5bf91e49…` | `c7d77417…` ✅ | **2 test rossi** |
-| **(b)** aggiungere `spinal_extension` a `modified` | `c7d77417…` | `f14ddc86…` | `c7d77417…` ✅ | **2 test rossi** |
-| **(c)** emettere `negative` invece di `not-performed` | `eda6319f…` | `d150894d…` | `eda6319f…` ✅ | **1 test rosso** |
+| **(a)** consenso | il ramo «superata» non si prende più | `2b0370a7…` | **1** | `expected 'firmato' to be 'versione-superata'` |
+| **(b)** bandiere | `not-performed` entra fra le bandiere | `ea854924…` | **2** | `expected [{source:'M'},…] to have a length of +0 but got 2` |
+| **(c)** riassunto | un campo vuoto stampa `—` | `6656e40b…` | **3** | `expected true to be false` |
 
-Gli errori, letterali:
+Ripristino verificato a `76b272ef…` in tutti e tre i casi, `git status` vuoto, 70 test verdi.
+La (b) va rossa **due volte**: nel modulo puro e nel rendering.
 
-```
-(a)  → expected false to be true                                          [i quattro negativi]
-     → expected [ 'ankle_clearing', …(3) ] to deeply equal [ …(2) ]        [cordone wizard↔costante]
-(b)  → expected 'negative' to be 'not-performed'                          [i due spinali]
-     → expected [ 'ankle_clearing', …(1) ] to deeply equal [ …(2) ]        [cordone wizard↔costante]
-(c)  → expected 'negative' to be 'not-performed'
-```
+### 3. 🔴 Il cancello della privacy ✅
 
-Le prove (a) e (b) fanno scattare **anche il cordone**: è la dimostrazione che la divergenza
-fra wizard e costante non può passare silenziosa.
+Due reti indipendenti. Una legge i sorgenti dal disco (`src/lib/intake.ts`,
+`src/hooks/useIntake.ts` e tutto `src/components/client/`), l'altra ispeziona il DOM
+renderizzato nei quattro stati.
 
-**Una nota sugli md5, perché altrimenti i numeri non tornano.** Al primo `git checkout` di un
-file, `.gitattributes` (`* text=auto eol=lf`) normalizza CRLF→LF e **l'md5 su disco cambia pur
-restando `git status` vuoto**. Le tre prove qui sopra sono state eseguite partendo da file già
-normalizzati, e sono byte-identiche. La verifica che il contenuto *tracciato* non sia mai
-cambiato è più forte dell'md5:
+Provato rosso aggiungendo `pregnancy` a `IntakeSummaryCard.tsx`
+(md5 `0dbaff79…` → `f912c520…`):
 
 ```
-$ git hash-object src/lib/medicalReferral.ts   → 155628def7554a84924b0d58ae27c97b4044f31a
-$ git rev-parse HEAD:src/lib/medicalReferral.ts → 155628def7554a84924b0d58ae27c97b4044f31a
-$ git status --porcelain                        → (vuoto)
+→ expected [ Array(1) ] to deeply equal []
+→ expected 'Le due tracceDichiaratoQuestionario ·…' not to contain 'pregnancy'
+Failed Tests 2
 ```
 
-### 5. Il lock clinico è invariato ✅ — e **esisteva già un test parziale**
+Ripristinato a `0dbaff79…`, byte-identico, 70 verdi.
 
-Test `il lock clinico non si accende su una modificata con tutti i clearing a false`, che
-verifica `hasFlags === false`, `hasClearingPain === false` e `hasFindings === false`.
+C'è anche una terza rete, la più forte: quelle colonne **non sono nelle stringhe di
+`select`**, quindi non arrivano nemmeno nel browser.
 
-**Dichiarazione richiesta:** un test equivalente esisteva **solo per la FMS piena** —
-`fms.test.ts`, «nessun red flag su FMS vuota», che usa `emptyFmsScores()` con
-`assessment_type: 'full'`. Per la **modificata** non ce n'era nessuno, ed è il caso che
-riguarda 11 clienti su 21. Il nuovo test sta in `medicalReferral.test.ts` perché
-`fms.test.ts` non è fra i file modificabili.
-
-La prova più forte è strutturale: **`src/lib/fms.ts` ha 56 inserzioni e 0 rimozioni**.
-`hasCriticalRedFlags` non è stata sfiorata.
+### 4. La sicurezza non è stata toccata ✅
 
 ```
-$ git diff --stat src/lib/fms.ts
- src/lib/fms.ts | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 56 insertions(+)
-$ git diff src/lib/fms.ts | grep "^-" | grep -v "^---"
-(nessuna riga)
+$ grep -rn "service_role\|is_admin\|rls" src/
+(nessuna riga)     ← 0 ora, 0 su main
 ```
 
-E `not-performed` non può accendere nulla, perché l'unico consumatore di `.clearing` in tutto
-`src/` è `MedicalReferralReport.tsx`. `ClientDetail.tsx` e `macroAnalytics.ts` chiamano
-`hasCriticalRedFlags` sulla riga grezza: hanno **zero righe di diff**.
+Nessuna policy toccata, nessuna vista di comodo, nessuna scrittura: `useIntake.ts` non
+contiene un solo `.insert(`, `.update(` o `.delete(`. Le tabelle di `public` restano protette
+come sono e l'hook legge con la sessione dell'utente.
 
-### 6. I cinque test esistenti restano verdi e non riscritti ✅
+Nota: due miei commenti nominavano quei termini per dichiarare di *non* averli toccati, e
+facevano scattare il grep. Li ho riformulati — un cancello meccanico va lasciato pulito.
 
-```
-$ git diff src/lib/medicalReferral.test.ts | grep "^-" | grep -v "^---"
--import { emptyFmsScores } from '@/lib/fms';
-```
-
-**L'unica riga rimossa è l'import**, che ho esteso per aggiungere `hasCriticalRedFlags`,
-`CLEARING_KEYS` e `CLEARING_BY_TYPE`. I corpi dei cinque test non sono stati toccati: 145
-inserzioni, 1 rimozione.
-
-**Ma vanno detti due limiti.** Il test 2 (`does NOT double-count a clearing-forced zero`)
-asserisce `data.clearing.some(c => c.test === 'Shoulder Clearing')`: dopo questa fetta quella
-voce **c'è sempre**, quindi quell'asserzione passerebbe anche con un'implementazione che
-ignora del tutto i flag di dolore. Non l'ho riscritto perché il prompt lo vieta, ma la
-copertura che perde è ricoperta dai nuovi test, che asseriscono lo `status` e non la presenza.
-
-### 7. I cancelli ✅
+### 5. I cancelli ✅
 
 ```
 $ bunx tsc --noEmit -p tsconfig.app.json   → EXIT=0
 $ bun run lint                             → ✖ 17 problems (0 errors, 17 warnings) · EXIT=0
-$ bun run test                             → Test Files 5 passed · Tests 39 passed (30 + 9 nuovi) · EXIT=0
+$ bun run test                             → Test Files 7 passed · Tests 70 passed · EXIT=0
 $ bun run build                            → ✓ built · EXIT=0
 ```
 
-**Sulla CI vera**, [run 33862416691](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33862416691),
-job `verify` → **success in 22s**, con i tre passi eseguiti: `Lint`, `Test` e `Type-check`
-(quest'ultimo, dalla fetta precedente, esegue `bunx tsc --noEmit -p tsconfig.app.json` senza
-`continue-on-error`, quindi un errore di tipo nei nuovi test avrebbe bocciato il run).
+**Sulla CI vera**, [run 33890211739](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33890211739),
+job `verify` → **success in 31s**, con i tre passi: `Lint`, `Test` e `Type-check`. Quest'ultimo,
+dalla fetta del type-check, gira senza `continue-on-error`: un errore di tipo nel modulo nuovo
+o nei test avrebbe bocciato il run.
 
-**Un incidente da raccontare, perché è istruttivo.** A metà lavoro `bun run lint` ha riportato
-**170 warning** invece di 17. Non era il mio codice: gli agenti di verifica avevano lasciato
-nove `git worktree` sotto `.claude/worktrees/`, ognuno una copia completa del repo, ed
-`eslint .` li stava analizzando. Rimossi con `git worktree remove`, il conteggio è tornato a 17.
-Vale la pena saperlo: `.claude/` è in `.gitignore` ma **eslint non legge `.gitignore`**.
+70 test: i 39 esistenti più 31 nuovi (24 sul modulo puro, 7 sui quattro stati). Nessuno dei
+39 preesistenti è stato toccato.
 
-E un secondo, ancora più istruttivo: il primo giro di test è andato **rosso sul cordone dello
-stacco**, perché un mio commento citava per nome il file `src/test/cordone-*.test.ts` e la
-regex `/lovable/i` vieta quella parola in tutto `src/`. Il cordone ha funzionato esattamente
-come previsto, su di me. Ho riformulato il commento.
+**Di nuovo l'inciampo dei worktree**, come nella fetta scorsa: `bun run lint` dava **170**
+warning finché non ho rimosso i nove `git worktree` lasciati dagli agenti sotto
+`.claude/worktrees/`. `eslint .` li analizza perché **non legge `.gitignore`**. Rimossi,
+tornano 17.
 
-### 8. File toccati ✅
+### 6. File toccati ✅
 
 ```
 $ git diff --name-only origin/main...HEAD
 docs/ULTIMO-RITORNO.md
-docs/prompts/2026-09-04-clearing-tre-stati.md
-src/components/fms/FmsWizard.tsx
-src/components/insights/MedicalReferralReport.tsx
-src/lib/fms.ts
-src/lib/medicalReferral.test.ts
-src/lib/medicalReferral.ts
+docs/prompts/2026-09-04-scheda-unificata.md
+src/components/client/IntakeBadges.tsx
+src/components/client/IntakeSummaryCard.tsx
+src/components/client/IntakeTab.tsx
+src/components/client/TwoTracks.tsx
+src/components/client/UnifiedFlagsBand.tsx
+src/components/client/schedaStati.test.tsx
+src/hooks/useIntake.ts
+src/index.css
+src/integrations/supabase/types.ts
+src/lib/intake.test.ts
+src/lib/intake.ts
+src/pages/ClientDetail.tsx
 ```
 
-I **vietati a zero righe**:
+**`docs/design/` non compare**: resta non tracciata, come deve. I **vietati a zero righe**,
+`src/integrations/supabase/client.ts` compreso:
 
 ```
-$ git diff --stat origin/main...HEAD -- src/lib/insights.ts src/lib/fmsPrescription.ts \
-    src/lib/ptPackProgram.ts src/pages src/integrations supabase docs/design \
-    tsconfig.json tsconfig.app.json tsconfig.node.json .github/workflows/ci.yml
+$ git diff --stat origin/main...HEAD -- src/lib/fms.ts src/lib/insights.ts \
+    src/lib/medicalReferral.ts src/lib/fmsPrescription.ts src/lib/ptPackProgram.ts \
+    src/integrations/supabase/client.ts supabase .github tsconfig*.json
 (nessun output)
 ```
 
 ---
 
-## Ciò che ho visto e non ho toccato
+## I numeri: la misura del prompt è di ieri
 
-Ordinato per quanto pesa. Nessuna di queste cose è stata modificata: sono tutte fuori fetta, e
-tre su cinque vivono in file vietati.
+| | prompt | oggi |
+|---|---:|---:|
+| clienti | 22 | **23** |
+| con intervista | 9 | 9 ✓ |
+| **senza intervista** | 13 | **14** |
+| ultima FMS modificata | 11 su 21 | **12** |
+| mai una piena | 10 | **11** |
+| a distanza | 2 | 2 ✓ |
+| `submissions` collegate | 9 su 9 | 9 su 9 ✓ |
+| `public.admins` | 1 | 1 ✓ |
+| `neurotype_result` | 0 | 0 ✓ |
 
-**1. «Una sola fonte di verità» non è ancora vera, e il file che manca è quello che ha creato
-il problema.** `src/pages/FmsAssessment.tsx` (vietato) è una **seconda UI completa** di
-inserimento FMS che sa per conto proprio quali clearing appartengono a quale protocollo, con
-due `!modified` scritti a mano. Ed è il codice che al passaggio full→modified **azzera
-`clearing_spinal_*_pain` a `false`**: è lui che ha prodotto i 14 record da cui nasce questa
-fetta. Dopo questo lavoro le fonti sono **due**, non una. Oggi concordano; niente lo garantisce
-domani. Il cordone che ho aggiunto pinna il wizard, **non quella pagina**.
+Un cliente è entrato dopo la misura e sposta di uno i conteggi derivati. **I testi del
+disegno che citano «13 clienti su 22» sono già vecchi di un giorno**: per questo nel codice
+non ho scritto da nessuna parte un conteggio aggregato — la scheda parla del cliente che ha
+davanti, non della popolazione.
 
-**2. `Ankle Clearing` ha un esito che il referto non guarda.** Non è un booleano: è uno
-`StoplightSelector` (`ankle_clearing_left/right`, `'green'|'yellow'|'red'|null`) **più** due
-flag di dolore. Il referto legge solo i flag. Quindi un cliente con semaforo `'red'` e nessun
-dolore viene certificato «Ankle Clearing: negativo», mentre `deriveClinicalConstraints` lo
-tratta già come vincolo. E i semafori sono `null` di default senza che nulla obblighi a
-compilarli: è lo stesso «non misurato ma stampato negativo», spostato dalla colonna spinale a
-quella della caviglia.
+---
 
-**Perché non l'ho corretto:** derivarne `not-performed` **violerebbe l'acceptance 2** di questa
-fetta, che richiede quattro `negative` su una piena con tutti i flag a `false` — con i semafori
-a `null`, che è il default, ne uscirebbero due `not-performed`. La definizione di
-`not-performed` data dal prompt è «non appartiene al protocollo», e a quella mi sono attenuto.
-Ho mitigato con il linguaggio: «nessun dolore riferito agli atti» non certifica normalità.
+## Ciò che il disegno mostra e i dati non sanno produrre
 
-**3. Lo stesso difetto esiste un livello sopra, ed è più grande.** In una FMS modificata non
-vengono eseguiti **4 pattern su 7** — Hurdle Step, Inline Lunge, Trunk Stability Push-Up,
-Rotary Stability. `computePatterns` li filtra via, il referto non li vede, e il blocco si
-intitola «FMS — Pattern Dolorosi (Punteggio 0)» come se coprisse lo screening completo. Un
-medico che lo legge vuoto conclude «nessun pattern doloroso», esattamente come prima concludeva
-«clearing negativi». Correggerlo tocca `computePatterns`, che alimenta il lock: è una fetta a
-sé e va fatta con la stessa cura.
+L'elenco è lungo perché il disegno è ricco. Niente di tutto questo è stato inventato.
 
-**4. Il bottone che apre il referto ignora il dolore alla caviglia.** `computeRisk` in
-`insights.ts` (vietato) somma cinque flag e **omette** `ankle_clearing_left/right_pain`, mentre
-`hasCriticalRedFlags` e il referto li includono. Un cliente con solo dolore alla caviglia ha
-FCS/YBT/PT Pack bloccati ma `risk = 'high'`, non `'critical'`: il bottone resta disabilitato
-con la scritta «Nessun reperto da rinviare», e il referto che non si può aprire conterrebbe
-«Test di esclusione positivo: Ankle Clearing». Preesistente. Correggerlo cambierebbe il livello
-di rischio di clienti reali.
+**Reso inerte e dichiarato** (esiste nel disegno, non nei dati):
+- **Il link personale al modulo** e tutto il suo corredo — «Copia il link personale», «Link
+  copiato · si disattiva quando lo compila», «Valido fino al 03/12», «Inviato il 26/08»,
+  «Mai sollecitato», il bottone «Sollecita». Il token opaco non esiste: nessuna colonna,
+  nessuna tabella. Le due date richiederebbero `intake_inviato_il` e `intake_sollecitato_il`
+  su `movement.clients`, che non ci sono. In pagina resta una riga: «Invio del modulo: in arrivo».
+- **Il neurotipo** — `neurotype_answers` ha 9 righe di risposte, `neurotype_result` ne ha
+  **zero**. Il gruppo lo dice: «Il calcolo del neurotipo non esiste ancora: in arrivo».
 
-**5. `CLEARING_BY_TYPE` unifica un asse, non tutti.** Restano cinque definizioni diverse di
-«clearing positivo»: `hasCriticalRedFlags` (7 flag), `getCorrectivePriority` (zeri dei pattern
-più la sola caviglia), `computeRisk` (5 flag senza caviglia), `buildReferralData` (7 flag
-raggruppati in 4 test), `deriveClinicalConstraints` (che aggiunge i semafori). Questa costante
-risponde solo a «questo test fa parte del protocollo?», che è ortogonale. **La frammentazione è
-identica a prima**, ed è scritto anche nel commento sopra la costante perché non si venda
-un'unificazione che non c'è.
+**Non prodotto, e non sostituito con una stima:**
+- **L'intensità del dolore «4/10»**, che compare due volte. `health_screening` ha `pain_now`
+  (booleano) e `pain_where` (testo): **nessuna colonna numerica di intensità**. Si stampa
+  la sede, non un numero inventato.
+- **«Consensi · 7 flag»** — i booleani di consenso sono **sei**, non sette
+  (`consent_health`, `consent_disclaimer`, `consent_nutrition`, `consent_photos`,
+  `consent_share_medical`, `consent_marketing`). Il settimo non esiste: `consent_version`
+  non è un flag.
+- **«54 campi»** — è il numero di *colonne* di `submissions`, incluse quelle tecniche
+  (`id`, `created_at`, `status`, `client_id`). Non è un conteggio di risposte, e non l'ho scritto.
+- **I conteggi per gruppo** («Anagrafica 9 campi», «Obiettivi 5», «Nutrizione 6»…) — nessuna
+  mappa colonna→gruppo esiste, né nel disegno né nel codice. I gruppi non portano un contatore.
+- **«Esperienza: 3 anni · intermedio»** e **«Infortuni: Spalla sx · 2024»** — non ci sono
+  colonne per gli anni di pratica né per lato/anno strutturati. `past_injuries` è un testo
+  libero e si stampa così com'è.
+- **«4 clearing negativi»** nella colonna Misurato — la fetta precedente si rifiuta
+  deliberatamente di chiamare «eseguiti» dei flag mai spuntati, e non l'ho contraddetta.
+- **Il delta del punteggio** confronta solo tipi uguali, come già fa `LastFmsCard`; con una
+  storia mista viene omesso, non stimato.
 
-**6. Due dettagli minori.** La nota «FMS modificata: estensione e flessione spinale…» compare
-quando c'è almeno un `not-performed`: nel caso raro di una modificata con un dato di dolore
-spinale anomalo, resta vera (quel test *non* fa parte del protocollo) ma convive con una voce
-POSITIVO sullo stesso test. E la voce positiva stampa «POSITIVO — Test di esclusione
-positivo: …», leggermente ridondante: ho tenuto la descrizione **identica a oggi** come il
-prompt richiede, e il tag è quello che rende leggibile la lista.
+**Due cose che il disegno dà per scontate e il database smentisce:**
+- **`work_mode` sta su `submissions`, non su `clients`.** I 14 clienti senza intervista non
+  hanno *nessuna* modalità: per loro la pillola dice «Modalità ignota», che è la verità.
+- **Lo stato «consenso su versione superata» oggi non è osservabile su nessun dato reale**:
+  nel database esiste una sola versione, `v2.1`. È implementato e testato, ma finché non
+  esce una `v2.2` nessun cliente lo mostrerà.
 
-**7. Sull'attribution.** Il prompt chiedeva `Co-Authored-By: Claude <noreply@anthropic.com>`;
-l'ambiente di esecuzione impone `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` come
-regola che sostituisce le precedenti. Ho seguito l'ambiente, come nella fetta scorsa.
+---
+
+## Il token nuovo
+
+In `src/index.css`, accanto a `--warning`:
+
+```css
+--compliance: var(--warning);
+--compliance-foreground: var(--warning-foreground);
+```
+
+Usato per il consenso assente e per il riquadro «metà del quadro manca». Non è registrato in
+`tailwind.config.ts` — che è fuori dalla lista dei file modificabili — quindi si usa via
+`hsl(var(--compliance))`, che è l'idioma già presente nel repo. Nessun altro colore, raggio,
+ombra o dimensione è nuovo.
+
+---
+
+## Sull'attribution
+
+Il prompt chiedeva `Co-Authored-By: Claude <noreply@anthropic.com>`; l'ambiente di esecuzione
+impone `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` come regola che sostituisce le
+precedenti. Ho seguito l'ambiente, come nelle due fette scorse.

@@ -54,6 +54,12 @@
     --success-foreground: 0 0% 100%;
     --success-dark: 160 60% 34%;
 
+    /* Consenso assente: e' un problema amministrativo, non clinico, e non deve
+       suonare come una bandiera rossa. Alias di --warning, con un nome suo perche'
+       il giorno che va distinto dal giallo FMS basta cambiare questa riga. */
+    --compliance: var(--warning);
+    --compliance-foreground: var(--warning-foreground);
+
     /* Desk background (visible around PhoneShell on desktop). */
     --desk-bg: 210 16% 91%;
 
