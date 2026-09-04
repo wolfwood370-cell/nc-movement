@@ -473,7 +473,13 @@ export default function ClientDetail() {
         </TabsList>
 
         <TabsContent value="intake" className="mt-4">
-          <IntakeTab submission={submission} screening={screening} consent={consent} />
+          <IntakeTab
+            clientId={client.id}
+            submission={submission}
+            screening={screening}
+            consent={consent}
+            intakeAssente={intake.status === 'assente'}
+          />
         </TabsContent>
 
         <TabsContent value="ptpack" className="mt-4">

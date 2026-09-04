@@ -80,6 +80,74 @@ const testo = (v: string | null | undefined): string | null => {
 };
 
 // ---------------------------------------------------------------------------
+// L'invito al questionario — un link personale, tre stati
+// ---------------------------------------------------------------------------
+
+/**
+ * Dove vive oggi il questionario d'ingresso.
+ *
+ * È un'altra applicazione, su un altro dominio: NC Movement non la serve e non la
+ * ospita. L'indirizzo è scritto UNA volta sola in tutto il repo, e questo è il punto:
+ * il giorno che il modulo entrerà dentro NC Movement si cambia qui e basta, mentre
+ * un indirizzo ricopiato in tre file sono tre indirizzi che prima o poi divergono.
+ *
+ * Non è una variabile d'ambiente di proposito. Un `import.meta.env` non impostato vale
+ * `undefined` a runtime anche se il tipo dice `string`, e produrrebbe un
+ * `undefined/?t=…` da consegnare a una persona vera. Una costante sbagliata si vede
+ * nel diff; una env var mancante no.
+ */
+export const QUESTIONARIO_BASE_URL = 'https://nc-questionnaire.lovable.app';
+
+export type StatoInvito = 'assente' | 'vivo' | 'scaduto';
+
+/**
+ * Lo stato del link personale, alla luce dell'ora che gli passi.
+ *
+ * `ora` arriva da fuori e non si legge qui dentro: è ciò che rende questa funzione
+ * provabile senza congelare l'orologio del processo.
+ *
+ * Le regole, per intero:
+ * - token assente, o di soli spazi → `assente`: non è mai stato generato niente;
+ * - token presente e scadenza assente → `vivo`. Sul database `intake_token_scade_il`
+ *   è nullable e un token senza scadenza non scade davvero: qui vale lo stesso, non
+ *   si inventa un limite che il server non applica;
+ * - scadenza nel futuro → `vivo`; scadenza nel passato → `scaduto`;
+ * - scadenza ESATTAMENTE uguale a `ora` → `scaduto`. Il confine appartiene al passato:
+ *   sull'istante esatto è meglio mandare a rigenerare un link che funziona che
+ *   consegnarne uno che il server sta per rifiutare.
+ *
+ * Una scadenza illeggibile — una stringa che non è una data — vale `scaduto` e non
+ * `vivo`: fallisce chiuso, come il consenso qui sopra. Il costo dell'errore è un link
+ * rigenerato per niente; il costo opposto è un link morto in mano al cliente.
+ */
+export function statoInvito(
+  token: string | null | undefined,
+  scadeIl: string | null | undefined,
+  ora: Date,
+): StatoInvito {
+  if (!testo(token)) return 'assente';
+
+  const scadenza = testo(scadeIl);
+  if (!scadenza) return 'vivo';
+
+  const istante = new Date(scadenza).getTime();
+  if (Number.isNaN(istante)) return 'scaduto';
+
+  return istante > ora.getTime() ? 'vivo' : 'scaduto';
+}
+
+/**
+ * Il link personale da consegnare: `<base>/?t=<token>`.
+ *
+ * Le barre in coda alla base si tolgono: `…app//?t=` è un altro indirizzo, e certi
+ * server lo trattano come tale. Il token passa da `encodeURIComponent` — per un uuid
+ * è l'identità, ma il giorno che il formato cambiasse il link resterebbe valido.
+ */
+export function linkIntake(base: string, token: string): string {
+  return `${base.replace(/\/+$/, '')}/?t=${encodeURIComponent(token)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Consenso — tre stati, e la versione corrente arriva da fuori
 // ---------------------------------------------------------------------------
 
@@ -325,11 +393,27 @@ export function buildUnifiedFlags(
 
 export type SummaryKind = 'fisso' | 'condizionale';
 
+/**
+ * Oltre questa lunghezza un campo smette di stare in mezza riga.
+ *
+ * 140 non è un numero magico: è all'incirca quanto entra, senza sillabare, in quattro
+ * righe di testo a 12px dentro una colonna larga metà di uno schermo da 390px.
+ * `conditions_meds` per certi clienti è un'anamnesi di migliaia di caratteri, e in
+ * mezza colonna diventa la striscia verticale che oggi rende illeggibile il riassunto.
+ * Sopra la soglia il campo prende la riga intera e si tronca; sotto, niente cambia.
+ *
+ * La soglia sta qui e non nel componente perché è una proprietà del dato, non della
+ * grafica: la stessa misura decide anche se un dettaglio di bandiera va a capo.
+ */
+export const SOGLIA_CAMPO_LUNGO = 140;
+
 export interface SummaryField {
   key: string;
   label: string;
   value: string;
   kind: SummaryKind;
+  /** Il valore supera `SOGLIA_CAMPO_LUNGO`: chi lo mostra gli dà la riga intera. */
+  lungo: boolean;
 }
 
 export interface IntakeSummary {
@@ -358,7 +442,7 @@ export function buildIntakeSummary(
   const fields: SummaryField[] = [];
   const aggiungi = (key: string, label: string, value: string | null, kind: SummaryKind) => {
     const v = testo(value);
-    if (v) fields.push({ key, label, value: v, kind });
+    if (v) fields.push({ key, label, value: v, kind, lungo: v.length > SOGLIA_CAMPO_LUNGO });
   };
 
   if (submission) {
