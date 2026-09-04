@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import TwoTracks from '@/components/client/TwoTracks';
 import UnifiedFlagsBand from '@/components/client/UnifiedFlagsBand';
 import IntakeSummaryCard from '@/components/client/IntakeSummaryCard';
@@ -166,5 +166,88 @@ describe('scheda unificata — i quattro stati reggono senza cambiare forma', ()
   it('il consenso mancante non e una bandiera rossa: usa il tono amministrativo', () => {
     expect(deriveConsent(null, 'v2.1').tone).toBe('compliance');
     expect(deriveConsent(sub(), 'v2.1').tone).toBe('ok');
+  });
+});
+
+/**
+ * T3 — il muro di testo.
+ *
+ * Un'anamnesi da migliaia di caratteri in mezza colonna su 390px e' la striscia
+ * verticale che rendeva illeggibile questa schermata. Qui si prova che il campo lungo
+ * prende la riga intera, che il testo INTERO resta nel DOM — non e' stato tagliato con
+ * `slice()` — e che c'e' un modo di aprirlo.
+ *
+ * ⚠️ Limite dichiarato: jsdom non fa layout, quindi «non interamente visibile» si
+ * verifica sul meccanismo, cioe' sulla classe `line-clamp-4` che sta addosso al
+ * paragrafo mentre e' chiuso e sparisce quando si apre. Contare i pixel richiederebbe
+ * un browser vero; contare la classe prova comunque che il troncamento c'e', e' in CSS
+ * e si toglie al tocco. Il testo intero e' verificato davvero, non per procura.
+ */
+describe('leggibilita sul telefono — i campi lunghi si troncano e si aprono', () => {
+  const ANAMNESI =
+    'Ipertensione arteriosa in terapia con ramipril 5 mg dal 2019, ' +
+    'dislipidemia in trattamento con atorvastatina 20 mg, ' +
+    'pregressa ernia discale L5-S1 trattata conservativamente nel 2021, ' +
+    'intolleranza ai FANS, episodi ricorrenti di lombalgia acuta. ' +
+    'z'.repeat(200);
+
+  it('il riassunto: il campo lungo prende la riga intera, si tronca e si apre', () => {
+    const summary = buildIntakeSummary(sub(), salute({ conditions_meds: ANAMNESI }));
+
+    // La logica pura lo ha gia' marcato lungo: il componente non ridecide da solo.
+    expect(summary.fields.find(f => f.key === 'farmaci')?.lungo).toBe(true);
+
+    render(<IntakeSummaryCard summary={summary} hasIntake />);
+
+    const paragrafo = screen.getByText(ANAMNESI);
+
+    // Il testo intero c'e': selezionabile, cercabile, leggibile da uno screen reader.
+    expect(paragrafo.textContent).toBe(ANAMNESI);
+    // Ma non e' interamente visibile: quattro righe, in CSS.
+    expect(paragrafo.className).toContain('line-clamp-4');
+    // E il riquadro occupa la riga intera invece di mezza colonna.
+    expect(paragrafo.closest('.col-span-2')).not.toBeNull();
+
+    const bottone = screen.getByRole('button', { name: 'Mostra tutto' });
+    expect(bottone.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(bottone);
+
+    const dopo = screen.getByRole('button', { name: 'Riduci' });
+    expect(dopo.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText(ANAMNESI).className).not.toContain('line-clamp-4');
+
+    cleanup();
+  });
+
+  it('un campo corto resta com era: mezza riga, nessun bottone', () => {
+    const summary = buildIntakeSummary(sub({ main_goal: 'Tornare a correre' }), salute());
+    render(<IntakeSummaryCard summary={summary} hasIntake />);
+    expect(screen.getByText('Tornare a correre').className).not.toContain('line-clamp-4');
+    expect(screen.queryByRole('button', { name: 'Mostra tutto' })).toBeNull();
+    cleanup();
+  });
+
+  it('le bandiere: il dettaglio lungo scende sotto l etichetta invece di allungare la riga', () => {
+    const flags = buildUnifiedFlags(salute({ conditions_meds: ANAMNESI }), []);
+    render(<UnifiedFlagsBand flags={flags} />);
+
+    // L'etichetta resta una riga sua: il dettaglio non le e' piu' appeso in linea.
+    const etichetta = screen.getByText('Quadro clinico dichiarato');
+    expect(etichetta.textContent).toBe('Quadro clinico dichiarato');
+
+    const dettaglio = screen.getByText(ANAMNESI);
+    expect(dettaglio.className).toContain('line-clamp-4');
+    expect(screen.getByRole('button', { name: 'Mostra tutto' })).toBeTruthy();
+
+    cleanup();
+  });
+
+  it('un dettaglio corto resta in linea, fra virgolette, come prima', () => {
+    const flags = buildUnifiedFlags(salute({ past_injuries: 'spalla sx dal 2024' }), []);
+    render(<UnifiedFlagsBand flags={flags} />);
+    expect(screen.getByText(/spalla sx dal 2024/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Mostra tutto' })).toBeNull();
+    cleanup();
   });
 });

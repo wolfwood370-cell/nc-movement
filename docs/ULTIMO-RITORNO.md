@@ -1,340 +1,424 @@
-# Ultimo ritorno — Scheda unificata
+# Ultimo ritorno — Link personale e leggibilità
 
-**Data:** 2026-09-04 · **Ramo:** `claude/scheda-unificata` · **Base:** `main` = `bc564f1`
-**PR:** [#5 — Scheda unificata: l'intervista d'ingresso e i test di movimento nella stessa scheda](https://github.com/wolfwood370-cell/nc-movement/pull/5)
-**Prompt conservato:** [`docs/prompts/2026-09-04-scheda-unificata.md`](prompts/2026-09-04-scheda-unificata.md)
+**Data:** 2026-09-04 · **Ramo:** `claude/link-personale-e-leggibilita`
+**Base:** `cccfde7` (`Scrive il ritorno della fetta scheda unificata`) sul ramo `claude/scheda-unificata`
+**Commit:** `73b6b73` (il codice) + il commit di documentazione che porta questo file
 
-**Commit:** `27961fd` (il codice) + il commit di documentazione che porta questo file.
-Il ritorno della fetta precedente (clearing a tre stati) resta nella storia di git e nella
-[PR #4](https://github.com/wolfwood370-cell/nc-movement/pull/4).
+Il ritorno della fetta precedente (scheda unificata) resta nella storia di git e nella
+[PR #5](https://github.com/wolfwood370-cell/nc-movement/pull/5). Questo file lo sostituisce
+per la fetta corrente.
+
+Niente merge, niente deploy: come chiesto.
 
 ---
 
 ## Rituale d'apertura
 
-`git status` mostrava `?? docs/design/` e nient'altro. `VALUTAZIONE-VENDITA-FMS.md` non
-esiste nella working copy — come nelle due fette precedenti. **`docs/design/` non è stata
-toccata né committata**, e infatti non compare nel diff.
-
-Stavolta il disegno **c'è davvero**: 13 file, non 12 (oltre agli undici attesi ci sono
-`direzione-1a`, `direzione-1c` e `note-messo-da-parte.html`).
+`git status` all'apertura mostrava `?? docs/design/` e nient'altro. **`docs/design/` non è
+stata toccata**: resta non tracciata, e infatti non compare nel diff (verificato sotto,
+accettazione 5).
 
 ---
 
-## Che cosa ho letto del disegno, e dove me ne sono discostato
+## Il contesto, verificato invece che creduto
 
-Letto per intero `DECISIONI.md`, i quattro stati, i tre componenti e `clientdetail-oggi.html`.
-`DECISIONI.md` conferma che i tre stati dei clearing — la fetta precedente — nascevano da qui.
+Il prompt diceva «non fidarti, verifica». Ho verificato, e su due punti la realtà non
+coincide con il prompt. Li dico subito perché cambiano il codice.
 
-### I discostamenti, con il perché
+### Verificato e confermato
 
-**1. Gravidanza, ciclo, codice fiscale e indirizzo non compaiono nemmeno nei gruppi Salute e
-Anagrafica.** Il prompt li ammetterebbe lì; io non li leggo affatto dal database.
+Interrogato il progetto Supabase `srrmauojpficdswmtjya` (quello di `.env`):
 
-Il motivo è che una verifica avversariale ha dimostrato che le altre due difese non
-reggono. Un tipo `Omit` blocca solo l'accesso nominato: un componente che fa
-`Object.entries(submission)` compila senza un solo `any` e rende le quattro colonne nel DOM
-— è stato scritto e montato davvero. E con `select('*')` le colonne arrivano comunque nel
-browser anche quando nessuno le mostra: cache di react-query, pannello di rete, qualunque
-dump dello stato.
+- le quattro colonne `intake_token`, `intake_token_scade_il`, `intake_inviato_il`,
+  `intake_sollecitato_il` **esistono** su `movement.clients`, tutte nullable, `uuid` la
+  prima e `timestamptz` le altre tre;
+- le due funzioni **esistono**, `SECURITY DEFINER`, con `execute` concesso a
+  `postgres` e `authenticated` e a nessun altro (né `PUBLIC`, né `anon`);
+- entrambe controllano `private.is_admin()` e sollevano `non autorizzato` con
+  SQLSTATE `42501` se il chiamante non lo è.
 
-L'unica barriera che regge è **non chiederle al server**:
+Ho letto anche il corpo con `pg_get_functiondef`, e ne ho ricavato due cose che il
+prompt non diceva e che sono finite nel codice:
+
+1. `genera_invito_intake` valorizza anche **`intake_inviato_il = now()`** e azzera
+   `intake_sollecitato_il`. Quindi la colonna «inviato» in realtà segna **quando il link
+   è stato creato**, non quando è stato mandato a qualcuno — in questa fetta *niente
+   invia niente*. L'hook la espone col nome onesto `creatoIl` e il commento lo dice.
+2. `giorni` è vincolato lato server a `greatest(1, least(coalesce(giorni,30), 365))`.
+   I 30 giorni che passo sono dentro il vincolo.
+
+**Niente sotto `supabase/` è stato toccato, e nessuna migrazione è stata scritta.**
+
+### Discrepanza 1 — i tipi generati sono più vecchi del database
+
+`src/integrations/supabase/types.ts` **non conosce** né le quattro colonne `intake_*` né
+le due funzioni: nello schema `movement` il blocco `Functions` è letteralmente
+`[_ in never]: never`. Scritto come nel prompt
 
 ```ts
-export const SUBMISSION_SELECT = 'id,client_id,created_at,status,consent_version,…' as const;
+const { data, error } = await supabase.rpc('genera_invito_intake', { … });
 ```
 
-Ciò che non attraversa la rete non si può perdere. Il costo è che i due gruppi mostrano
-meno di quanto il disegno vorrebbe, e i due gruppi lo dichiarano in una riga. Per mostrarli
-servirà una lettura separata, fatta all'apertura del gruppo — che è anche il modo giusto.
+il type-check **non passa**, ed è il passo che il CI esegue per ultimo.
 
-**2. Il tono della banda non lo decide il conteggio delle righe.** Il disegno lo dice in tre
-file e io l'ho preso alla lettera: quando una delle due metà non è mai stata interrogata la
-banda **non diventa verde**. Zero bandiere dichiarate perché il questionario è pulito e zero
-perché il questionario non esiste sono due cose diverse, e la seconda non autorizza a
-scrivere «nessuna bandiera rossa» addosso a un silenzio. Riguarda 14 clienti su 23.
+Tre strade: rigenerare `types.ts` (1700 righe generate, diff enorme, fetta a sé),
+spargere `any` sui punti di chiamata, oppure confinare la distanza fra tipi e realtà in
+un punto solo. Ho scelto la terza: in `useInvitoIntake.ts` c'è **una** interfaccia
+scritta a mano, `ClientConInvito`, che ricopia la firma vera letta sul server, e **un**
+solo `as unknown as`. Da lì in poi tutto è tipizzato davvero — `token` e `scade_il`
+esistono, `giorni` è un numero, e chi sbaglia nome di colonna se ne accorge subito.
+La firma copiata è scritta nel commento sopra l'interfaccia, così il giorno che
+`types.ts` verrà rigenerato si vede cosa cancellare.
 
-**3. Il consenso lancia invece di indovinare.** Il disegno dice che la versione corrente
-«arriva da fuori, il disegno la riceve». Ho aggiunto che se **non** arriva, `deriveConsent`
-solleva un errore. Una env var non impostata vale `undefined` a runtime anche se il tipo
-dice `string`, e le due alternative erano entrambe peggiori: affermare la conformità senza
-aver confrontato niente, o stampare «Consenso v2.1 · corrente » con la versione mancante a
-tutti e nove i clienti in regola.
+### Discrepanza 2 — un test di cancello esistente vietava l'indirizzo del questionario
 
-**4. La pillola per `work_mode = 'app'`** non è disegnata da nessuna parte. Ho usato la
-stessa geometria delle altre con l'icona del telefono e l'etichetta «Solo app», e la tratto
-come `remoto` per l'accensione dei test, come dice `DECISIONI.md`.
+`src/test/cordone-lovable.test.ts` va rosso se la stringa `/lovable/i` compare in
+`package.json`, `vite.config.ts` o **qualunque file sotto `src/`**. L'accettazione 6
+chiede invece che `https://nc-questionnaire.lovable.app` compaia **esattamente una
+volta in `src/`**. Le due cose, come stanno scritte, si escludono.
 
-**5. Il gap del `main` da 24px a 16px**, che il disegno prescrive, **non l'ho applicato**:
-avrebbe cambiato la spaziatura di tutta la pagina, comprese le parti che questa fetta non
-tocca. I blocchi nuovi si inseriscono nella spaziatura esistente.
-
----
-
-## Come legge l'intervista
-
-`src/hooks/useIntake.ts`. La forma esatta:
+Non ho indebolito il cordone spegnendolo su un file. Ho tolto dal testo **solo quella
+stringa esatta**, presa dalla costante e non ricopiata nel test:
 
 ```ts
-const { data: subs, error: subErr } = await supabase
-  .schema('public')
-  .from('submissions')
-  .select(SUBMISSION_SELECT)
-  .eq('client_id', clientId)
-  .order('created_at', { ascending: false })
-  .limit(1);
-
-const { data: hs, error: hsErr } = await supabase
-  .schema('public')
-  .from('health_screening')
-  .select(HEALTH_SELECT)
-  .eq('submission_id', submission.id)
-  .maybeSingle();
+const senzaEccezione = (testo: string): string =>
+  testo.split(QUESTIONARIO_BASE_URL).join('');
 ```
 
-**È la prima occorrenza di `.schema(` nel repo** — prima non ce n'era nessuna.
+Effetto: il cordone continua a beccare la parola ovunque, **anche dentro `intake.ts`
+stesso** — solo quell'indirizzo passa. E siccome il test importa la costante invece di
+riscriverla, l'eccezione **sparisce da sola** il giorno che il modulo entrerà dentro
+NC Movement e la costante cambierà. L'accettazione 6 continua a tornare 1.
 
-Tre cose che vale la pena sapere:
+### Discrepanza 3 — `bun test` non è il comando dei test di questo repo
 
-- **`client.ts` non è stato toccato**, benché il prompt lo ammettesse «dimostrando il
-  contrario». Non serve: rigenerati i tipi con due schemi, `createClient<Database, 'movement'>`
-  accetta `.schema('public')` così com'è. Provato con una sonda, poi rimossa: `tsc` exit 0.
-- **La stringa di `select` è letterale e non costruita con `join()`**. Non è estetica:
-  supabase-js inferisce le colonne solo da una stringa letterale, e con un `+` di mezzo il
-  tipo degrada a `string` e la query torna `GenericStringError`. Ci ho sbattuto contro.
-- **Un errore è un errore.** Se la query fallisce l'hook propaga; non restituisce «assente»,
-  che direbbe «non ha mai compilato» di un cliente che magari ha compilato.
+Il prompt dice `bun test`. `bun test` invoca il **runner nativo di Bun**, che non ha
+jsdom configurato: **sul commit base, prima di toccare qualsiasi cosa, falliva già 5
+test** con `ReferenceError: document is not defined`.
+
+```
+ 65 pass
+ 5 fail
+Ran 70 tests across 7 files. [1.88s]
+```
+
+Il comando vero — quello di `package.json` e del CI (`.github/workflows/ci.yml`, passo
+«Test») — è `bun run test`, cioè `vitest run`, che legge `vitest.config.ts` con
+`environment: "jsdom"`. Tutti i numeri qui sotto usano `bun run test`.
 
 ---
 
-## I quattro stati, tre righe per uno
+## Che cosa ho cambiato, file per file
 
-Montati davvero con `@testing-library/react` in
-[`src/components/client/schedaStati.test.tsx`](../src/components/client/schedaStati.test.tsx).
+### File nuovi (4)
 
-**A · in presenza, intervista e FMS piena** (1 cliente, `c2fcfed3…`, `presenza`, 3 FMS)
-Entrambe le tracce piene: a sinistra i PAR-Q positivi su 7 con la data del questionario, a
-destra «FMS piena · 12/08/26» con la scala /21 e il conteggio «3 FMS · 3 piene».
-La banda è rossa e conta le provenienze: «3 bandiere rosse insieme», «2 D · 1 M».
-Il riassunto rende i campi che hanno un valore, e i quattro pulsanti dei test sono accesi.
+| File | Righe | Cosa fa |
+|---|---:|---|
+| `src/hooks/useInvitoIntake.ts` | 200 | Legge le tre colonne, chiama le due RPC, invalida la query. Nessuna `update` parte da qui. |
+| `src/components/client/InvitoIntakeCard.tsx` | 258 | I tre stati del link: genera / mostra e copia / rigenera e annulla. |
+| `src/components/client/TestoLungo.tsx` | 44 | Quattro righe di `line-clamp` più un bottone apri/chiudi. Un'implementazione sola per i due posti che ne hanno bisogno. |
+| `src/components/client/invitoIntake.test.tsx` | 140 | Sette prove sulla card (vedi «Un test in più del richiesto»). |
 
-**B · a distanza** (2 clienti, `856ab95e…`, `app`)
-La colonna Misurato **non sparisce**: prende un fondo neutro e dice «Seguita a distanza»,
-con «L'FMS si somministra di persona. Questa traccia è vuota per come lavoriamo, non per un
-dato mancante.»
-I quattro pulsanti restano **visibili e spenti**, con la ragione scritta sotto la griglia.
-La banda non è verde: dichiara che le bandiere M sono zero perché non è stato misurato niente.
+### File modificati (9)
 
-**C · test senza intervista** (9 con FMS, 14 in tutto senza intervista, `56519fd8…`)
-La colonna Dichiarato resta e dice «Traccia mai aperta», «Nessun PAR-Q, nessun consenso,
-nessuno degli 8 gruppi. Anagrafica inserita a mano.»
-Il riassunto non stampa otto trattini: una carta tratteggiata dice che i campi compaiono
-appena il modulo viene compilato.
-La banda porta il riquadro ambra: «le bandiere D sono zero perché non gliele ho mai chieste».
+| File | +/− | Cosa |
+|---|---:|---|
+| `src/lib/intake.ts` | +85 / −1 | `QUESTIONARIO_BASE_URL`, `StatoInvito`, `statoInvito()`, `linkIntake()`, `SOGLIA_CAMPO_LUNGO`, e `lungo` su `SummaryField` calcolato in `buildIntakeSummary`. |
+| `src/lib/intake.test.ts` | +93 / −0 | T1 (8 casi) e T2 (3 casi). |
+| `src/components/client/UnifiedFlagsBand.tsx` | +42 / −21 | Il dettaglio lungo scende sotto l'etichetta come blocco troncato; quello corto resta in linea fra virgolette. |
+| `src/components/client/schedaStati.test.tsx` | +84 / −1 | T3 e tre prove gemelle (campo corto, dettaglio lungo, dettaglio corto). |
+| `src/components/client/IntakeTab.tsx` | +21 / −9 | Due prop nuove (`clientId`, `intakeAssente`) e la card montata sotto il vuoto che la richiede. Tolta la riga «Invio del modulo: in arrivo». |
+| `src/components/client/IntakeSummaryCard.tsx` | +20 / −2 | Il campo lungo prende `col-span-2` e passa da `TestoLungo`. |
+| `src/test/cordone-lovable.test.ts` | +18 / −1 | L'eccezione mirata descritta sopra. |
+| `src/pages/ClientDetail.tsx` | +7 / −1 | Le due prop nuove passate a `IntakeTab`. |
+| `src/components/client/TwoTracks.tsx` | +5 / −3 | La riga «Invio del modulo: in arrivo» non è più vera: adesso dice dove si genera il link. |
 
-**D · solo FMS modificate** (11 clienti: 6 con intervista come `09a46aa8…`, 5 senza)
-La traccia Misurato dice «FMS modificata» e la scala è **/9**, non /21, con «2 FMS ·
-2 modificate».
-I due clearing spinali sono `not-performed` e **non compaiono fra le bandiere**.
-Con entrambe le metà lette e pulite la banda è verde — l'unico caso in cui può esserlo.
+Totale sui file tracciati: **+375 / −39**.
+
+### Le tre decisioni che non erano scritte nel prompt
+
+**`intakeAssente` non è `!submission`.** Durante il caricamento e in caso di errore
+`submission` è già `null`, e in nessuno dei due casi so che il questionario manchi.
+`ClientDetail` passa `intake.status === 'assente'`, cioè «l'ho cercato e non c'è».
+Senza questa distinzione la card lampeggerebbe a ogni apertura della linguetta, e
+inviterebbe qualcuno di cui non so ancora niente.
+
+**Anche «Annulla» chiede conferma, non solo «Rigenera».** Il prompt lo impone solo per
+Rigenera. Annullare è più distruttivo — non resta nessun link — e usa lo stesso identico
+meccanismo già in pagina: è una riga di `state` in più, non un pezzo nuovo. Il testo
+delle due conferme è diverso perché le conseguenze sono diverse.
+
+**Il bottone di annullamento della conferma si chiama «Lascia stare», non «Annulla».**
+«Annulla» in quella card significa già *annulla il link*: due «Annulla» adiacenti con
+significato opposto sono il modo più rapido di far cancellare un link per sbaglio.
 
 ---
 
-## Acceptance, voce per voce
+## I test rossi, dimostrati nelle due direzioni
 
-### 1. I quattro stati ⚠️ — verificati, ma non come chiede il prompt
-
-**Va detto chiaro: non li ho visti nella app in locale.** Il dev server gira (l'ho avviato,
-la pagina di login risponde su `localhost:8080`), ma la scheda sta dietro autenticazione e
-**non inserisco credenziali** — è una regola che non aggiro nemmeno per un'acceptance.
-
-Al suo posto ho montato i quattro stati con `@testing-library/react`, sugli stessi dati che
-il database produce, e ho verificato riga per riga cosa mostra la scheda. Sono 7 test che
-restano nel repo: riproducibili, e più duraturi di uno screenshot. **Se serve la prova
-visiva, basta che qualcuno faccia il login e apra i quattro id elencati sopra.**
-
-### 2. 🔴 Tre prove rosse sul modulo puro ✅
-
-Tutte con ripristino **byte-identico**, su `src/lib/intake.ts` (md5 sano `76b272ef…`):
-
-| prova | sonda | md5 sondato | rossi | errore |
-|---|---|---|---|---|
-| **(a)** consenso | il ramo «superata» non si prende più | `2b0370a7…` | **1** | `expected 'firmato' to be 'versione-superata'` |
-| **(b)** bandiere | `not-performed` entra fra le bandiere | `ea854924…` | **2** | `expected [{source:'M'},…] to have a length of +0 but got 2` |
-| **(c)** riassunto | un campo vuoto stampa `—` | `6656e40b…` | **3** | `expected true to be false` |
-
-Ripristino verificato a `76b272ef…` in tutti e tre i casi, `git status` vuoto, 70 test verdi.
-La (b) va rossa **due volte**: nel modulo puro e nel rendering.
-
-### 3. 🔴 Il cancello della privacy ✅
-
-Due reti indipendenti. Una legge i sorgenti dal disco (`src/lib/intake.ts`,
-`src/hooks/useIntake.ts` e tutto `src/components/client/`), l'altra ispeziona il DOM
-renderizzato nei quattro stati.
-
-Provato rosso aggiungendo `pregnancy` a `IntakeSummaryCard.tsx`
-(md5 `0dbaff79…` → `f912c520…`):
+Hash presi **prima** delle rotture:
 
 ```
-→ expected [ Array(1) ] to deeply equal []
-→ expected 'Le due tracceDichiaratoQuestionario ·…' not to contain 'pregnancy'
-Failed Tests 2
+353512f1882ba3b1968089067b6c71f047ef943574235f5625e910627ca66172 *src/lib/intake.ts
+83ea0cf38cba6eebb04ea5c7255e042cc02a68fbb6206b2c8f5d08d320272a58 *src/components/client/TestoLungo.tsx
 ```
 
-Ripristinato a `0dbaff79…`, byte-identico, 70 verdi.
+### T1 — `statoInvito`, cinque casi più il confine
 
-C'è anche una terza rete, la più forte: quelle colonne **non sono nelle stringhe di
-`select`**, quindi non arrivano nemmeno nel browser.
-
-### 4. La sicurezza non è stata toccata ✅
+Rottura: in `src/lib/intake.ts`, `istante > ora.getTime()` diventa `istante < ora.getTime()`.
 
 ```
-$ grep -rn "service_role\|is_admin\|rls" src/
-(nessuna riga)     ← 0 ora, 0 su main
+ROTTURA T1 applicata: > diventa <
+   × intake — lo stato del link personale > scadenza nel futuro: vivo, anche di un solo secondo
+     → expected 'scaduto' to be 'vivo' // Object.is equality
+   × intake — lo stato del link personale > scadenza nel passato: scaduto, anche di un solo secondo
+     → expected 'vivo' to be 'scaduto' // Object.is equality
+ Test Files  1 failed (1)
+      Tests  2 failed | 33 passed (35)
 ```
 
-Nessuna policy toccata, nessuna vista di comodo, nessuna scrittura: `useIntake.ts` non
-contiene un solo `.insert(`, `.update(` o `.delete(`. Le tabelle di `public` restano protette
-come sono e l'hook legge con la sessione dell'utente.
+### T2 — `buildIntakeSummary` marca i campi lunghi
 
-Nota: due miei commenti nominavano quei termini per dichiarare di *non* averli toccati, e
-facevano scattare il grep. Li ho riformulati — un cancello meccanico va lasciato pulito.
-
-### 5. I cancelli ✅
+Rottura: `SOGLIA_CAMPO_LUNGO` da `140` a `100000`.
 
 ```
-$ bunx tsc --noEmit -p tsconfig.app.json   → EXIT=0
-$ bun run lint                             → ✖ 17 problems (0 errors, 17 warnings) · EXIT=0
-$ bun run test                             → Test Files 7 passed · Tests 70 passed · EXIT=0
-$ bun run build                            → ✓ built · EXIT=0
+ROTTURA T2 applicata: soglia 140 -> 100000
+   × intake — i campi lunghi si dichiarano lunghi > un conditions_meds da 400 caratteri e lungo, un main_goal da 20 no
+AssertionError: expected false to be true // Object.is equality
+ Test Files  1 failed (1)
+      Tests  1 failed | 34 passed (35)
 ```
 
-**Sulla CI vera**, [run 33890211739](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33890211739),
-job `verify` → **success in 31s**, con i tre passi: `Lint`, `Test` e `Type-check`. Quest'ultimo,
-dalla fetta del type-check, gira senza `continue-on-error`: un errore di tipo nel modulo nuovo
-o nei test avrebbe bocciato il run.
+### T3 — il campo lungo si tronca e si apre
 
-70 test: i 39 esistenti più 31 nuovi (24 sul modulo puro, 7 sui quattro stati). Nessuno dei
-39 preesistenti è stato toccato.
-
-**Di nuovo l'inciampo dei worktree**, come nella fetta scorsa: `bun run lint` dava **170**
-warning finché non ho rimosso i nove `git worktree` lasciati dagli agenti sotto
-`.claude/worktrees/`. `eslint .` li analizza perché **non legge `.gitignore`**. Rimossi,
-tornano 17.
-
-### 6. File toccati ✅
+Rottura: il `<button>` tolto da `TestoLungo.tsx`.
 
 ```
-$ git diff --name-only origin/main...HEAD
-docs/ULTIMO-RITORNO.md
-docs/prompts/2026-09-04-scheda-unificata.md
-src/components/client/IntakeBadges.tsx
-src/components/client/IntakeSummaryCard.tsx
-src/components/client/IntakeTab.tsx
-src/components/client/TwoTracks.tsx
-src/components/client/UnifiedFlagsBand.tsx
-src/components/client/schedaStati.test.tsx
-src/hooks/useIntake.ts
-src/index.css
-src/integrations/supabase/types.ts
-src/lib/intake.test.ts
-src/lib/intake.ts
-src/pages/ClientDetail.tsx
+ROTTURA T3 applicata: bottone rimosso
+   × leggibilita sul telefono … > il riassunto: il campo lungo prende la riga intera, si tronca e si apre
+     → Unable to find an accessible element with the role "button" and name "Mostra tutto"
+   × leggibilita sul telefono … > le bandiere: il dettaglio lungo scende sotto l etichetta invece di allungare la riga
+     → Unable to find an accessible element with the role "button" and name "Mostra tutto"
+ Test Files  1 failed (1)
+      Tests  2 failed | 9 passed (11)
 ```
 
-**`docs/design/` non compare**: resta non tracciata, come deve. I **vietati a zero righe**,
-`src/integrations/supabase/client.ts` compreso:
+### Ripristino byte per byte
 
 ```
-$ git diff --stat origin/main...HEAD -- src/lib/fms.ts src/lib/insights.ts \
-    src/lib/medicalReferral.ts src/lib/fmsPrescription.ts src/lib/ptPackProgram.ts \
-    src/integrations/supabase/client.ts supabase .github tsconfig*.json
+$ sha256sum src/lib/intake.ts src/components/client/TestoLungo.tsx
+353512f1882ba3b1968089067b6c71f047ef943574235f5625e910627ca66172 *src/lib/intake.ts
+83ea0cf38cba6eebb04ea5c7255e042cc02a68fbb6206b2c8f5d08d320272a58 *src/components/client/TestoLungo.tsx
+
+$ sha256sum -c   # contro gli hash presi prima
+src/lib/intake.ts: OK
+src/components/client/TestoLungo.tsx: OK
+```
+
+Identici. Le rotture non sono rimaste nel ramo.
+
+### Il limite di T3, dichiarato
+
+jsdom **non fa layout**: non posso contare i pixel e affermare che il testo esce dallo
+schermo. Quello che T3 prova davvero, e che è scritto nel commento del test:
+
+- il testo **intero** è nel DOM (`paragrafo.textContent` è identico alla stringa
+  d'origine) — cioè non c'è nessuno `slice()` che mutila un'anamnesi;
+- il paragrafo porta `line-clamp-4` mentre è chiuso e **non** ce l'ha dopo il click:
+  il troncamento c'è, è in CSS, e si toglie al tocco;
+- il riquadro sta in `col-span-2`, cioè occupa la riga intera;
+- il bottone esiste, ha `aria-expanded="false"`, e dopo il click dice «Riduci» con
+  `aria-expanded="true"`.
+
+Contare i pixel richiederebbe un browser vero con l'app autenticata. Non l'ho fatto,
+ed è scritto sotto fra le cose non fatte.
+
+---
+
+## Accettazione, riga per riga
+
+### 1. Type-check
+
+```
+$ bunx tsc --noEmit -p tsconfig.app.json
+exit=0
+```
+
+Nessun output, uscita 0.
+
+```
+$ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -c "/src/"
+174
+```
+
+**Il numero è cresciuto, non calato — ma non partiva da 141.** Misurato sul commit base
+prima di toccare qualsiasi cosa: **170**. Il conteggio `grep "/src/"` include 20 file di
+`node_modules` che hanno una cartella `src/`; i file **di questo repo** sono:
+
+```
+$ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -c "nc-movement/src/"
+154        # erano 150 sul commit base
+```
+
++4, esattamente i quattro file nuovi. Il 141 del prompt è il numero di una fetta
+precedente, non quello di partenza di questa.
+
+### 2. Test
+
+```
+$ bun run test
+ ✓ src/test/example.test.ts (1 test)
+ ✓ src/lib/fms.test.ts (15 tests)
+ ✓ src/lib/fmsPrescription.test.ts (6 tests)
+ ✓ src/test/cordone-lovable.test.ts (3 tests)
+ ✓ src/lib/intake.test.ts (35 tests)
+ ✓ src/lib/medicalReferral.test.ts (14 tests)
+ ✓ src/components/client/schedaStati.test.tsx (11 tests)
+ ✓ src/components/client/invitoIntake.test.tsx (7 tests)
+
+ Test Files  8 passed (8)
+      Tests  92 passed (92)
+```
+
+**Prima: 70 test in 7 file. Dopo: 92 test in 8 file.** +22.
+(Con `bun test`, il runner nativo, erano 65 pass / 5 fail **già prima** di questa fetta.)
+
+### 3. Lint
+
+```
+$ bun run lint
+✖ 17 problems (0 errors, 17 warnings)
+lint_exit=0
+```
+
+**Identico al commit base: 0 errori, gli stessi 17 warning preesistenti**, tutti in file
+che questa fetta non tocca (`FcsAssessment`, `FmsAssessment`, `FmsSetup`,
+`SfmaAssessment`, `YbtAssessment`, e un `eslint-disable` inutile in `ClientDetail`).
+Nessun warning nuovo introdotto.
+
+### 4. Colonne riservate in `useIntake.ts` — **non torna 0, e non poteva**
+
+```
+$ grep -c "tax_code\|address\|pregnancy\|cycle_status" src/hooks/useIntake.ts
+2
+```
+
+Le due occorrenze sono nel commento `⛔ PRIVACY` in testa al file, righe 14–15, e
+**c'erano già prima di questa fetta**:
+
+```
+$ git show HEAD:src/hooks/useIntake.ts | grep -c "tax_code\|address\|pregnancy\|cycle_status"
+2
+$ git diff --stat -- src/hooks/useIntake.ts
+(vuoto: il file è intatto)
+```
+
+Il criterio come scritto è incompatibile con «il file può restare identico»: per portarlo
+a 0 dovrei **cancellare il divieto scritto**, che è la parte del file che spiega perché
+quelle colonne non ci sono. Non l'ho fatto. L'invariante vera — che le colonne non
+attraversino la rete — regge, ed è provata dal cancello che già esiste:
+
+```
+✓ intake — il cancello della privacy > le quattro colonne riservate non sono nella richiesta al server
+✓ intake — il cancello della privacy > nessun file della scheda le nomina
+```
+
+Le due stringhe di `select` sono byte per byte quelle di prima.
+
+### 5. File vietati — zero righe
+
+```
+$ git diff --stat -- src/lib/fms.ts src/pages/FmsAssessment.tsx \
+    src/components/fms/FmsWizard.tsx src/components/PhoneShell.tsx \
+    .github/workflows/ci.yml supabase/ docs/design/
 (nessun output)
 ```
 
----
+`docs/design/` resta non tracciata, esattamente com'era all'apertura.
 
-## I numeri: la misura del prompt è di ieri
+### 6. La base del questionario in un file solo
 
-| | prompt | oggi |
-|---|---:|---:|
-| clienti | 22 | **23** |
-| con intervista | 9 | 9 ✓ |
-| **senza intervista** | 13 | **14** |
-| ultima FMS modificata | 11 su 21 | **12** |
-| mai una piena | 10 | **11** |
-| a distanza | 2 | 2 ✓ |
-| `submissions` collegate | 9 su 9 | 9 su 9 ✓ |
-| `public.admins` | 1 | 1 ✓ |
-| `neurotype_result` | 0 | 0 ✓ |
-
-Un cliente è entrato dopo la misura e sposta di uno i conteggi derivati. **I testi del
-disegno che citano «13 clienti su 22» sono già vecchi di un giorno**: per questo nel codice
-non ho scritto da nessuna parte un conteggio aggregato — la scheda parla del cliente che ha
-davanti, non della popolazione.
-
----
-
-## Ciò che il disegno mostra e i dati non sanno produrre
-
-L'elenco è lungo perché il disegno è ricco. Niente di tutto questo è stato inventato.
-
-**Reso inerte e dichiarato** (esiste nel disegno, non nei dati):
-- **Il link personale al modulo** e tutto il suo corredo — «Copia il link personale», «Link
-  copiato · si disattiva quando lo compila», «Valido fino al 03/12», «Inviato il 26/08»,
-  «Mai sollecitato», il bottone «Sollecita». Il token opaco non esiste: nessuna colonna,
-  nessuna tabella. Le due date richiederebbero `intake_inviato_il` e `intake_sollecitato_il`
-  su `movement.clients`, che non ci sono. In pagina resta una riga: «Invio del modulo: in arrivo».
-- **Il neurotipo** — `neurotype_answers` ha 9 righe di risposte, `neurotype_result` ne ha
-  **zero**. Il gruppo lo dice: «Il calcolo del neurotipo non esiste ancora: in arrivo».
-
-**Non prodotto, e non sostituito con una stima:**
-- **L'intensità del dolore «4/10»**, che compare due volte. `health_screening` ha `pain_now`
-  (booleano) e `pain_where` (testo): **nessuna colonna numerica di intensità**. Si stampa
-  la sede, non un numero inventato.
-- **«Consensi · 7 flag»** — i booleani di consenso sono **sei**, non sette
-  (`consent_health`, `consent_disclaimer`, `consent_nutrition`, `consent_photos`,
-  `consent_share_medical`, `consent_marketing`). Il settimo non esiste: `consent_version`
-  non è un flag.
-- **«54 campi»** — è il numero di *colonne* di `submissions`, incluse quelle tecniche
-  (`id`, `created_at`, `status`, `client_id`). Non è un conteggio di risposte, e non l'ho scritto.
-- **I conteggi per gruppo** («Anagrafica 9 campi», «Obiettivi 5», «Nutrizione 6»…) — nessuna
-  mappa colonna→gruppo esiste, né nel disegno né nel codice. I gruppi non portano un contatore.
-- **«Esperienza: 3 anni · intermedio»** e **«Infortuni: Spalla sx · 2024»** — non ci sono
-  colonne per gli anni di pratica né per lato/anno strutturati. `past_injuries` è un testo
-  libero e si stampa così com'è.
-- **«4 clearing negativi»** nella colonna Misurato — la fetta precedente si rifiuta
-  deliberatamente di chiamare «eseguiti» dei flag mai spuntati, e non l'ho contraddetta.
-- **Il delta del punteggio** confronta solo tipi uguali, come già fa `LastFmsCard`; con una
-  storia mista viene omesso, non stimato.
-
-**Due cose che il disegno dà per scontate e il database smentisce:**
-- **`work_mode` sta su `submissions`, non su `clients`.** I 14 clienti senza intervista non
-  hanno *nessuna* modalità: per loro la pillola dice «Modalità ignota», che è la verità.
-- **Lo stato «consenso su versione superata» oggi non è osservabile su nessun dato reale**:
-  nel database esiste una sola versione, `v2.1`. È implementato e testato, ma finché non
-  esce una `v2.2` nessun cliente lo mostrerà.
-
----
-
-## Il token nuovo
-
-In `src/index.css`, accanto a `--warning`:
-
-```css
---compliance: var(--warning);
---compliance-foreground: var(--warning-foreground);
+```
+$ grep -rn "nc-questionnaire.lovable.app" src/ | wc -l
+1
+$ grep -rn "nc-questionnaire.lovable.app" src/
+src/lib/intake.ts:99:export const QUESTIONARIO_BASE_URL = 'https://nc-questionnaire.lovable.app';
 ```
 
-Usato per il consenso assente e per il riquadro «metà del quadro manca». Non è registrato in
-`tailwind.config.ts` — che è fuori dalla lista dei file modificabili — quindi si usa via
-`hsl(var(--compliance))`, che è l'idioma già presente nel repo. Nessun altro colore, raggio,
-ombra o dimensione è nuovo.
+### 7. Nessuna finestra di sistema
+
+```
+$ grep -rn "window.confirm\|[^.]alert(" src/components/client/ | wc -l
+0
+```
+
+Nota: la prima misura tornava **1** — e il colpevole era un *commento* di
+`InvitoIntakeCard.tsx` che diceva di non usare `window.confirm`. Ho riscritto il
+commento senza nominarlo. La conferma è in pagina, a due tocchi, mai in una finestra.
 
 ---
 
-## Sull'attribution
+## Un test in più del richiesto, e perché
 
-Il prompt chiedeva `Co-Authored-By: Claude <noreply@anthropic.com>`; l'ambiente di esecuzione
-impone `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` come regola che sostituisce le
-precedenti. Ho seguito l'ambiente, come nelle due fette scorse.
+Il prompt chiedeva tre test. Ne ho scritti quattro gruppi: il quarto è
+`invitoIntake.test.tsx`, sette prove sulla card dell'invito.
+
+La ragione è la frase d'apertura del prompt: *«un link che va copiato e mandato a una
+persona vera»*. Senza questo file la card sarebbe stata l'unico pezzo della fetta mai
+montato, e il pezzo con più conseguenze fuori dallo schermo. Le sette prove sono:
+
+- **assente** → un solo bottone, e chiama `genera`; nessun campo da copiare;
+- **scaduto** → dice che il precedente non funziona più, offre di rifarlo, e **non
+  mostra** il link morto;
+- **vivo** → il link intero in un campo `readOnly` selezionabile, «Scade il 4 ottobre»
+  per esteso, il bottone «Copia link»;
+- **rigenera** → la frase «smetterà di funzionare» compare **prima**, e `genera` **non
+  è stato chiamato** finché non arriva il secondo gesto;
+- **«Lascia stare»** → non tocca niente;
+- **copia fallita** → jsdom non ha `navigator.clipboard`, che è precisamente il caso da
+  coprire: compare «copialo a mano» e il campo col link è ancora tutto lì;
+- **errore di lettura** → dice che non riesce a leggere, e **non offre nessun bottone**:
+  generare al buio ucciderebbe un link magari vivo.
+
+L'hook è sostituito con `vi.mock` perché parla col database; la sua logica di stato è
+già provata pura in T1.
+
+---
+
+## Cosa non ho fatto, e perché
+
+**Non ho aperto il browser.** La app in locale richiede un'autenticazione che non ho, e
+la card dell'invito vive dentro la scheda di un cliente. Ho verificato con i test montati
+in jsdom, che è ciò che il CI esegue. Di conseguenza **non ho misurato i pixel**: che
+quattro righe di `line-clamp` bastino davvero a 390px è una scelta di disegno provata sul
+meccanismo, non sulla resa. È la prima cosa da guardare quando l'app sarà aperta su un
+telefono vero.
+
+**Non ho rigenerato `src/integrations/supabase/types.ts`.** Serve, ed è una fetta a sé:
+sono 1700 righe generate e il diff seppellirebbe questa. Finché non si fa, la distanza
+fra tipi e database vive tutta in `ClientConInvito` dentro `useInvitoIntake.ts`, con la
+firma vera scritta accanto.
+
+**Non ho toccato niente sotto `supabase/`, e non ho scritto nessuna migrazione.** Il
+database era già pronto e l'ho solo interrogato in lettura.
+
+**Non ho fatto nulla di ciò che il nome `intake_inviato_il` promette.** Questa fetta
+*genera un link*; non manda email, non manda messaggi, non sollecita. `intake_sollecitato_il`
+esiste sul database e resta **non letta e non scritta**: non c'è ancora niente che
+solleciti, e leggerla per mostrarla suggerirebbe una funzione che non c'è.
+
+**Non ho aggiunto un modo di sapere se il cliente ha aperto il link.** Sarebbe utile e
+non c'è: il questionario vive in un'altra applicazione e questa fetta non la tocca.
+
+**Non ho messo la card in nessun altro posto** — solo nella linguetta Intervista, sotto
+il vuoto che la richiede. In `TwoTracks` ho cambiato una riga di testo (diceva «in
+arrivo» di una cosa che è arrivata) ma **non** ci ho messo un secondo bottone: due punti
+da cui rigenerare lo stesso link sono due modi di ucciderlo per sbaglio.
+
+**Non ho corretto `annulla_invito_intake`**, che non controlla `if not found` e quindi
+riesce in silenzio anche su un cliente inesistente — a differenza di
+`genera_invito_intake`, che solleva `P0002`. È una asimmetria vera lato database, ma il
+database è fuori da questa fetta. L'ho annotata qui perché non si perda.
+
+**Non ho fatto merge e non ho fatto deploy**, come chiesto. Il ramo
+`claude/link-personale-e-leggibilita` è pronto per una PR.

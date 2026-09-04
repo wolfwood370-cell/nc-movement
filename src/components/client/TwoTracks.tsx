@@ -100,10 +100,12 @@ export default function TwoTracks({
                 Nessun PAR-Q, nessun consenso, nessuno degli 8 gruppi.
                 Anagrafica inserita a mano.
               </p>
-              {/* Il link personale al modulo non esiste ancora: nessun token, nessuna
-                  rotta. Resta inerte e dichiarato, mai finto. */}
+              {/* Il link personale adesso esiste: si genera nella linguetta Intervista.
+                  Questa riga diceva «in arrivo» ed è arrivato — lasciarlo sarebbe una
+                  bugia in pagina. Qui non ci va un bottone: la colonna è un riepilogo,
+                  e l'azione sta in un posto solo. */}
               <p className="mt-auto text-[10px] italic text-muted-foreground">
-                Invio del modulo: in arrivo
+                Il link al modulo si genera nella linguetta Intervista.
               </p>
             </>
           )}

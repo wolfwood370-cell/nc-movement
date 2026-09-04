@@ -1,5 +1,6 @@
 import { AlertTriangle, EyeOff, ShieldCheck } from 'lucide-react';
-import type { UnifiedFlags } from '@/lib/intake';
+import TestoLungo from '@/components/client/TestoLungo';
+import { SOGLIA_CAMPO_LUNGO, type UnifiedFlags } from '@/lib/intake';
 
 /**
  * La banda delle bandiere unite: una riga per bandiera, ognuna col marcatore
@@ -9,6 +10,13 @@ import type { UnifiedFlags } from '@/lib/intake';
  * interrogata la banda NON diventa verde: zero bandiere dichiarate perché il
  * questionario è pulito e zero perché il questionario non esiste sono due cose
  * diverse, e la seconda non autorizza a scrivere «nessuna bandiera rossa».
+ *
+ * Il dettaglio della bandiera non si concatena più in linea quando è lungo. «Quadro
+ * clinico dichiarato» porta con sé `conditions_meds`, che per certi clienti è
+ * un'anamnesi di migliaia di caratteri: appesa dopo un trattino diventava la striscia
+ * infinita che si vedeva sul telefono. Sopra `SOGLIA_CAMPO_LUNGO` scende sotto
+ * l'etichetta, come blocco, troncata a quattro righe e apribile. Sotto la soglia resta
+ * dov'era: un dettaglio corto in linea si legge meglio di un dettaglio corto a capo.
  */
 export default function UnifiedFlagsBand({ flags }: { flags: UnifiedFlags }) {
   const rossa = flags.tone === 'rossa';
@@ -42,26 +50,39 @@ export default function UnifiedFlagsBand({ flags }: { flags: UnifiedFlags }) {
 
       {flags.flags.length > 0 && (
         <ul className="flex flex-col gap-1.5">
-          {flags.flags.map((f, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span
-                className="mt-px inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[5px] text-[9px] font-bold"
-                style={
-                  f.source === 'D'
-                    ? { background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }
-                    : { background: 'hsl(var(--pain))', color: 'hsl(var(--destructive-foreground))' }
-                }
-              >
-                {f.source}
-              </span>
-              <span className="text-xs leading-snug">
-                {f.label}
-                {f.detail && (
-                  <span className="text-muted-foreground"> — «{f.detail}»</span>
-                )}
-              </span>
-            </li>
-          ))}
+          {flags.flags.map((f, i) => {
+            const lungo = (f.detail?.length ?? 0) > SOGLIA_CAMPO_LUNGO;
+            return (
+              <li key={i} className="flex items-start gap-2">
+                <span
+                  className="mt-px inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[5px] text-[9px] font-bold"
+                  style={
+                    f.source === 'D'
+                      ? { background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }
+                      : { background: 'hsl(var(--pain))', color: 'hsl(var(--destructive-foreground))' }
+                  }
+                >
+                  {f.source}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs leading-snug">
+                    {f.label}
+                    {f.detail && !lungo && (
+                      <span className="text-muted-foreground"> — «{f.detail}»</span>
+                    )}
+                  </span>
+                  {f.detail && lungo && (
+                    <div className="mt-1">
+                      <TestoLungo
+                        testo={f.detail}
+                        className="text-xs leading-snug text-muted-foreground"
+                      />
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

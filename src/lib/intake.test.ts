@@ -3,7 +3,9 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   deriveConsent, deriveWorkMode, buildUnifiedFlags, buildIntakeSummary,
+  statoInvito, linkIntake,
   SUBMISSION_SELECT, HEALTH_SELECT, COLONNE_RISERVATE,
+  QUESTIONARIO_BASE_URL, SOGLIA_CAMPO_LUNGO,
   type HealthSafe, type SubmissionSafe,
 } from '@/lib/intake';
 import type { ReferralClearingFinding } from '@/lib/medicalReferral';
@@ -260,5 +262,96 @@ describe('intake — il cancello della privacy', () => {
       }
     }
     expect(colpevoli).toEqual([]);
+  });
+});
+
+/**
+ * T1 — lo stato del link personale.
+ *
+ * Cinque casi piu' il confine, e il confine e' il punto: l'istante esatto della
+ * scadenza conta come passato. `ora` arriva da fuori proprio per poterlo scrivere qui
+ * senza congelare l'orologio del processo.
+ */
+describe('intake — lo stato del link personale', () => {
+  const ORA = new Date('2026-09-04T12:00:00Z');
+
+  it('token assente o di soli spazi: assente, qualunque sia la scadenza', () => {
+    expect(statoInvito(null, null, ORA)).toBe('assente');
+    expect(statoInvito(undefined, '2026-10-04T12:00:00Z', ORA)).toBe('assente');
+    expect(statoInvito('', '2026-10-04T12:00:00Z', ORA)).toBe('assente');
+    expect(statoInvito('   ', '2026-10-04T12:00:00Z', ORA)).toBe('assente');
+  });
+
+  it('token senza scadenza: vivo, perche sul database la colonna e nullable e non scade', () => {
+    expect(statoInvito('t-1', null, ORA)).toBe('vivo');
+    expect(statoInvito('t-1', undefined, ORA)).toBe('vivo');
+    expect(statoInvito('t-1', '   ', ORA)).toBe('vivo');
+  });
+
+  it('scadenza nel futuro: vivo, anche di un solo secondo', () => {
+    expect(statoInvito('t-1', '2026-10-04T12:00:00Z', ORA)).toBe('vivo');
+    expect(statoInvito('t-1', '2026-09-04T12:00:01Z', ORA)).toBe('vivo');
+  });
+
+  it('scadenza nel passato: scaduto, anche di un solo secondo', () => {
+    expect(statoInvito('t-1', '2026-08-04T12:00:00Z', ORA)).toBe('scaduto');
+    expect(statoInvito('t-1', '2026-09-04T11:59:59Z', ORA)).toBe('scaduto');
+  });
+
+  it('scadenza ESATTAMENTE uguale a ora: scaduto, il confine appartiene al passato', () => {
+    expect(statoInvito('t-1', '2026-09-04T12:00:00Z', ORA)).toBe('scaduto');
+    expect(statoInvito('t-1', ORA.toISOString(), ORA)).toBe('scaduto');
+  });
+
+  it('una scadenza illeggibile fallisce chiuso: scaduto, non vivo', () => {
+    expect(statoInvito('t-1', 'domani', ORA)).toBe('scaduto');
+  });
+
+  it('il link non raddoppia la barra e porta il token', () => {
+    expect(linkIntake('https://q.example', 'abc')).toBe('https://q.example/?t=abc');
+    expect(linkIntake('https://q.example/', 'abc')).toBe('https://q.example/?t=abc');
+    expect(linkIntake('https://q.example///', 'abc')).toBe('https://q.example/?t=abc');
+  });
+
+  it('la base del questionario e assoluta e senza barra in coda', () => {
+    expect(QUESTIONARIO_BASE_URL.startsWith('https://')).toBe(true);
+    expect(QUESTIONARIO_BASE_URL.endsWith('/')).toBe(false);
+  });
+});
+
+/**
+ * T2 — i campi lunghi si dichiarano lunghi.
+ *
+ * La soglia sta nel dato e non nel componente: e' `buildIntakeSummary` a dire quale
+ * campo non entra in mezza riga, cosi' la regola si prova senza montare la pagina e
+ * vale identica per il riassunto e per il dettaglio delle bandiere.
+ */
+describe('intake — i campi lunghi si dichiarano lunghi', () => {
+  it('un conditions_meds da 400 caratteri e lungo, un main_goal da 20 no', () => {
+    const anamnesi = 'a'.repeat(400);
+    const obiettivo = 'b'.repeat(20);
+    const s = buildIntakeSummary(
+      intervista({ main_goal: obiettivo }),
+      salute({ conditions_meds: anamnesi }),
+    );
+    const farmaci = s.fields.find(f => f.key === 'farmaci');
+    const goal = s.fields.find(f => f.key === 'obiettivo');
+
+    expect(farmaci?.value).toHaveLength(400);
+    expect(farmaci?.lungo).toBe(true);
+    expect(goal?.value).toHaveLength(20);
+    expect(goal?.lungo).toBe(false);
+  });
+
+  it('il confine e stretto: la soglia esatta non e lunga, un carattere in piu si', () => {
+    const dentro = buildIntakeSummary(null, salute({ conditions_meds: 'x'.repeat(SOGLIA_CAMPO_LUNGO) }));
+    const fuori = buildIntakeSummary(null, salute({ conditions_meds: 'x'.repeat(SOGLIA_CAMPO_LUNGO + 1) }));
+    expect(dentro.fields[0].lungo).toBe(false);
+    expect(fuori.fields[0].lungo).toBe(true);
+  });
+
+  it('gli spazi intorno non allungano un campo corto: si misura il valore ripulito', () => {
+    const s = buildIntakeSummary(null, salute({ conditions_meds: '  ' + 'y'.repeat(10) + '  ' }));
+    expect(s.fields[0].lungo).toBe(false);
   });
 });

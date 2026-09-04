@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, FileQuestion } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import InvitoIntakeCard from '@/components/client/InvitoIntakeCard';
 import type { HealthSafe, SubmissionSafe, ConsentBadge } from '@/lib/intake';
 
 /**
@@ -16,9 +17,17 @@ import type { HealthSafe, SubmissionSafe, ConsentBadge } from '@/lib/intake';
  */
 
 interface Props {
+  clientId: string;
   submission: SubmissionSafe | null;
   screening: HealthSafe | null;
   consent: ConsentBadge;
+  /**
+   * L'intervista è stata CERCATA e non c'è. Non è `!submission`: durante il
+   * caricamento e in caso di errore `submission` è già null, e in nessuno dei due
+   * casi so che il questionario manchi. Invitare qualcuno che ha già compilato, o
+   * mentre ancora non lo so, è il modo più rapido di far arrivare un link inutile.
+   */
+  intakeAssente: boolean;
 }
 
 const PARQ: Array<[keyof HealthSafe, string]> = [
@@ -31,19 +40,22 @@ const PARQ: Array<[keyof HealthSafe, string]> = [
   ['parq_supervised', 'Supervisione medica'],
 ];
 
-export default function IntakeTab({ submission, screening, consent }: Props) {
+export default function IntakeTab({ clientId, submission, screening, consent, intakeAssente }: Props) {
   const [aperto, setAperto] = useState<string | null>(null);
 
   if (!submission) {
     return (
-      <div className="rounded-xl border border-dashed border-border p-6 flex flex-col items-center gap-3 text-center">
-        <FileQuestion className="w-8 h-8 text-muted-foreground" />
-        <p className="font-display text-sm font-semibold">Nessuna intervista collegata</p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Questo cliente non ha un questionario d'ingresso collegato. Gli otto gruppi
-          compaiono qui appena viene compilato.
-        </p>
-        <p className="text-[11px] italic text-muted-foreground">Invio del modulo: in arrivo</p>
+      <div className="flex flex-col gap-3">
+        <div className="rounded-xl border border-dashed border-border p-6 flex flex-col items-center gap-3 text-center">
+          <FileQuestion className="w-8 h-8 text-muted-foreground" />
+          <p className="font-display text-sm font-semibold">Nessuna intervista collegata</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Questo cliente non ha un questionario d'ingresso collegato. Gli otto gruppi
+            compaiono qui appena viene compilato.
+          </p>
+        </div>
+        {/* Il modo di rimediare sta subito sotto il vuoto che lo richiede, non altrove. */}
+        {intakeAssente && <InvitoIntakeCard clientId={clientId} />}
       </div>
     );
   }
