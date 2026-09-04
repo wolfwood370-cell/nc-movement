@@ -1,0 +1,393 @@
+{
+  "schema": "nc-neurotipo-scoring/v1",
+  "fonte": "Appendice Neurotipo (Thibaudeau / Ballistic Management Inc., 2019). Pesi applicati dallo script coach scoring-neurotipo.py (deterministico).",
+  "IMPORTANTE": "Lo scoring NON è uniforme (non A=2..E=-2). I punti di ogni risposta dipendono dalla FASCIA di importanza della domanda (alta/media/bassa). Ogni tipo ha 6 affermazioni in ordine fisso: la 1a=alta, la 2a-3a=media, la 4a-6a=bassa.",
+  "scala_risposte": {
+    "A": "Mi descrive molto bene (quasi sempre)",
+    "B": "Mi descrive bene (la maggior parte delle volte)",
+    "C": "In parte (poco più della metà)",
+    "D": "Poco (meno della metà)",
+    "E": "Per niente"
+  },
+  "types": {
+    "1A": {
+      "label": "Competitivo — intensità e leadership",
+      "keyword": "Intensità",
+      "profilo": "Neuro-dominante (dopamina, ACh basso)"
+    },
+    "1B": {
+      "label": "Esplosivo — impaziente, cerca novità",
+      "keyword": "Esplosività",
+      "profilo": "Neuro-dominante (dopamina, ACh alto)"
+    },
+    "2A": {
+      "label": "Empatico — adattabile, procrastinatore",
+      "keyword": "Varietà",
+      "profilo": "Neuro-muscolare (adrenalina)"
+    },
+    "2B": {
+      "label": "Emotivo — abitudinario, cerca connessione",
+      "keyword": "Sensazione",
+      "profilo": "Muscolare (glutammato)"
+    },
+    "3": {
+      "label": "Analitico — ansioso, pianificatore",
+      "keyword": "Controllo/Precisione",
+      "profilo": "Strutturale (bassi inibitori)"
+    }
+  },
+  "bands": {
+    "alta": {
+      "A": 15,
+      "B": 12,
+      "C": 2,
+      "D": 0,
+      "E": -3
+    },
+    "media": {
+      "A": 10,
+      "B": 8,
+      "C": 2,
+      "D": 0,
+      "E": -2
+    },
+    "bassa": {
+      "A": 5,
+      "B": 4,
+      "C": 2,
+      "D": 0,
+      "E": -1
+    }
+  },
+  "map": {
+    "q01": {
+      "n": 1,
+      "type": "1A",
+      "band": "alta"
+    },
+    "q02": {
+      "n": 2,
+      "type": "1A",
+      "band": "media"
+    },
+    "q03": {
+      "n": 3,
+      "type": "1A",
+      "band": "media"
+    },
+    "q04": {
+      "n": 4,
+      "type": "1A",
+      "band": "bassa"
+    },
+    "q05": {
+      "n": 5,
+      "type": "1A",
+      "band": "bassa"
+    },
+    "q06": {
+      "n": 6,
+      "type": "1A",
+      "band": "bassa"
+    },
+    "q07": {
+      "n": 7,
+      "type": "1B",
+      "band": "alta"
+    },
+    "q08": {
+      "n": 8,
+      "type": "1B",
+      "band": "media"
+    },
+    "q09": {
+      "n": 9,
+      "type": "1B",
+      "band": "media"
+    },
+    "q10": {
+      "n": 10,
+      "type": "1B",
+      "band": "bassa"
+    },
+    "q11": {
+      "n": 11,
+      "type": "1B",
+      "band": "bassa"
+    },
+    "q12": {
+      "n": 12,
+      "type": "1B",
+      "band": "bassa"
+    },
+    "q13": {
+      "n": 13,
+      "type": "2A",
+      "band": "alta"
+    },
+    "q14": {
+      "n": 14,
+      "type": "2A",
+      "band": "media"
+    },
+    "q15": {
+      "n": 15,
+      "type": "2A",
+      "band": "media"
+    },
+    "q16": {
+      "n": 16,
+      "type": "2A",
+      "band": "bassa"
+    },
+    "q17": {
+      "n": 17,
+      "type": "2A",
+      "band": "bassa"
+    },
+    "q18": {
+      "n": 18,
+      "type": "2A",
+      "band": "bassa"
+    },
+    "q19": {
+      "n": 19,
+      "type": "2B",
+      "band": "alta"
+    },
+    "q20": {
+      "n": 20,
+      "type": "2B",
+      "band": "media"
+    },
+    "q21": {
+      "n": 21,
+      "type": "2B",
+      "band": "media"
+    },
+    "q22": {
+      "n": 22,
+      "type": "2B",
+      "band": "bassa"
+    },
+    "q23": {
+      "n": 23,
+      "type": "2B",
+      "band": "bassa"
+    },
+    "q24": {
+      "n": 24,
+      "type": "2B",
+      "band": "bassa"
+    },
+    "q25": {
+      "n": 25,
+      "type": "3",
+      "band": "alta"
+    },
+    "q26": {
+      "n": 26,
+      "type": "3",
+      "band": "media"
+    },
+    "q27": {
+      "n": 27,
+      "type": "3",
+      "band": "media"
+    },
+    "q28": {
+      "n": 28,
+      "type": "3",
+      "band": "bassa"
+    },
+    "q29": {
+      "n": 29,
+      "type": "3",
+      "band": "bassa"
+    },
+    "q30": {
+      "n": 30,
+      "type": "3",
+      "band": "bassa"
+    }
+  },
+  "scoring": {
+    "points_per_answer": "bands[ map[q].band ][ answer ]",
+    "type_total": "somma dei punti delle 6 affermazioni di ciascun tipo",
+    "primary": "tipo col totale più alto",
+    "secondary": "tipo col 2° totale più alto",
+    "margin": "totale_primario - totale_secondario (dato grezzo per il giudizio del coach)",
+    "range_per_type": {
+      "min": -10,
+      "max": 50
+    },
+    "tie_break": "Non definito nell'appendice: in caso di parità è GIUDIZIO del coach (confermare con i test di fibra). Fallback deterministico dello script: ordine fisso 1A > 1B > 2A > 2B > 3.",
+    "confidence_note": "Questionario ~8/10. Se i primi due totali sono vicini = INDIZIO, non diagnosi: la soglia di 'margine piccolo' non è nella fonte, è giudizio del coach."
+  },
+  "note_uso": "Lo stress sposta il profilo verso destra (2B/3): un cliente molto stressato va letto come spostato verso 2B/3 — regolazione d'allenamento, non giudizio clinico. I 'cues' sono spunti dalla skill neurotipo di Nicolò: usali come testi di partenza, editabili.",
+  "cues": {
+    "1A": {
+      "comunicazione": "Diretto e sfidante; parla di prestazione, numeri e obiettivi da battere. Poche chiacchiere.",
+      "motivazione": "Competere e diventare più forte; il solo pump non lo appaga.",
+      "allenamento": "Carichi pesanti, velocità lente/grinding, pause lunghe; frequenza molto alta (6–7), volume bassissimo (2–4 esercizi, ~35–45 min, ~90%)."
+    },
+    "1B": {
+      "comunicazione": "Ritmo, energia e novità; proponi sfide sempre diverse.",
+      "motivazione": "Muoversi esplosivo, velocità e momentum; la noia lo spegne.",
+      "allenamento": "Carichi medio-alti mossi esplosivi, stretch-reflex, molti task e varietà; frequenza alta (5–6), recuperi a coppie (pairings)."
+    },
+    "2A": {
+      "comunicazione": "Riconoscimento e socialità; fallo sentire parte del gruppo.",
+      "motivazione": "Ammirazione e riconoscimento; regge molto lavoro, ma il ripetitivo lo stanca a livello mentale.",
+      "allenamento": "Mix neurale+muscolare a ogni seduta (il volume più alto se misto), tanta varietà, recuperi corti; sotto stress abbassa la frequenza (3–4)."
+    },
+    "2B": {
+      "comunicazione": "Sostegno e incoraggiamento; teme il giudizio e si spegne se non riconosciuto.",
+      "motivazione": "Sentire il muscolo (mind-muscle connection), il pump.",
+      "allenamento": "Bodybuilding, tempo lento e hold, tollerare il lattato, volume muscolare alto; evita esplosivo/molto pesante/olimpica. Recuperi corti sul muscolare."
+    },
+    "3": {
+      "comunicazione": "Chiarezza e prevedibilità; spiega il piano e il perché, dai sicurezza.",
+      "motivazione": "Sentirsi in controllo ed evitare infortuni/stress; padroneggiare il gesto.",
+      "allenamento": "Lavoro ripetitivo e già padroneggiato, programmi statici che cambiano molto gradualmente, tante reps/serie dello stesso esercizio; recuperi lunghi ma attivi. La varietà è uno stress."
+    }
+  },
+  "ordine_affermazioni": "q01-06 = 1A · q07-12 = 1B · q13-18 = 2A · q19-24 = 2B · q25-30 = 3. Le chiavi q01..q30 coincidono con le colonne della tabella neurotype_answers del DB. L'ordine DEVE essere questo perché la fascia dipende dalla posizione.",
+  "validation_examples": [
+    {
+      "nome": "Esempio 1 — profilo misto",
+      "answers": {
+        "q01": "A",
+        "q02": "B",
+        "q03": "C",
+        "q04": "D",
+        "q05": "E",
+        "q06": "A",
+        "q07": "E",
+        "q08": "E",
+        "q09": "D",
+        "q10": "D",
+        "q11": "C",
+        "q12": "C",
+        "q13": "B",
+        "q14": "B",
+        "q15": "B",
+        "q16": "A",
+        "q17": "A",
+        "q18": "A",
+        "q19": "C",
+        "q20": "C",
+        "q21": "C",
+        "q22": "C",
+        "q23": "C",
+        "q24": "C",
+        "q25": "D",
+        "q26": "D",
+        "q27": "D",
+        "q28": "E",
+        "q29": "E",
+        "q30": "E"
+      },
+      "expected_totals": {
+        "1A": 29,
+        "1B": -1,
+        "2A": 43,
+        "2B": 12,
+        "3": -3
+      },
+      "expected_primary": "2A",
+      "expected_secondary": "1A",
+      "expected_margin": 14
+    },
+    {
+      "nome": "Esempio 2 — 2B netto",
+      "answers": {
+        "q01": "E",
+        "q02": "E",
+        "q03": "E",
+        "q04": "E",
+        "q05": "E",
+        "q06": "E",
+        "q07": "E",
+        "q08": "E",
+        "q09": "E",
+        "q10": "E",
+        "q11": "E",
+        "q12": "E",
+        "q13": "E",
+        "q14": "E",
+        "q15": "E",
+        "q16": "E",
+        "q17": "E",
+        "q18": "E",
+        "q19": "A",
+        "q20": "A",
+        "q21": "A",
+        "q22": "A",
+        "q23": "A",
+        "q24": "A",
+        "q25": "E",
+        "q26": "E",
+        "q27": "E",
+        "q28": "E",
+        "q29": "E",
+        "q30": "E"
+      },
+      "expected_totals": {
+        "1A": -10,
+        "1B": -10,
+        "2A": -10,
+        "2B": 50,
+        "3": -10
+      },
+      "expected_primary": "2B",
+      "expected_secondary": "1A",
+      "expected_margin": 60
+    },
+    {
+      "nome": "Esempio 3 — testa a testa (margine piccolo)",
+      "answers": {
+        "q01": "A",
+        "q02": "A",
+        "q03": "A",
+        "q04": "A",
+        "q05": "A",
+        "q06": "A",
+        "q07": "E",
+        "q08": "E",
+        "q09": "E",
+        "q10": "E",
+        "q11": "E",
+        "q12": "E",
+        "q13": "A",
+        "q14": "A",
+        "q15": "A",
+        "q16": "A",
+        "q17": "A",
+        "q18": "B",
+        "q19": "E",
+        "q20": "E",
+        "q21": "E",
+        "q22": "E",
+        "q23": "E",
+        "q24": "E",
+        "q25": "E",
+        "q26": "E",
+        "q27": "E",
+        "q28": "E",
+        "q29": "E",
+        "q30": "E"
+      },
+      "expected_totals": {
+        "1A": 50,
+        "1B": -10,
+        "2A": 49,
+        "2B": -10,
+        "3": -10
+      },
+      "expected_primary": "1A",
+      "expected_secondary": "2A",
+      "expected_margin": 1
+    }
+  ]
+}
