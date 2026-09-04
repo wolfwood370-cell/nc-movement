@@ -659,6 +659,66 @@ export type Database = {
         }
         Relationships: []
       }
+      sessioni_orfane_20260903: {
+        Row: {
+          archiviata_il: string | null
+          client_id: string | null
+          cliente_mancante: boolean | null
+          created_at: string | null
+          fms_assessment_id: string | null
+          fms_mancante: boolean | null
+          goal: string | null
+          id: string | null
+          notes: string | null
+          organization_id: string | null
+          practitioner_id: string | null
+          program: Json | null
+          scheduled_at: string | null
+          session_number: number | null
+          session_type: Database["movement"]["Enums"]["session_type"] | null
+          status: Database["movement"]["Enums"]["session_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          archiviata_il?: string | null
+          client_id?: string | null
+          cliente_mancante?: boolean | null
+          created_at?: string | null
+          fms_assessment_id?: string | null
+          fms_mancante?: boolean | null
+          goal?: string | null
+          id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          practitioner_id?: string | null
+          program?: Json | null
+          scheduled_at?: string | null
+          session_number?: number | null
+          session_type?: Database["movement"]["Enums"]["session_type"] | null
+          status?: Database["movement"]["Enums"]["session_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          archiviata_il?: string | null
+          client_id?: string | null
+          cliente_mancante?: boolean | null
+          created_at?: string | null
+          fms_assessment_id?: string | null
+          fms_mancante?: boolean | null
+          goal?: string | null
+          id?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          practitioner_id?: string | null
+          program?: Json | null
+          scheduled_at?: string | null
+          session_number?: number | null
+          session_type?: Database["movement"]["Enums"]["session_type"] | null
+          status?: Database["movement"]["Enums"]["session_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           client_id: string
@@ -709,6 +769,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_fms_assessment_id_fkey"
+            columns: ["fms_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fms_assessments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_organization_id_fkey"
             columns: ["organization_id"]
@@ -1017,6 +1091,502 @@ export type Database = {
       [_ in never]: never
     }
   }
+  public: {
+    Tables: {
+      admins: {
+        Row: {
+          added_at: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_screening: {
+        Row: {
+          conditions_meds: string | null
+          cycle_since: string | null
+          cycle_status: string | null
+          pain_now: boolean | null
+          pain_where: string | null
+          parq_balance: boolean
+          parq_chest_pain: boolean
+          parq_heart: boolean
+          parq_meds: boolean
+          parq_msk: boolean
+          parq_other_chronic: boolean
+          parq_supervised: boolean
+          past_injuries: string | null
+          pregnancy: string | null
+          safety_allergy: boolean | null
+          safety_allergy_detail: string | null
+          submission_id: string
+        }
+        Insert: {
+          conditions_meds?: string | null
+          cycle_since?: string | null
+          cycle_status?: string | null
+          pain_now?: boolean | null
+          pain_where?: string | null
+          parq_balance: boolean
+          parq_chest_pain: boolean
+          parq_heart: boolean
+          parq_meds: boolean
+          parq_msk: boolean
+          parq_other_chronic: boolean
+          parq_supervised: boolean
+          past_injuries?: string | null
+          pregnancy?: string | null
+          safety_allergy?: boolean | null
+          safety_allergy_detail?: string | null
+          submission_id: string
+        }
+        Update: {
+          conditions_meds?: string | null
+          cycle_since?: string | null
+          cycle_status?: string | null
+          pain_now?: boolean | null
+          pain_where?: string | null
+          parq_balance?: boolean
+          parq_chest_pain?: boolean
+          parq_heart?: boolean
+          parq_meds?: boolean
+          parq_msk?: boolean
+          parq_other_chronic?: boolean
+          parq_supervised?: boolean
+          past_injuries?: string | null
+          pregnancy?: string | null
+          safety_allergy?: boolean | null
+          safety_allergy_detail?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_screening_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      neurotype_answers: {
+        Row: {
+          q01: string | null
+          q02: string | null
+          q03: string | null
+          q04: string | null
+          q05: string | null
+          q06: string | null
+          q07: string | null
+          q08: string | null
+          q09: string | null
+          q10: string | null
+          q11: string | null
+          q12: string | null
+          q13: string | null
+          q14: string | null
+          q15: string | null
+          q16: string | null
+          q17: string | null
+          q18: string | null
+          q19: string | null
+          q20: string | null
+          q21: string | null
+          q22: string | null
+          q23: string | null
+          q24: string | null
+          q25: string | null
+          q26: string | null
+          q27: string | null
+          q28: string | null
+          q29: string | null
+          q30: string | null
+          submission_id: string
+        }
+        Insert: {
+          q01?: string | null
+          q02?: string | null
+          q03?: string | null
+          q04?: string | null
+          q05?: string | null
+          q06?: string | null
+          q07?: string | null
+          q08?: string | null
+          q09?: string | null
+          q10?: string | null
+          q11?: string | null
+          q12?: string | null
+          q13?: string | null
+          q14?: string | null
+          q15?: string | null
+          q16?: string | null
+          q17?: string | null
+          q18?: string | null
+          q19?: string | null
+          q20?: string | null
+          q21?: string | null
+          q22?: string | null
+          q23?: string | null
+          q24?: string | null
+          q25?: string | null
+          q26?: string | null
+          q27?: string | null
+          q28?: string | null
+          q29?: string | null
+          q30?: string | null
+          submission_id: string
+        }
+        Update: {
+          q01?: string | null
+          q02?: string | null
+          q03?: string | null
+          q04?: string | null
+          q05?: string | null
+          q06?: string | null
+          q07?: string | null
+          q08?: string | null
+          q09?: string | null
+          q10?: string | null
+          q11?: string | null
+          q12?: string | null
+          q13?: string | null
+          q14?: string | null
+          q15?: string | null
+          q16?: string | null
+          q17?: string | null
+          q18?: string | null
+          q19?: string | null
+          q20?: string | null
+          q21?: string | null
+          q22?: string | null
+          q23?: string | null
+          q24?: string | null
+          q25?: string | null
+          q26?: string | null
+          q27?: string | null
+          q28?: string | null
+          q29?: string | null
+          q30?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neurotype_answers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      neurotype_result: {
+        Row: {
+          margin: number | null
+          notes: string | null
+          primary_type: string | null
+          score_1a: number | null
+          score_1b: number | null
+          score_2a: number | null
+          score_2b: number | null
+          score_3: number | null
+          scored_at: string | null
+          secondary_type: string | null
+          submission_id: string
+        }
+        Insert: {
+          margin?: number | null
+          notes?: string | null
+          primary_type?: string | null
+          score_1a?: number | null
+          score_1b?: number | null
+          score_2a?: number | null
+          score_2b?: number | null
+          score_3?: number | null
+          scored_at?: string | null
+          secondary_type?: string | null
+          submission_id: string
+        }
+        Update: {
+          margin?: number | null
+          notes?: string | null
+          primary_type?: string | null
+          score_1a?: number | null
+          score_1b?: number | null
+          score_2a?: number | null
+          score_2b?: number | null
+          score_3?: number | null
+          scored_at?: string | null
+          secondary_type?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neurotype_result_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition: {
+        Row: {
+          diet_assessment: string | null
+          diet_history: string | null
+          foods_love_avoid: string | null
+          intolerances: string | null
+          meals_desc: string | null
+          submission_id: string
+          supplements: string | null
+          who_cooks: string | null
+        }
+        Insert: {
+          diet_assessment?: string | null
+          diet_history?: string | null
+          foods_love_avoid?: string | null
+          intolerances?: string | null
+          meals_desc?: string | null
+          submission_id: string
+          supplements?: string | null
+          who_cooks?: string | null
+        }
+        Update: {
+          diet_assessment?: string | null
+          diet_history?: string | null
+          foods_love_avoid?: string | null
+          intolerances?: string | null
+          meals_desc?: string | null
+          submission_id?: string
+          supplements?: string | null
+          who_cooks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          bucket: string
+          hits: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          address: string | null
+          aesthetic_goal: string | null
+          alcohol_week: string | null
+          availability: string | null
+          barbell_experience: string | null
+          birth_date: string
+          client_id: string | null
+          consent_disclaimer: boolean
+          consent_health: boolean
+          consent_marketing: boolean
+          consent_nutrition: boolean
+          consent_photos: boolean
+          consent_share_medical: boolean
+          consent_version: string
+          consented_at: string
+          created_at: string
+          current_sport: string | null
+          deadline_event: string | null
+          email: string
+          equipment: string
+          experience_level: string | null
+          favorite_activity: string | null
+          foreseen_obstacles: string | null
+          full_name: string
+          height_cm: number | null
+          id: string
+          lifestyle_goal: string | null
+          main_goal: string | null
+          max_days_week: string | null
+          movement_goal: string | null
+          neat_steps: string | null
+          past_coaching: string | null
+          phone: string
+          pronoun: string | null
+          recent_maxes: string | null
+          recovery_capacity: string | null
+          session_minutes: string | null
+          sex: string
+          sleep_hours: string | null
+          sleep_quality: string | null
+          smoking: string | null
+          sports_history: string | null
+          status: string
+          stress_level: string | null
+          success_definition: string | null
+          support_network: string | null
+          tax_code: string | null
+          water_liters: string | null
+          weight_history: string | null
+          weight_kg: number | null
+          weight_target: string | null
+          why_now: string | null
+          work_desc: string | null
+          work_mode: string | null
+          workload: string | null
+        }
+        Insert: {
+          address?: string | null
+          aesthetic_goal?: string | null
+          alcohol_week?: string | null
+          availability?: string | null
+          barbell_experience?: string | null
+          birth_date: string
+          client_id?: string | null
+          consent_disclaimer: boolean
+          consent_health: boolean
+          consent_marketing?: boolean
+          consent_nutrition?: boolean
+          consent_photos?: boolean
+          consent_share_medical?: boolean
+          consent_version?: string
+          consented_at?: string
+          created_at?: string
+          current_sport?: string | null
+          deadline_event?: string | null
+          email: string
+          equipment: string
+          experience_level?: string | null
+          favorite_activity?: string | null
+          foreseen_obstacles?: string | null
+          full_name: string
+          height_cm?: number | null
+          id?: string
+          lifestyle_goal?: string | null
+          main_goal?: string | null
+          max_days_week?: string | null
+          movement_goal?: string | null
+          neat_steps?: string | null
+          past_coaching?: string | null
+          phone: string
+          pronoun?: string | null
+          recent_maxes?: string | null
+          recovery_capacity?: string | null
+          session_minutes?: string | null
+          sex: string
+          sleep_hours?: string | null
+          sleep_quality?: string | null
+          smoking?: string | null
+          sports_history?: string | null
+          status?: string
+          stress_level?: string | null
+          success_definition?: string | null
+          support_network?: string | null
+          tax_code?: string | null
+          water_liters?: string | null
+          weight_history?: string | null
+          weight_kg?: number | null
+          weight_target?: string | null
+          why_now?: string | null
+          work_desc?: string | null
+          work_mode?: string | null
+          workload?: string | null
+        }
+        Update: {
+          address?: string | null
+          aesthetic_goal?: string | null
+          alcohol_week?: string | null
+          availability?: string | null
+          barbell_experience?: string | null
+          birth_date?: string
+          client_id?: string | null
+          consent_disclaimer?: boolean
+          consent_health?: boolean
+          consent_marketing?: boolean
+          consent_nutrition?: boolean
+          consent_photos?: boolean
+          consent_share_medical?: boolean
+          consent_version?: string
+          consented_at?: string
+          created_at?: string
+          current_sport?: string | null
+          deadline_event?: string | null
+          email?: string
+          equipment?: string
+          experience_level?: string | null
+          favorite_activity?: string | null
+          foreseen_obstacles?: string | null
+          full_name?: string
+          height_cm?: number | null
+          id?: string
+          lifestyle_goal?: string | null
+          main_goal?: string | null
+          max_days_week?: string | null
+          movement_goal?: string | null
+          neat_steps?: string | null
+          past_coaching?: string | null
+          phone?: string
+          pronoun?: string | null
+          recent_maxes?: string | null
+          recovery_capacity?: string | null
+          session_minutes?: string | null
+          sex?: string
+          sleep_hours?: string | null
+          sleep_quality?: string | null
+          smoking?: string | null
+          sports_history?: string | null
+          status?: string
+          stress_level?: string | null
+          success_definition?: string | null
+          support_network?: string | null
+          tax_code?: string | null
+          water_liters?: string | null
+          weight_history?: string | null
+          weight_kg?: number | null
+          weight_target?: string | null
+          why_now?: string | null
+          work_desc?: string | null
+          work_mode?: string | null
+          workload?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      rate_limit_hit: {
+        Args: { bucket_key: string; max_hits: number; window_seconds: number }
+        Returns: boolean
+      }
+      submit_intake: { Args: { payload: Json }; Returns: string }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -1156,5 +1726,8 @@ export const Constants = {
       sfma_score: ["FN", "DN", "FP", "DP"],
       ybt_test_type: ["LQ", "UQ"],
     },
+  },
+  public: {
+    Enums: {},
   },
 } as const
