@@ -11,9 +11,11 @@ import StoplightSelector, { type Stoplight } from '@/components/fms/StoplightSel
 import {
   computePatterns, computeTotal, primaryCorrective, type FmsScores, type Score,
   isModifiedFms, fmsMaxTotal, type FmsAssessmentType,
+  clearingKeysFor, isClearingKey, type ClearingKey,
 } from '@/lib/fms';
 
-type ExtraKey = 'tibia' | 'hand' | 'ankle_clearing' | 'shoulder_clearing' | 'spinal_extension' | 'spinal_flexion';
+/** Misure antropometriche + i quattro test di esclusione, che ora vengono da lib/fms. */
+type ExtraKey = 'tibia' | 'hand' | ClearingKey;
 
 interface StepDef {
   key: string;              // pattern key
@@ -82,6 +84,17 @@ export default function FmsWizard({
   const provTotal = railPatterns.reduce((sum, p) => sum + (p.final ?? 0), 0);
 
   const current = patterns.find(p => p.key === step.key);
+  // Quali test di esclusione siano previsti lo decide CLEARING_BY_TYPE in lib/fms,
+  // la stessa costante da cui il referto ricava «non eseguito». Qui si FILTRA e non
+  // si genera: l'ospite di un clearing cambia col tipo (ankle sta su Inline Lunge
+  // nella piena e su ASLR nella modificata), e generarlo dalla costante rischierebbe
+  // di agganciarlo a uno step inesistente, facendolo sparire senza errore.
+  // Oggi il filtro non toglie nulla: e' un cordone contro la divergenza di domani,
+  // pinnato dal test «wizard e referto concordano» in medicalReferral.test.ts.
+  const allowedClearing = useMemo(() => new Set<ClearingKey>(clearingKeysFor(scores)), [scores]);
+  const visibleExtras = (step.extras ?? []).filter(
+    ex => !isClearingKey(ex) || allowedClearing.has(ex),
+  );
   const isLast = idx === steps.length - 1;
   const focusLabel = completed === 0
     ? 'Focus: in attesa di punteggi'
@@ -216,7 +229,7 @@ export default function FmsWizard({
           </div>
 
           {/* Extras */}
-          {step.extras?.map(ex => (
+          {visibleExtras.map(ex => (
             <div key={ex} className="mt-5">
               {renderExtra(ex, scores, setField)}
             </div>

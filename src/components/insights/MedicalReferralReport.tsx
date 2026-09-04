@@ -3,7 +3,7 @@ import { Printer, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { calcAge } from '@/lib/insights';
-import { buildReferralData } from '@/lib/medicalReferral';
+import { buildReferralData, type ReferralClearingStatus } from '@/lib/medicalReferral';
 import type { FmsScores } from '@/lib/fms';
 import type { SfmaFormValues } from '@/lib/sfma';
 
@@ -142,9 +142,21 @@ export default function MedicalReferralReport({
             )}
 
             {data.clearing.length > 0 && (
-              <FindingsBlock title="Test di Esclusione Positivi">
+              // Il titolo non asserisce piu' la polarita' delle voci: il blocco
+              // elenca tutti e quattro i test, e tipicamente nessuno e' positivo.
+              <FindingsBlock
+                title="Test di Esclusione — Esito"
+                footer={
+                  data.clearing.some(c => c.status === 'not-performed')
+                    ? 'FMS modificata: estensione e flessione spinale non fanno parte del protocollo eseguito.'
+                    : undefined
+                }
+              >
                 {data.clearing.map((c, i) => (
-                  <li key={i}>{c.description}</li>
+                  <li key={i}>
+                    <span className="font-semibold">{clearingStatusIt(c.status)}</span>
+                    {' — '}{c.description}
+                  </li>
                 ))}
               </FindingsBlock>
             )}
@@ -226,13 +238,24 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function FindingsBlock({ title, children }: { title: string; children: React.ReactNode }) {
+function FindingsBlock(
+  { title, children, footer }: { title: string; children: React.ReactNode; footer?: string },
+) {
   return (
     <div>
       <h3 className="text-xs font-bold uppercase tracking-widest mb-1.5">{title}</h3>
       <ul className="list-disc pl-5 space-y-1 text-sm">{children}</ul>
+      {/* Fuori dalla <ul>: dentro erediterebbe il pallino e su carta si leggerebbe
+          come un quinto reperto invece che come una nota di contesto. */}
+      {footer && <p className="mt-1.5 text-xs italic text-neutral-700">{footer}</p>}
     </div>
   );
+}
+
+function clearingStatusIt(s: ReferralClearingStatus): string {
+  if (s === 'positive') return 'POSITIVO';
+  if (s === 'negative') return 'NEGATIVO';
+  return 'NON ESEGUITO';
 }
 
 function genderIt(g: string | null): string {

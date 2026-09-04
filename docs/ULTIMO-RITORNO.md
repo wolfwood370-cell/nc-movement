@@ -1,456 +1,431 @@
-# Ultimo ritorno — Type-check vero
+# Ultimo ritorno — Clearing a tre stati
 
-**Data:** 2026-09-04 · **Ramo:** `claude/typecheck-vero` · **Base:** `main` = `15f91f9`
-**PR:** [#3 — Type-check vero: il passo della CI ora compila davvero, e i 5 errori di chart.tsx sono sistemati](https://github.com/wolfwood370-cell/nc-movement/pull/3)
-**Run CI:** [33857058205](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33857058205)
-**Prompt conservato:** [`docs/prompts/2026-09-04-typecheck-vero.md`](prompts/2026-09-04-typecheck-vero.md)
+**Data:** 2026-09-04 · **Ramo:** `claude/clearing-tre-stati` · **Base:** `main` = `90d3171`
+**PR:** [#4 — Clearing test a tre stati: il referto non dichiara più negativo ciò che nessuno ha misurato](https://github.com/wolfwood370-cell/nc-movement/pull/4)
+**Run CI:** [33862416691](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33862416691)
+**Prompt conservato:** [`docs/prompts/2026-09-04-clearing-tre-stati.md`](prompts/2026-09-04-clearing-tre-stati.md)
 
-**Commit:** `0a33263` (il codice) + il commit di documentazione che porta questo file.
-Il ritorno della fetta precedente (CI verde) resta nella storia di git e nella
-[PR #2](https://github.com/wolfwood370-cell/nc-movement/pull/2).
-
----
-
-## Rituale d'apertura — due scostamenti, entrambi in meno
-
-Il prompt si aspettava `?? VALUTAZIONE-VENDITA-FMS.md` e `?? docs/design/`. `git status`
-era invece **completamente pulito**:
-
-```
-$ git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-nothing to commit, working tree clean
-```
-
-`VALUTAZIONE-VENDITA-FMS.md` non è più nella working copy, e `docs/design/` esiste ma è
-**vuota** — git non traccia le cartelle vuote, per questo non compariva. Sono due cose **in
-meno** del previsto, non in più: niente di Nicolò da proteggere, nessuna modifica pendente
-da capire. Non ho fermato la fetta perché la regola («se mostra *altro*, fermati») esiste
-per intercettare roba inattesa da non travolgere, e qui non c'era niente da travolgere.
-**Nessuno dei due file è stato toccato o creato.**
+**Commit:** `f9c5006` (il codice) + il commit di documentazione che porta questo file.
+Il ritorno della fetta precedente (type-check vero) resta nella storia di git e nella
+[PR #3](https://github.com/wolfwood370-cell/nc-movement/pull/3).
 
 ---
 
-## La misura, confermata
+## Rituale d'apertura — due divergenze, una delle quali pesa
+
+`git status` era **pulito**, non con i due file attesi: `VALUTAZIONE-VENDITA-FMS.md` non
+esiste nella working copy e `docs/design/` è una cartella **vuota** (git non traccia le
+cartelle vuote). Come nella fetta precedente: due cose in meno, non in più. Nessuno dei due
+è stato toccato o creato.
+
+**La divergenza che pesa:** il prompt dice «Leggi `docs/design/DECISIONI.md` (§ clearing) e
+`docs/design/componente-clearing-tre-stati.html` prima di scrivere: il disegno di questa
+fetta esiste già», e al punto 3 indica l'HTML come riferimento visivo.
+
+**Quei due file non esistono.** Né su disco, né in alcun commit, né su alcun branch:
 
 ```
-$ bunx tsc --noEmit ; echo $?
-0
-$ bunx tsc --noEmit --listFiles | grep -c "src/"
-0
+$ find . -iname "*DECISIONI*" -o -iname "*clearing-tre-stati*" | grep -v node_modules
+(nessun risultato)
+$ git log --all --oneline -- 'docs/design/**'
+(nessun risultato)
+$ git ls-files docs/
+docs/ULTIMO-RITORNO.md
+docs/plan-lovable-storico.md
+docs/prompts/2026-09-03-ci-verde.md
+docs/prompts/2026-09-03-stacco-lovable.md
+docs/prompts/2026-09-04-typecheck-vero.md
 ```
 
-Il comando del workflow non compilava **niente**. Il comando vero:
-
-```
-$ bunx tsc --noEmit -p tsconfig.app.json
-src/components/ui/chart.tsx(106,7): error TS2339: Property 'payload' does not exist on type 'Omit<Omit<Props<ValueType, NameType>, PropertiesReadFromContext> & { active?: boolean; allowEscapeViewBox?: AllowInDimension; ... 24 more ...; wrapperStyle?: CSSProperties; } & ClassAttributes<...> & HTMLAttributes<...> & { ...; }, "ref">'.
-src/components/ui/chart.tsx(111,7): error TS2339: Property 'label' does not exist on type 'Omit<Omit<Props<ValueType, NameType>, PropertiesReadFromContext> & { active?: boolean; allowEscapeViewBox?: AllowInDimension; ... 24 more ...; wrapperStyle?: CSSProperties; } & ClassAttributes<...> & HTMLAttributes<...> & { ...; }, "ref">'.
-src/components/ui/chart.tsx(233,41): error TS2344: Type '"payload" | "verticalAlign"' does not satisfy the constraint '"string" | "style" | "clipPath" | "filter" | "mask" | "path" | "className" | "offset" | "key" | "type" | "suppressHydrationWarning" | "id" | "lang" | "tabIndex" | "role" | "content" | ... 422 more ... | "portal"'.
-  Type '"payload"' is not assignable to type '"string" | "style" | ... 422 more ... | "portal"'.
-src/components/ui/chart.tsx(240,17): error TS2339: Property 'length' does not exist on type 'unknown'.
-src/components/ui/chart.tsx(249,16): error TS2339: Property 'map' does not exist on type 'unknown'.
-EXIT=2
-```
-
-Cinque errori, esattamente quelli attesi.
-
-### Il conteggio dei file: 166 → 161, e perché non è un'esclusione
-
-Il prompt si aspettava **~161** e avvertiva: «se cala, hai escluso qualcosa». Prima del fix
-il comando ne contava **166**. La differenza non è un file in più: **`tsc --noEmit --listFiles`
-stampa anche gli errori su stdout**, quindi `grep -c "src/"` somma i file *e* le righe di
-errore, che cominciano tutte con `src/components/ui/chart.tsx`. Scomposizione misurata:
-
-| voce | prima | dopo |
-|---|---:|---:|
-| file del progetto (`nc-movement/src/`) | 141 | **141** |
-| `node_modules/react-resizable-panels/**` (hanno `src/` nel path) | 20 | 20 |
-| righe di errore di `tsc` | 5 | 0 |
-| **totale `grep -c "src/"`** | **166** | **161** |
-
-Il calo da 166 a 161 è la sparizione dei cinque errori. **I file compilati sono 141 prima e
-141 dopo: non è stato escluso nulla.** E 161 è esattamente il numero riportato dalla fetta
-precedente, che misurò a errori presenti — coincidenza aritmetica, non identità di misura.
+**Non ho fermato la fetta**, e la ragione è che il punto 3 il prompt lo descrive comunque in
+prosa con precisione: quattro voci col loro stato, più la riga di nota col testo letterale. La
+parte mancante è solo l'aspetto grafico, e per quello mi sono attenuto allo stile che
+`MedicalReferralReport.tsx` già ha (serif, stampabile, `FindingsBlock` con `<ul><li>`).
+**Se esiste un disegno che non ho visto, il componente va riguardato.**
 
 ---
 
-## I 5 errori: la causa comune, e come è stato sistemato ciascuno
+## Dove ho messo la costante, e come la leggono wizard e referto
 
-Non sono cinque problemi: sono **un solo cambiamento di recharts** che affiora in cinque punti.
-
-recharts 3 ha spostato `payload`, `label`, `active` e `coordinate` **dai props al context**.
-Non è un'inferenza — è scritto nei suoi `.d.ts`:
+In **`src/lib/fms.ts`**, dopo `fmsMaxTotal` — **56 righe di sole aggiunte, zero rimozioni**:
 
 ```ts
-// node_modules/recharts/types/component/Tooltip.d.ts:19-20
-type PropertiesReadFromContext = 'viewBox' | 'active' | 'payload' | 'coordinate' | 'label' | 'accessibilityLayer';
-export type TooltipProps<...> = Omit<DefaultTooltipContentProps<...>, PropertiesReadFromContext> & { ... };
+export const CLEARING_KEYS = [
+  'shoulder_clearing', 'spinal_extension', 'spinal_flexion', 'ankle_clearing',
+] as const;
+export type ClearingKey = (typeof CLEARING_KEYS)[number];
 
-// node_modules/recharts/types/component/Legend.d.ts:7
-export type Props = Omit<DefaultLegendContentProps, 'payload' | 'ref' | 'verticalAlign'> & { ... };
+export const CLEARING_TEST_LABEL: Record<ClearingKey, string> = { /* le 4 etichette */ };
+
+export const CLEARING_BY_TYPE: Record<FmsAssessmentType, readonly ClearingKey[]> = {
+  full: CLEARING_KEYS,
+  modified: ['shoulder_clearing', 'ankle_clearing'],
+};
+
+export const isClearingKey = (k: string): k is ClearingKey => /* ... */;
+export const clearingKeysFor = (s) => CLEARING_BY_TYPE[isModifiedFms(s) ? 'modified' : 'full'];
 ```
 
-`chart.tsx` è il componente shadcn scritto per **recharts 2**, dove quei campi erano props.
-Chiede ancora ai props ciò che ora vive sul context. I tipi giusti esistono e recharts li
-**esporta pubblicamente** (`types/index.d.ts`, righe 8 e 10): `TooltipContentProps` e
-`DefaultLegendContentProps` sono esattamente «i tipi che recharts espone davvero per quel
-punto», cioè per il *contenuto custom* di tooltip e legenda.
+**Il referto** (`medicalReferral.ts`) ne deriva lo stato con `clearingKeysFor(fms)`, leggendo
+il tipo da `fms.assessment_type`: la riga ce l'aveva già, nessun parametro aggiunto.
 
-### Errori 1 e 2 — `payload` (106) e `label` (111)
-
-> `TS2339: Property 'payload' does not exist on type 'Omit<Omit<Props<...>, PropertiesReadFromContext> & ...>'`
-> `TS2339: Property 'label' does not exist on type '...'`
-
-Il componente derivava i props da `React.ComponentProps<typeof RechartsPrimitive.Tooltip>`,
-cioè da `TooltipProps`, che quei due campi li **toglie**. Sostituito con il tipo del
-contenuto:
+**Il wizard** (`FmsWizard.tsx`) fa due cose. Il suo `ExtraKey` ora **è composto** dal tipo
+condiviso, così un typo non compila:
 
 ```diff
--  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
--    React.ComponentProps<"div"> & {
-+  React.ComponentProps<"div"> &
-+    Partial<
-+      Pick<
-+        RechartsPrimitive.TooltipContentProps,
-+        "active" | "payload" | "label" | "labelFormatter" | "labelClassName" | "formatter"
-+      >
-+    > & {
+-type ExtraKey = 'tibia' | 'hand' | 'ankle_clearing' | 'shoulder_clearing' | 'spinal_extension' | 'spinal_flexion';
++type ExtraKey = 'tibia' | 'hand' | ClearingKey;
 ```
 
-Tre scelte, ognuna con un motivo:
-
-- **`TooltipContentProps` e non `TooltipProps`**: è il tipo che recharts passa al contenuto
-  custom, ed è lì che `payload` e `label` esistono ancora.
-- **`Partial`**: su `TooltipContentProps` quei campi sono **richiesti** (`payload: TooltipPayload`,
-  `active: boolean`), perché è recharts a iniettarli clonando l'elemento. Senza `Partial`, ogni
-  chiamante sarebbe costretto a passarli a mano.
-- **`Pick` mirato e non il tipo intero**: `React.ComponentProps<"div">` contiene
-  `content?: string` (attributo RDFa di `HTMLAttributes`) e `TooltipProps` contiene
-  `content?: ContentType`. Intersecarli produce un `content` insoddisfacibile. Il `Pick`
-  prende solo i sei campi che il componente destruttura davvero e non crea la collisione.
-  `color` continua ad arrivare da `ComponentProps<"div">` (`color?: string`, «Non-standard
-  Attributes» di React) — **esattamente come prima**, non è cambiato di mano.
-
-### Errore 3 — `TS2344` su `"payload" | "verticalAlign"` (233)
-
-> `Type '"payload" | "verticalAlign"' does not satisfy the constraint '... 422 more ... | "portal"'`
-
-Il messaggio è oscuro ma dice una cosa semplice: si stava facendo `Pick` di due chiavi da un
-tipo che **non le ha**, perché `LegendProps` fa `Omit<..., 'payload' | 'ref' | 'verticalAlign'>`.
-Le chiavi elencate nel vincolo (`"portal"`, `"onBBoxUpdate"`) sono quelle che `LegendProps`
-*ha*. Cambiato il tipo di partenza, non le chiavi:
-
-```diff
--    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-+    Pick<RechartsPrimitive.DefaultLegendContentProps, "payload" | "verticalAlign"> & {
-```
-
-`DefaultLegendContentProps` dichiara `payload?: ReadonlyArray<LegendPayload>` e
-`verticalAlign?: VerticalAlignmentType`, entrambi già opzionali (nessun `Partial` necessario).
-
-### Errori 4 e 5 — `length` (240) e `map` (249) su `unknown`
-
-> `TS2339: Property 'length' does not exist on type 'unknown'`
-> `TS2339: Property 'map' does not exist on type 'unknown'`
-
-Non erano errori a sé: erano il **danno collaterale** dell'errore 3. Fallito il `Pick`, il tipo
-di `payload` collassava a `unknown`, e ogni uso a valle esplodeva. Sistemato il tipo della
-legenda, **sono spariti da soli senza toccare quelle righe.**
-
----
-
-## I difetti veri che i tipi corretti hanno fatto emergere
-
-Il prompt chiedeva: *«Se il tipo corretto rivela che il codice legge un campo che a runtime
-può non esserci, quello è un difetto vero: gestiscilo e nominalo forte.»* Ne sono emersi due,
-e il secondo è una trappola che quasi mi ha fregato.
-
-### 1. `item.payload.fill` leggeva un campo opzionale — e faceva saltare l'intera tooltip
+e **filtra** i propri extra attraverso la costante:
 
 ```ts
-// node_modules/recharts/types/component/DefaultTooltipContent.d.ts:21
-payload?: any;   // dentro `interface Payload`, che È l'elemento di TooltipPayload
+const allowedClearing = useMemo(() => new Set<ClearingKey>(clearingKeysFor(scores)), [scores]);
+const visibleExtras = (step.extras ?? []).filter(
+  ex => !isClearingKey(ex) || allowedClearing.has(ex),
+);
 ```
 
-Il campo è **doppiamente mascherato**: è opzionale *e* è tipizzato `any`, quindi nemmeno con
-i tipi giusti il compilatore protegge `.fill`. E un terzo velo lo copriva: finché `payload`
-non esisteva sui props (errore 106), `item` non era controllato affatto.
+### Perché filtra e non genera — e perché da solo non basterebbe
 
-Che a runtime arrivi `undefined` non è teoria. In recharts 3.9.2 l'entry si costruisce con una
-ricerca nel dataset che può non trovare nulla: `es6/state/selectors/combiners/combineTooltipPayload.js`
-usa `findEntryInArray`, che ritorna `undefined` quando nessuna riga combacia, e
-`es6/util/ChartUtils.js` (`getTooltipEntry`) fa lo spread di `payload` così com'è, **senza
-fallback**. Succede con serie che non condividono tutte le categorie sull'asse X, con
-`<Tooltip defaultIndex>` fuori range, con un `<Brush>` che affetta i dati.
+Una verifica avversariale ha giustamente obiettato che **un filtro non rende la costante la
+fonte unica**: può solo togliere da `step.extras`, mai aggiungere, quindi la conoscenza reale
+resterebbe in `STEPS_MODIFIED`. È vero, e il prompt lo dice: «se le due strade divergessero
+domani, il difetto tornerebbe».
 
-E la riga era la peggiore possibile: un `const` valutato **prima** di ogni ramo, quindi il
-`TypeError` non degradava un dettaglio — **buttava giù la tooltip intera**, e con lei il
-grafico se sotto un error boundary.
+Ma **generare** gli extra dalla costante è peggio, ed è dimostrabile: l'ospite di un clearing
+**cambia col tipo** — `ankle_clearing` sta su *Inline Lunge* nella piena e su *ASLR* nella
+modificata, dove Inline Lunge non esiste come step. Una lista piatta `ClearingKey[]` non
+contiene quell'informazione: chi generasse gli extra da lì aggancerebbe `ankle_clearing` a uno
+step inesistente, e il test **sparirebbe dalla FMS modificata senza un errore e senza un test
+rosso**.
 
-```diff
--            const indicatorColor = color || item.payload.fill || item.color;
-+            const indicatorColor = color || item.payload?.fill || item.color;
+La soluzione è il filtro **più un cordone che rende la divergenza rossa**:
+
+```ts
+it.each([['full','STEPS_FULL'], ['modified','STEPS_MODIFIED']])(
+  'gli step %s del wizard portano esattamente i clearing di CLEARING_BY_TYPE', (tipo, costante) => {
+    expect([...clearingDichiaratiIn(costante)].sort()).toEqual([...CLEARING_BY_TYPE[tipo]].sort());
+  });
 ```
 
-Quando `payload` c'è, il risultato è identico byte per byte. Quando manca, si degrada su
-`item.color` invece di lanciare. **È l'unica riga di questa fetta che cambia il runtime, ed è
-il difetto che la fetta doveva trovare.**
+Legge il sorgente di `FmsWizard.tsx` dal disco, come già fa il test di cordone in `src/test/`.
+Le prove rosse (a) e (b) qui sotto lo dimostrano: **entrambe lo fanno scattare**.
 
-### 2. `key={item.dataKey}` — il sesto errore, e la scorciatoia che cambiava comportamento
+### Il set di extra renderizzati non cambia
 
-Appena `payload` viene tipizzato bene, compare un **sesto errore che prima non c'era**:
+| tipo | step | prima | dopo |
+|---|---|---|---|
+| full | inline_lunge | `[ankle_clearing]` | `[ankle_clearing]` |
+| full | shoulder_mobility | `[shoulder_clearing, hand]` | `[shoulder_clearing, hand]` |
+| full | trunk_stability_pushup | `[spinal_extension]` | `[spinal_extension]` |
+| full | rotary_stability | `[spinal_flexion]` | `[spinal_flexion]` |
+| modified | shoulder_mobility | `[shoulder_clearing, hand]` | `[shoulder_clearing, hand]` |
+| modified | aslr | `[ankle_clearing]` | `[ankle_clearing]` |
 
-```
-src/components/ui/chart.tsx(179,17): error TS2322: Type 'string | number | ((obj: any) => any)' is not assignable to type 'Key'.
-  Type '(obj: any) => any' is not assignable to type 'Key'.
-```
-
-`DataKey<any>` include una **funzione**, che non è una `React.Key`. Il modo ovvio di zittirlo
-è stringificare — ed è sbagliato. React fa:
-
-```js
-// react/jsx-runtime: hasValidKey(config) { return config.key !== undefined }
-if (hasValidKey(config)) key = '' + config.key;
-```
-
-`undefined` significa **«nessuna key»** (riconciliazione posizionale). `` `${undefined}` ``
-produce la stringa `"undefined"`. Con due o più entry senza `dataKey` — e recharts le produce:
-`combineTooltipPayload.js` propaga `dataKey: undefined` quando la serie non ne ha una — si
-passerebbe da *chiavi assenti* a *chiavi tutte uguali*: warning diverso, riconciliazione
-diversa, nodi DOM riusati sbagliati al riordino. **Non sarebbe stato «identico».**
-
-Ho misurato le tre forme candidate contro il React del repo, non ragionato a mente:
-
-| valore di `dataKey` | originale | `` `${x}` `` | `x?.toString()` | **la forma scelta** |
-|---|---|---|---|---|
-| `undefined` | nessuna key | ❌ `"undefined"` | nessuna key | ✅ nessuna key |
-| `null` | `"null"` | `"null"` | ❌ nessuna key | ✅ `"null"` |
-| `"uv"` | `"uv"` | `"uv"` | `"uv"` | ✅ `"uv"` |
-| `0` | `"0"` | `"0"` | `"0"` | ✅ `"0"` |
-| `42` | `"42"` | `"42"` | `"42"` | ✅ `"42"` |
-| `(d) => d.uv` | `"(d) => d.uv"` | idem | idem | ✅ idem |
-| `""` | `""` | `""` | `""` | ✅ `""` |
-| **divergenze** | — | **1** | **1** | **0** |
-
-```diff
--                key={item.dataKey}
-+                key={item.dataKey === undefined ? undefined : `${item.dataKey}`}
-```
-
-L'unica delle tre a riprodurre l'originale in **tutti** i casi. Una quarta strada,
-`item.dataKey as React.Key`, l'ho scartata: non è nella lista dei divieti letterali, ma dice
-al compilatore che una funzione è una `Key` quando non lo è — è «spegnere il controllo», che
-è precisamente ciò che il prompt vieta.
-
-### Un terzo difetto che ho trovato e **non** ho sistemato
-
-`formatter(item.value, item.name, item, index, item.payload)` (riga 177 dell'originale) passa
-come quinto argomento il **singolo dato**, mentre entrambe le firme dichiarate da recharts
-vogliono lì l'**array** del payload (`payload: ReadonlyArray<Payload>` in
-`DefaultTooltipContent.d.ts:10`, `payload: TooltipPayload` in `Tooltip.d.ts:88`). Compila solo
-perché `payload?: any`. Un `formatter` scritto seguendo il tipo dichiarato prende
-`payload.map is not a function`, o peggio fallisce in silenzio (`payload.length` è `undefined`
-su un oggetto).
-
-**Non l'ho toccato**, e la scelta è deliberata: correggere l'argomento cambierebbe il runtime;
-correggere il tipo significa ridichiarare `formatter` e quindi cambiare il **contratto pubblico**
-del componente. Nessuna delle due sta in «sistema i 5 errori senza cambiare comportamento».
-È una fetta a sé, piccola. **Lo lascio qui scritto perché non si perda.**
-
-Verificati e **scartati** come non-difetti: `item.value.toLocaleString()` (riga 212 — ogni
-abitante di `ValueType`, array compreso, espone `toLocaleString`, e c'è già una guardia sopra)
-e `key={item.value}` nella legenda (`string | undefined` è una `Key` valida; il caso `undefined`
-è raggiungibile ma è preesistente e sistemarlo cambierebbe le chiavi).
+Il filtro oggi non toglie nulla: `full` ammette tutti e quattro, e la modificata già non
+presenta i due spinali. `tibia` e `hand` non sono clearing, quindi passano sempre.
 
 ---
 
-## Il workflow
+## Il referto prodotto da una modificata, testo com'esce
 
-```diff
--      # Type-check is non-blocking for now: the project's tsconfig is intentionally
--      # lax and some legacy files have latent type warnings. Surfaced, not enforced.
--      - name: Type-check (non-blocking)
--        run: bunx tsc --noEmit
--        continue-on-error: true
-+      # Il -p non e' un dettaglio: e' tutto il passo. Fino al 2026-09-04 qui girava
-+      # `bunx tsc --noEmit`, che non compilava NIENTE. tsconfig.json ha "files": [] e
-+      # delega a due project reference, quindi senza -p tsc guarda il progetto radice,
-+      # cioe' zero file, ed esce 0 qualunque cosa ci sia nel codice: sonde deliberatamente
-+      # sbagliate restavano verdi. Non era "surfaced, not enforced" — non era nulla.
-+      # Con -p compila i 141 file di src/ e puo' bocciare, quindi niente continue-on-error.
-+      - name: Type-check
-+        run: bunx tsc --noEmit -p tsconfig.app.json
+**A) FMS modificata, pulita** — il caso di 11 clienti su 21:
+
 ```
+REPERTI CLINICI
+  (nessun reperto critico rilevato nelle valutazioni piu recenti)
+
+  TEST DI ESCLUSIONE — ESITO
+   • NEGATIVO — Shoulder Clearing: nessun dolore riferito agli atti.
+   • NON ESEGUITO — Spinal Extension Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
+   • NON ESEGUITO — Spinal Flexion Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
+   • NEGATIVO — Ankle Clearing: nessun dolore riferito agli atti.
+   FMS modificata: estensione e flessione spinale non fanno parte del protocollo eseguito.
+
+  hasFindings = false   |   lock clinico = false
+```
+
+**B) FMS modificata con Deep Squat 0** — il caso in cui il referto si apre davvero:
+
+```
+REPERTI CLINICI
+
+  FMS — PATTERN DOLOROSI (PUNTEGGIO 0)
+   • Punteggio 0 (dolore) in Deep Squat.
+
+  TEST DI ESCLUSIONE — ESITO
+   • NEGATIVO — Shoulder Clearing: nessun dolore riferito agli atti.
+   • NON ESEGUITO — Spinal Extension Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
+   • NON ESEGUITO — Spinal Flexion Clearing: non somministrato — non fa parte del protocollo di questa valutazione.
+   • NEGATIVO — Ankle Clearing: nessun dolore riferito agli atti.
+   FMS modificata: estensione e flessione spinale non fanno parte del protocollo eseguito.
+
+  hasFindings = true   |   lock clinico = true
+```
+
+**Prima** di questa fetta, entrambi stampavano lo stesso blocco clearing: **niente**. Il medico
+leggeva un referto senza test di esclusione e concludeva che fossero tutti negativi.
+
+---
+
+## Tre scelte che il prompt non chiedeva, e perché le ho fatte
+
+Il referto è un documento medico-legale firmato dal professionista e indirizzato a un medico.
+Tre verifiche avversariali hanno convissuto sullo stesso punto, e avevano ragione.
+
+### 1. Il dolore viene prima del protocollo, sempre
+
+`hasCriticalRedFlags` è **cieco al tipo di FMS**: si accende su `clearing_spinal_extension_pain
+= true` anche quando `assessment_type = 'modified'`. Se il referto valutasse prima
+l'appartenenza al protocollo, una riga con quel flag a `true` su una modificata verrebbe
+stampata «non eseguito» **mentre nella stessa schermata il cliente è bloccato su FCS/YBT/PT
+Pack**. Il referto negherebbe per iscritto il motivo del blocco: l'unico modo in cui questa
+fetta poteva peggiorare il problema che deve risolvere.
+
+L'ordine è quindi `if (flag) → positive` **prima** di ogni considerazione di protocollo, ed è
+pinnato da un test che asserisce insieme `status === 'positive'` e
+`hasCriticalRedFlags(...).hasFlags === true`.
+
+### 2. La voce negativa non dice «eseguito»
+
+La formulazione naturale sarebbe «Test di esclusione negativo: X — eseguito, nessun dolore
+riferito». **«Eseguito» è un'asserzione di fatto su un atto clinico che nessun dato sostiene:**
+i flag sono `Switch` che partono a `false` e non richiedono alcuna interazione, quindi nel
+database `false` non distingue «chiesto e risposto no» da «mai chiesto». È esattamente il
+difetto che questa fetta elimina — e scriverlo lo farebbe passare **da omissione a
+dichiarazione firmata**.
+
+Il testo dichiara quindi cosa risulta agli atti, non cosa è stato fatto al paziente:
+
+```
+Shoulder Clearing: nessun dolore riferito agli atti.
+```
+
+Per lo stesso motivo **la lateralità resta solo sui positivi**: «Shoulder Clearing
+(bilaterale): negativo» si leggerebbe come un reperto. C'è un test che lo pinna.
+
+### 3. `hasFindings` conta solo i positivi
+
+`hasFindings` sommava `clearing.length`. Con quattro voci sempre presenti sarebbe diventato
+**sempre vero appena esiste una FMS**, e il referto avrebbe chiesto una valutazione
+specialistica a chiunque. Ora filtra su `status === 'positive'`, e vale esattamente quanto
+valeva prima. Sopra le righe c'è un commento che spiega il perché a chi aggiungerà il prossimo
+blocco.
+
+**Nota onesta:** quel ramo è oggi quasi irraggiungibile, perché il bottone che apre il referto
+è disabilitato salvo `risk === 'critical'` — un gate che vive in `InsightsTab.tsx`, file
+vietato. Non è una rete di sicurezza voluta: basta togliere quel `disabled` e la bugia si
+armerebbe da sola.
+
+Ho inoltre cambiato il **titolo del blocco** da «Test di Esclusione Positivi» a «Test di
+Esclusione — Esito»: intitolare «Positivi» una lista di negativi è peggio del difetto di
+partenza. E la nota richiesta al punto 3 è renderizzata **fuori dalla `<ul>`**, come `<p>` in
+corsivo: dentro avrebbe ereditato il pallino e su carta si sarebbe letta come un quinto reperto.
 
 ---
 
 ## Acceptance, voce per voce
 
-### 1. `tsc` verde e file invariati ✅
+### 1. Una modificata produce quattro voci, i due spinali `not-performed`, mai `negative` ✅
+
+Test `una FMS modificata produce quattro voci, con i due spinali NON ESEGUITI e mai negativi`.
+Asserisce `toHaveLength(4)`, `not-performed` su entrambi gli spinali, `negative` sui due
+somministrati, e che `Spinal Extension Clearing` **non** compaia fra i negativi.
+
+### 2. Una piena con tutti i flag a `false` produce quattro `negative` ✅
+
+Test `una FMS piena con tutti i flag a false produce quattro NEGATIVI e nessun non eseguito`:
+`every(status === 'negative')` e `some(status === 'not-performed') === false`.
+
+### 3. Un positivo resta positivo e conserva la lateralità ✅
+
+Test dedicato su tre casi: `(sinistro)` su una piena, `(destro)` su una **modificata**,
+`(bilaterale)`. Più un test che verifica che la lateralità **non** finisca sulle altre voci.
+
+### 4. 🔴 Tre prove rosse, nei due sensi, con ripristino byte-identico ✅
+
+| prova | md5 sano | md5 sondato | md5 ripristino | esito sonda |
+|---|---|---|---|---|
+| **(a)** togliere `spinal_extension` da `full` | `c7d77417…` | `5bf91e49…` | `c7d77417…` ✅ | **2 test rossi** |
+| **(b)** aggiungere `spinal_extension` a `modified` | `c7d77417…` | `f14ddc86…` | `c7d77417…` ✅ | **2 test rossi** |
+| **(c)** emettere `negative` invece di `not-performed` | `eda6319f…` | `d150894d…` | `eda6319f…` ✅ | **1 test rosso** |
+
+Gli errori, letterali:
 
 ```
-$ bunx tsc --noEmit -p tsconfig.app.json
-EXIT=0
+(a)  → expected false to be true                                          [i quattro negativi]
+     → expected [ 'ankle_clearing', …(3) ] to deeply equal [ …(2) ]        [cordone wizard↔costante]
+(b)  → expected 'negative' to be 'not-performed'                          [i due spinali]
+     → expected [ 'ankle_clearing', …(1) ] to deeply equal [ …(2) ]        [cordone wizard↔costante]
+(c)  → expected 'negative' to be 'not-performed'
 ```
 
-Nessun output, zero errori.
+Le prove (a) e (b) fanno scattare **anche il cordone**: è la dimostrazione che la divergenza
+fra wizard e costante non può passare silenziosa.
+
+**Una nota sugli md5, perché altrimenti i numeri non tornano.** Al primo `git checkout` di un
+file, `.gitattributes` (`* text=auto eol=lf`) normalizza CRLF→LF e **l'md5 su disco cambia pur
+restando `git status` vuoto**. Le tre prove qui sopra sono state eseguite partendo da file già
+normalizzati, e sono byte-identiche. La verifica che il contenuto *tracciato* non sia mai
+cambiato è più forte dell'md5:
 
 ```
-$ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -c "src/"
-161
-$ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -c "nc-movement/src/"
-141
+$ git hash-object src/lib/medicalReferral.ts   → 155628def7554a84924b0d58ae27c97b4044f31a
+$ git rev-parse HEAD:src/lib/medicalReferral.ts → 155628def7554a84924b0d58ae27c97b4044f31a
+$ git status --porcelain                        → (vuoto)
 ```
 
-161 col grep del prompt (era 166 con le righe di errore dentro), **141 file del progetto,
-identici a prima**. Scomposizione nella tabella sopra.
+### 5. Il lock clinico è invariato ✅ — e **esisteva già un test parziale**
 
-### 2. Nessun pattern vietato, né vecchio né nuovo ✅
+Test `il lock clinico non si accende su una modificata con tutti i clearing a false`, che
+verifica `hasFlags === false`, `hasClearingPain === false` e `hasFindings === false`.
+
+**Dichiarazione richiesta:** un test equivalente esisteva **solo per la FMS piena** —
+`fms.test.ts`, «nessun red flag su FMS vuota», che usa `emptyFmsScores()` con
+`assessment_type: 'full'`. Per la **modificata** non ce n'era nessuno, ed è il caso che
+riguarda 11 clienti su 21. Il nuovo test sta in `medicalReferral.test.ts` perché
+`fms.test.ts` non è fra i file modificabili.
+
+La prova più forte è strutturale: **`src/lib/fms.ts` ha 56 inserzioni e 0 rimozioni**.
+`hasCriticalRedFlags` non è stata sfiorata.
 
 ```
-$ grep -n "any\|as unknown as\|@ts-ignore\|@ts-expect-error\|eslint-disable" src/components/ui/chart.tsx
+$ git diff --stat src/lib/fms.ts
+ src/lib/fms.ts | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
+$ git diff src/lib/fms.ts | grep "^-" | grep -v "^---"
 (nessuna riga)
-$ git show main:src/components/ui/chart.tsx | grep -c "any\|as unknown as\|@ts-ignore\|@ts-expect-error\|eslint-disable"
-0
 ```
 
-**Zero su `main`, zero adesso.** Nessuna riga nuova, e nemmeno una vecchia. Il grep è letterale
-e beccherebbe anche `any` dentro parole come «many» o «Company»: non ce ne sono.
+E `not-performed` non può accendere nulla, perché l'unico consumatore di `.clearing` in tutto
+`src/` è `MedicalReferralReport.tsx`. `ClientDetail.tsx` e `macroAnalytics.ts` chiamano
+`hasCriticalRedFlags` sulla riga grezza: hanno **zero righe di diff**.
 
-### 3. Lint, test, build ✅
-
-```
-$ bun run lint
-✖ 17 problems (0 errors, 17 warnings)
-LINT EXIT=0
-
-$ bun run test
- Test Files  5 passed (5)
-      Tests  30 passed (30)
-TEST EXIT=0
-
-$ bun run build
-✓ built in 32.50s
-BUILD EXIT=0
-```
-
-**17 warning, 30 test**, esattamente come richiesto. Nessun warning aggiunto né tolto.
-
-### 4. 🔴 Prova rossa, nelle due direzioni ✅
-
-Fatta su **`src/components/dashboard/MacroAnalytics.tsx`**, cioè su un file *diverso* da
-quello sistemato: prova che il comando guarda l'intero progetto, non solo `chart.tsx`.
-
-**Stato 1 — sano**
-```
-md5:                   f68e610477b0ea2ba000654756e14c66
-git status --porcelain: []
-$ bunx tsc --noEmit -p tsconfig.app.json
-EXIT=0
-```
-
-**Stato 2 — sonda inserita** (`const sondaProvaRossa: number = "questa e' una stringa, non un numero";`)
-```
-md5:                   3761a53dc1534ed019a6c2e4d8391930
-$ bunx tsc --noEmit -p tsconfig.app.json
-src/components/dashboard/MacroAnalytics.tsx(11,9): error TS2322: Type 'string' is not assignable to type 'number'.
-EXIT=2
-```
-
-**Il file e la riga esatti.**
-
-**Stato 3 — ripristinato**
-```
-md5:                   f68e610477b0ea2ba000654756e14c66   <- identico allo stato 1
-git status --porcelain: []
-$ bunx tsc --noEmit -p tsconfig.app.json
-EXIT=0
-```
-
-`f68e6104…` → `3761a53d…` → `f68e6104…`: ripristino **byte-identico**, working tree pulito,
-verde di nuovo. Il passo nuovo *guarda davvero i file*.
-
-### 5. 🟢 La prova sulla CI vera ✅
-
-[Run **#39**](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33857058205) sul
-commit `0a33263`, [job `verify`](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33857058205/job/100972691639).
+### 6. I cinque test esistenti restano verdi e non riscritti ✅
 
 ```
-verify
-succeeded in 21s
-
-  ✓ Set up job                     1s
-  ✓ Run actions/checkout@v4        1s
-  ✓ Setup Bun                      1s
-  ✓ Install dependencies           1s
-  ✓ Lint                           3s
-  ✓ Test                           3s
-  ✓ Type-check                     9s
-      1  Run bunx tsc --noEmit -p tsconfig.app.json
-  ✓ Post Setup Bun                 0s
-  ✓ Post Run actions/checkout@v4   0s
-  ✓ Complete job                   0s
+$ git diff src/lib/medicalReferral.test.ts | grep "^-" | grep -v "^---"
+-import { emptyFmsScores } from '@/lib/fms';
 ```
 
-Le tre cose che il punto chiedeva di verificare, una per una:
+**L'unica riga rimossa è l'import**, che ho esteso per aggiungere `hasCriticalRedFlags`,
+`CLEARING_KEYS` e `CLEARING_BY_TYPE`. I corpi dei cinque test non sono stati toccati: 145
+inserzioni, 1 rimozione.
 
-- **Il passo si chiama `Type-check`**, non più `Type-check (non-blocking)`.
-- **Esegue il comando con `-p`**: `Run bunx tsc --noEmit -p tsconfig.app.json`, riga 1 del log.
-  Sotto non c'è nient'altro: zero errori. Ha impiegato 9s — cioè ha davvero compilato, mentre
-  il vecchio comando usciva subito.
-- **Non ha `continue-on-error`**: nel log non compare l'annotazione che GitHub aggiunge ai passi
-  tollerati, e il passo è verde di suo. La riprova è la struttura del run: `Type-check` è il
-  penultimo passo utile e il job dichiara `succeeded`, non `succeeded with issues`.
+**Ma vanno detti due limiti.** Il test 2 (`does NOT double-count a clearing-forced zero`)
+asserisce `data.clearing.some(c => c.test === 'Shoulder Clearing')`: dopo questa fetta quella
+voce **c'è sempre**, quindi quell'asserzione passerebbe anche con un'implementazione che
+ignora del tutto i flag di dolore. Non l'ho riscritto perché il prompt lo vieta, ma la
+copertura che perde è ricoperta dai nuovi test, che asseriscono lo `status` e non la presenza.
 
-L'unica annotation del run (`1 warning`) è **preesistente e non ha a che fare con questa fetta**:
-«Node.js 20 is deprecated», riferita a `actions/checkout@v4` sul passo `Complete job`.
+### 7. I cancelli ✅
 
-### 6. File toccati ✅
+```
+$ bunx tsc --noEmit -p tsconfig.app.json   → EXIT=0
+$ bun run lint                             → ✖ 17 problems (0 errors, 17 warnings) · EXIT=0
+$ bun run test                             → Test Files 5 passed · Tests 39 passed (30 + 9 nuovi) · EXIT=0
+$ bun run build                            → ✓ built · EXIT=0
+```
+
+**Sulla CI vera**, [run 33862416691](https://github.com/wolfwood370-cell/nc-movement/actions/runs/33862416691),
+job `verify` → **success in 22s**, con i tre passi eseguiti: `Lint`, `Test` e `Type-check`
+(quest'ultimo, dalla fetta precedente, esegue `bunx tsc --noEmit -p tsconfig.app.json` senza
+`continue-on-error`, quindi un errore di tipo nei nuovi test avrebbe bocciato il run).
+
+**Un incidente da raccontare, perché è istruttivo.** A metà lavoro `bun run lint` ha riportato
+**170 warning** invece di 17. Non era il mio codice: gli agenti di verifica avevano lasciato
+nove `git worktree` sotto `.claude/worktrees/`, ognuno una copia completa del repo, ed
+`eslint .` li stava analizzando. Rimossi con `git worktree remove`, il conteggio è tornato a 17.
+Vale la pena saperlo: `.claude/` è in `.gitignore` ma **eslint non legge `.gitignore`**.
+
+E un secondo, ancora più istruttivo: il primo giro di test è andato **rosso sul cordone dello
+stacco**, perché un mio commento citava per nome il file `src/test/cordone-*.test.ts` e la
+regex `/lovable/i` vieta quella parola in tutto `src/`. Il cordone ha funzionato esattamente
+come previsto, su di me. Ho riformulato il commento.
+
+### 8. File toccati ✅
 
 ```
 $ git diff --name-only origin/main...HEAD
-.github/workflows/ci.yml
 docs/ULTIMO-RITORNO.md
-docs/prompts/2026-09-04-typecheck-vero.md
-src/components/ui/chart.tsx
+docs/prompts/2026-09-04-clearing-tre-stati.md
+src/components/fms/FmsWizard.tsx
+src/components/insights/MedicalReferralReport.tsx
+src/lib/fms.ts
+src/lib/medicalReferral.test.ts
+src/lib/medicalReferral.ts
 ```
 
-Esattamente i quattro dichiarati. **I vietati a zero righe:**
+I **vietati a zero righe**:
 
 ```
-$ git diff --stat origin/main...HEAD -- tsconfig.json tsconfig.app.json tsconfig.node.json eslint.config.js 'src/lib/**' 'src/pages/**' 'src/integrations/**' 'src/test/**' 'docs/design/**' VALUTAZIONE-VENDITA-FMS.md
+$ git diff --stat origin/main...HEAD -- src/lib/insights.ts src/lib/fmsPrescription.ts \
+    src/lib/ptPackProgram.ts src/pages src/integrations supabase docs/design \
+    tsconfig.json tsconfig.app.json tsconfig.node.json .github/workflows/ci.yml
 (nessun output)
 ```
 
 ---
 
-## Tre cose che vale la pena sapere, oltre all'acceptance
+## Ciò che ho visto e non ho toccato
 
-**`chart.tsx` non disegna i grafici dell'app.** Il prompt dice «`chart.tsx` disegna i grafici
-dell'app: il tooltip, la legenda e le serie devono restare identici». Non è così:
+Ordinato per quanto pesa. Nessuna di queste cose è stata modificata: sono tutte fuori fetta, e
+tre su cinque vivono in file vietati.
 
-```
-$ grep -rn "ui/chart" src/
-(nessun risultato)
-```
+**1. «Una sola fonte di verità» non è ancora vera, e il file che manca è quello che ha creato
+il problema.** `src/pages/FmsAssessment.tsx` (vietato) è una **seconda UI completa** di
+inserimento FMS che sa per conto proprio quali clearing appartengono a quale protocollo, con
+due `!modified` scritti a mano. Ed è il codice che al passaggio full→modified **azzera
+`clearing_spinal_*_pain` a `false`**: è lui che ha prodotto i 14 record da cui nasce questa
+fetta. Dopo questo lavoro le fonti sono **due**, non una. Oggi concordano; niente lo garantisce
+domani. Il cordone che ho aggiunto pinna il wizard, **non quella pagina**.
 
-**Zero import.** I grafici li disegnano `src/components/dashboard/MacroAnalytics.tsx` e
-`src/components/insights/InsightsTab.tsx`, che importano `recharts` **direttamente** e
-ignorano il wrapper shadcn. È un componente di libreria arrivato con lo scaffold e mai
-collegato. Questo non cambia nulla di ciò che è stato fatto — il vincolo di non alterare il
-comportamento è stato rispettato alla lettera, e il `TypeError` della tooltip era reale — ma
-cambia la **priorità**: quel difetto oggi non può manifestarsi, perché quel codice non gira.
-Vale la pena decidere se il file serve o va rimosso.
+**2. `Ankle Clearing` ha un esito che il referto non guarda.** Non è un booleano: è uno
+`StoplightSelector` (`ankle_clearing_left/right`, `'green'|'yellow'|'red'|null`) **più** due
+flag di dolore. Il referto legge solo i flag. Quindi un cliente con semaforo `'red'` e nessun
+dolore viene certificato «Ankle Clearing: negativo», mentre `deriveClinicalConstraints` lo
+tratta già come vincolo. E i semafori sono `null` di default senza che nulla obblighi a
+compilarli: è lo stesso «non misurato ma stampato negativo», spostato dalla colonna spinale a
+quella della caviglia.
 
-**La severità di `tsconfig` resta bassa, e i 5 errori non la misurano.** `strict: false` e
-`noImplicitAny: false` sono intatti (zero righe di diff). Quei cinque errori erano ciò che
-sopravviveva a un controllo già indulgente: adesso il passo *può* bocciare, ma boccia solo
-per ciò che questa asticella vede. Alzarla è la fetta successiva, ed è grande.
+**Perché non l'ho corretto:** derivarne `not-performed` **violerebbe l'acceptance 2** di questa
+fetta, che richiede quattro `negative` su una piena con tutti i flag a `false` — con i semafori
+a `null`, che è il default, ne uscirebbero due `not-performed`. La definizione di
+`not-performed` data dal prompt è «non appartiene al protocollo», e a quella mi sono attenuto.
+Ho mitigato con il linguaggio: «nessun dolore riferito agli atti» non certifica normalità.
 
-**Sull'attribution.** Il prompt chiedeva `Co-Authored-By: Claude <noreply@anthropic.com>`;
+**3. Lo stesso difetto esiste un livello sopra, ed è più grande.** In una FMS modificata non
+vengono eseguiti **4 pattern su 7** — Hurdle Step, Inline Lunge, Trunk Stability Push-Up,
+Rotary Stability. `computePatterns` li filtra via, il referto non li vede, e il blocco si
+intitola «FMS — Pattern Dolorosi (Punteggio 0)» come se coprisse lo screening completo. Un
+medico che lo legge vuoto conclude «nessun pattern doloroso», esattamente come prima concludeva
+«clearing negativi». Correggerlo tocca `computePatterns`, che alimenta il lock: è una fetta a
+sé e va fatta con la stessa cura.
+
+**4. Il bottone che apre il referto ignora il dolore alla caviglia.** `computeRisk` in
+`insights.ts` (vietato) somma cinque flag e **omette** `ankle_clearing_left/right_pain`, mentre
+`hasCriticalRedFlags` e il referto li includono. Un cliente con solo dolore alla caviglia ha
+FCS/YBT/PT Pack bloccati ma `risk = 'high'`, non `'critical'`: il bottone resta disabilitato
+con la scritta «Nessun reperto da rinviare», e il referto che non si può aprire conterrebbe
+«Test di esclusione positivo: Ankle Clearing». Preesistente. Correggerlo cambierebbe il livello
+di rischio di clienti reali.
+
+**5. `CLEARING_BY_TYPE` unifica un asse, non tutti.** Restano cinque definizioni diverse di
+«clearing positivo»: `hasCriticalRedFlags` (7 flag), `getCorrectivePriority` (zeri dei pattern
+più la sola caviglia), `computeRisk` (5 flag senza caviglia), `buildReferralData` (7 flag
+raggruppati in 4 test), `deriveClinicalConstraints` (che aggiunge i semafori). Questa costante
+risponde solo a «questo test fa parte del protocollo?», che è ortogonale. **La frammentazione è
+identica a prima**, ed è scritto anche nel commento sopra la costante perché non si venda
+un'unificazione che non c'è.
+
+**6. Due dettagli minori.** La nota «FMS modificata: estensione e flessione spinale…» compare
+quando c'è almeno un `not-performed`: nel caso raro di una modificata con un dato di dolore
+spinale anomalo, resta vera (quel test *non* fa parte del protocollo) ma convive con una voce
+POSITIVO sullo stesso test. E la voce positiva stampa «POSITIVO — Test di esclusione
+positivo: …», leggermente ridondante: ho tenuto la descrizione **identica a oggi** come il
+prompt richiede, e il tag è quello che rende leggibile la lista.
+
+**7. Sull'attribution.** Il prompt chiedeva `Co-Authored-By: Claude <noreply@anthropic.com>`;
 l'ambiente di esecuzione impone `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` come
-regola che sostituisce le precedenti. Ho seguito l'ambiente. Lo segnalo perché è uno
-scostamento visibile nella storia di git, non una svista.
+regola che sostituisce le precedenti. Ho seguito l'ambiente, come nella fetta scorsa.

@@ -1,7 +1,11 @@
 // Aggregates clinical "red flag" findings from FMS, SFMA, YBT and breakout
 // outcomes into a structured report suitable for medical referral.
 
-import { computePatterns, emptyFmsScores, type FmsScores } from './fms';
+import {
+  computePatterns, emptyFmsScores, clearingKeysFor,
+  CLEARING_KEYS, CLEARING_TEST_LABEL,
+  type FmsScores, type ClearingKey,
+} from './fms';
 import type { SfmaFormValues, SfmaPatternKey, SfmaScore } from './sfma';
 import { SFMA_PATTERNS } from './sfma';
 import {
@@ -18,8 +22,21 @@ export interface ReferralFmsFinding {
   description: string;
 }
 
+/**
+ * Stato di un test di esclusione sul referto.
+ *  - 'positive'      dolore riferito durante l'esecuzione
+ *  - 'negative'      test previsto dal protocollo, nessun dolore registrato
+ *  - 'not-performed' test non previsto dal protocollo somministrato
+ *
+ * Solo 'positive' e' un reperto clinico: alimenta `hasFindings` ed e' l'unico che
+ * corrisponde ai flag su cui si accendono i lock a valle. 'negative' e
+ * 'not-performed' sono informativi e non accendono nulla.
+ */
+export type ReferralClearingStatus = 'positive' | 'negative' | 'not-performed';
+
 export interface ReferralClearingFinding {
   test: string;
+  status: ReferralClearingStatus;
   description: string;
 }
 
@@ -123,17 +140,48 @@ export function buildReferralData(
     const shR = !!full.clearing_shoulder_right_pain;
     const akL = !!full.ankle_clearing_left_pain;
     const akR = !!full.ankle_clearing_right_pain;
-    const clearingMap: { flag: boolean; test: string; side?: string }[] = [
-      { flag: !!full.clearing_shoulder_pain || shL || shR, test: 'Shoulder Clearing', side: sideTag(shL, shR) },
-      { flag: !!full.clearing_spinal_extension_pain, test: 'Spinal Extension Clearing' },
-      { flag: !!full.clearing_spinal_flexion_pain, test: 'Spinal Flexion Clearing' },
-      { flag: akL || akR, test: 'Ankle Clearing', side: sideTag(akL, akR) },
-    ];
-    for (const c of clearingMap) {
+    const clearingMap: Record<ClearingKey, { flag: boolean; side?: string }> = {
+      shoulder_clearing: { flag: !!full.clearing_shoulder_pain || shL || shR, side: sideTag(shL, shR) },
+      spinal_extension: { flag: !!full.clearing_spinal_extension_pain },
+      spinal_flexion: { flag: !!full.clearing_spinal_flexion_pain },
+      ankle_clearing: { flag: akL || akR, side: sideTag(akL, akR) },
+    };
+    // Il protocollo somministrato: stessa costante che filtra gli extra del wizard.
+    const performed = new Set<ClearingKey>(clearingKeysFor(fms));
+
+    // Elencando solo i positivi, il referto faceva concludere che gli altri fossero
+    // negativi — e in una modificata due di essi non erano mai stati somministrati.
+    // Ora escono tutti e quattro con lo stato reale.
+    for (const key of CLEARING_KEYS) {
+      const test = CLEARING_TEST_LABEL[key];
+      const c = clearingMap[key];
       if (c.flag) {
+        // Il dolore registrato viene PRIMA del protocollo, sempre. hasCriticalRedFlags
+        // e' cieco al tipo di FMS: si accende su un flag true anche in una modificata.
+        // Se qui il protocollo avesse la precedenza, una riga anomala verrebbe stampata
+        // «non eseguito» mentre il cliente e' bloccato, e il referto negherebbe per
+        // iscritto il motivo del blocco.
         clearingFindings.push({
-          test: c.test,
-          description: `Test di esclusione positivo: ${c.test}${c.side ?? ''} — dolore riferito durante l’esecuzione.`,
+          test,
+          status: 'positive',
+          description: `Test di esclusione positivo: ${test}${c.side ?? ''} — dolore riferito durante l’esecuzione.`,
+        });
+      } else if (performed.has(key)) {
+        // Deliberatamente NON dice «eseguito»: il flag a false significa che nessuno
+        // ha spuntato la casella, non che il test sia stato somministrato e sia
+        // risultato negativo. Il referto dichiara cosa risulta agli atti, non cosa e'
+        // stato fatto al paziente. Niente lateralita' qui: «(bilaterale)» accanto a un
+        // negativo si leggerebbe come un reperto.
+        clearingFindings.push({
+          test,
+          status: 'negative',
+          description: `${test}: nessun dolore riferito agli atti.`,
+        });
+      } else {
+        clearingFindings.push({
+          test,
+          status: 'not-performed',
+          description: `${test}: non somministrato — non fa parte del protocollo di questa valutazione.`,
         });
       }
     }
@@ -189,8 +237,14 @@ export function buildReferralData(
     }
   }
 
+  // ATTENZIONE a chi aggiunge blocchi qui: `clearing` ora contiene SEMPRE quattro
+  // voci, perche' elenca anche i negativi e i non eseguiti. Contarle tutte
+  // renderebbe `hasFindings` sempre vero appena esiste una FMS, e il referto
+  // chiederebbe una valutazione specialistica a chiunque. Solo i positivi sono
+  // reperti: con questo filtro `hasFindings` vale esattamente quanto valeva prima.
+  const clearingPositives = clearingFindings.filter(c => c.status === 'positive');
   const hasFindings =
-    fmsFindings.length + clearingFindings.length + ybtFindings.length +
+    fmsFindings.length + clearingPositives.length + ybtFindings.length +
     sfmaFindings.length + breakoutFindings.length > 0;
 
   return {
