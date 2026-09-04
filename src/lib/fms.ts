@@ -62,6 +62,62 @@ export const isModifiedFms = (s: Partial<FmsScores> | null | undefined): boolean
 export const fmsMaxTotal = (s: Partial<FmsScores> | null | undefined): number =>
   isModifiedFms(s) ? MODIFIED_FMS_MAX : FULL_FMS_MAX;
 
+// -----------------------------------------------------------------------------
+// Protocollo dei test di esclusione — quali si somministrano, per tipo di FMS
+// -----------------------------------------------------------------------------
+// Questa costante risponde a UNA sola domanda: «questo test fa parte del
+// protocollo somministrato?». NON risponde a «questo test e' positivo?», che
+// resta sparsa fra hasCriticalRedFlags (7 flag), computeRisk in insights.ts
+// (5 flag, senza caviglia) e deriveClinicalConstraints (che legge anche i
+// semafori). Quella frammentazione esiste ancora: qui non viene toccata.
+//
+// Prima di questa costante la conoscenza viveva solo dentro FmsWizard.tsx, come
+// forma degli step. Ora il wizard filtra i propri extra attraverso di essa e il
+// referto medico ne deriva lo stato «non eseguito», cosi' che una modificata non
+// dichiari negativi due test che nessuno le ha mai somministrato.
+//
+// ATTENZIONE: esiste una SECONDA UI di inserimento FMS, src/pages/FmsAssessment.tsx,
+// che sa la stessa cosa per conto proprio con due `!modified` scritti a mano. E'
+// fuori dal perimetro di questa fetta. Oggi concorda con questa costante — un test
+// in medicalReferral.test.ts pinna la coerenza col wizard, ma non con quella pagina.
+
+/** I quattro test di esclusione FMS. */
+export const CLEARING_KEYS = [
+  'shoulder_clearing',
+  'spinal_extension',
+  'spinal_flexion',
+  'ankle_clearing',
+] as const;
+
+export type ClearingKey = (typeof CLEARING_KEYS)[number];
+
+/** Etichetta con cui ciascun test compare sul referto medico. */
+export const CLEARING_TEST_LABEL: Record<ClearingKey, string> = {
+  shoulder_clearing: 'Shoulder Clearing',
+  spinal_extension: 'Spinal Extension Clearing',
+  spinal_flexion: 'Spinal Flexion Clearing',
+  ankle_clearing: 'Ankle Clearing',
+};
+
+/**
+ * Test di esclusione previsti da ciascun tipo di FMS.
+ * La modificata non somministra MAI estensione e flessione spinale: sul database
+ * quei campi restano `false` perche' mai toccati, non perche' negativi.
+ */
+export const CLEARING_BY_TYPE: Record<FmsAssessmentType, readonly ClearingKey[]> = {
+  full: CLEARING_KEYS,
+  modified: ['shoulder_clearing', 'ankle_clearing'],
+};
+
+/** True se `k` e' un test di esclusione (e non un extra tipo tibia o mano). */
+export const isClearingKey = (k: string): k is ClearingKey =>
+  (CLEARING_KEYS as readonly string[]).includes(k);
+
+/** I test di esclusione somministrati per questa valutazione. */
+export const clearingKeysFor = (
+  s: Partial<FmsScores> | null | undefined,
+): readonly ClearingKey[] => CLEARING_BY_TYPE[isModifiedFms(s) ? 'modified' : 'full'];
+
 export interface PatternResult {
   key: string;
   label: string;
