@@ -91,8 +91,17 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
+  React.ComponentProps<"div"> &
+    // recharts 3 legge payload, label e active dal context invece che dai props:
+    // TooltipProps li toglie (Tooltip.d.ts, PropertiesReadFromContext) e li passa solo
+    // al contenuto custom, cioe' su TooltipContentProps. Partial perche' li' sono
+    // richiesti: li inietta recharts clonando l'elemento, non il chiamante.
+    Partial<
+      Pick<
+        RechartsPrimitive.TooltipContentProps,
+        "active" | "payload" | "label" | "labelFormatter" | "labelClassName" | "formatter"
+      >
+    > & {
       hideLabel?: boolean;
       hideIndicator?: boolean;
       indicator?: "line" | "dot" | "dashed";
@@ -163,11 +172,17 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload.fill || item.color;
+            // payload e' opzionale sulle entry di recharts (Payload.payload?), e quando
+            // la ricerca nel dataset non trova la riga arriva davvero undefined: senza il
+            // ?. qui saltava l'intera tooltip con un TypeError.
+            const indicatorColor = color || item.payload?.fill || item.color;
 
             return (
               <div
-                key={item.dataKey}
+                // dataKey puo' anche essere una funzione, che non e' una React.Key.
+                // React stringifica ogni key con '' + key ma lascia stare undefined, che
+                // vale "nessuna key": questa forma fa le due cose identiche a prima.
+                key={item.dataKey === undefined ? undefined : `${item.dataKey}`}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center",
@@ -230,7 +245,10 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    // Stessa storia della tooltip: LegendProps fa Omit<..., "payload" | "verticalAlign">,
+    // i due campi stanno sul contenuto della legenda, cioe' su DefaultLegendContentProps,
+    // dove sono gia' entrambi opzionali.
+    Pick<RechartsPrimitive.DefaultLegendContentProps, "payload" | "verticalAlign"> & {
       hideIcon?: boolean;
       nameKey?: string;
     }
