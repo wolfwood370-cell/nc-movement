@@ -1,455 +1,474 @@
-# Ultimo ritorno — Neurotipo
+# Ultimo ritorno — Cornice scrivania
 
-**Data:** 2026-09-04 · **Ramo:** `claude/neurotipo`
-**Base:** `7378663` (`Scrive il ritorno della fetta link personale e leggibilita'`) sul ramo
-`claude/link-personale-e-leggibilita`
+**Data:** 2026-09-04/05 · **Ramo:** `claude/cornice-scrivania`
+**Base:** `0970a42` (`Merge pull request #7 from wolfwood370-cell/claude/neurotipo`) su `main`
 
-Il ritorno della fetta precedente (link personale e leggibilità) resta nella storia di git.
-Questo file lo sostituisce per la fetta corrente.
+Il ritorno della fetta precedente (neurotipo) resta nella storia di git. Questo file lo
+sostituisce per la fetta corrente.
 
-Niente merge, niente deploy: come chiesto.
-
----
-
-## Rituale d'apertura
-
-`git status` all'apertura mostrava `?? docs/design/` e nient'altro. **`docs/design/` non è
-stata toccata**: resta non tracciata e non compare nel diff (accettazione 5, sotto).
-
-**`../nc-questionnaire` è stato solo letto.** A fine fetta:
-
-```
-$ cd ../nc-questionnaire && git status --short
-?? supabase/.temp/
-```
-
-`supabase/.temp/` è un residuo del CLI Supabase, era già lì e **non l'ho creato io**: in
-quel repo non ho eseguito un solo comando di scrittura, solo `cat`, `sha256sum`, `diff` e
-`cmp`. Nessun file tracciato del questionario risulta modificato.
+Niente merge, niente deploy: come chiesto. Il ramo è committato e **non** spinto.
 
 ---
 
-## PARTE 1 — Il calcolo, copiato senza una virgola di differenza
+## Rituale d'apertura — e la prima cosa che non tornava
 
-### I due hash del JSON coincidono
-
-```
-$ sha256sum ../nc-questionnaire/src/lib/neurotipo-scoring.json
-e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551
-
-$ sha256sum src/lib/neurotipo-scoring.json
-e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551
-
-$ cmp src/lib/neurotipo-scoring.json ../nc-questionnaire/src/lib/neurotipo-scoring.json
-(nessun output: identici byte per byte)
-```
-
-393 righe, **10.110 byte**, esattamente come misurato nel prompt.
-
-### Il modulo `.ts`: ZERO righe cambiate
-
-Il prompt chiedeva di elencare ogni riga cambiata e perché. **Non ce n'è nessuna.**
+Il prompt diceva: «il ramo locale è ancora `claude/neurotipo`». **Non lo era.**
 
 ```
-$ sha256sum ../nc-questionnaire/src/lib/neurotype-scoring.ts
-6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5
-
-$ sha256sum src/lib/neurotype-scoring.ts
-6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5
-
-$ diff ../nc-questionnaire/src/lib/neurotype-scoring.ts src/lib/neurotype-scoring.ts
-(nessun output)
+$ git branch --show-current
+main
+$ git checkout main && git pull
+Already on 'main'
+Your branch is up to date with 'origin/main'.
+Already up to date.
 ```
 
-129 righe, copia byte per byte. Il prompt prevedeva due possibili motivi di modifica e
-nessuno dei due si è avverato:
+Il ramo locale era già `main`, già allineato a `origin/main` sul merge della PR #7. Ho aperto
+`claude/cornice-scrivania` da lì. `git status` mostrava `?? docs/design/` e nient'altro;
+`docs/design/` **non è stata toccata** e resta non tracciata (accettazione 4, sotto).
 
-1. **L'import non è cambiato.** Nel questionario il modulo sta in `src/lib/` accanto al
-   JSON; qui sta in `src/lib/` accanto al JSON. `import scoring from "./neurotipo-scoring.json"`
-   funziona identico.
-2. **Le virgolette doppie NON le ho convertite in singole.** Sarebbero state 40 righe di
-   diff cosmetico su un file la cui unica virtù è essere identico all'originale. Un
-   `diff` vuoto è una prova che chiunque può rifare in due secondi; un diff di 40 righe
-   «solo virgolette» va letto riga per riga per fidarsi. Non c'è nessuna regola eslint
-   `quotes` in `eslint.config.js` (verificato), quindi le doppie non costano un warning.
+Tutte le misure di partenza del prompt, rifatte prima di scrivere una riga: **tornano tutte.**
 
-**Nessuna modifica alla logica di calcolo.** Pesi, mappa domanda→tipo/fascia, tie-break
-`1A > 1B > 2A > 2B > 3`, soglia `closeCall <= 5`, `NT_MIN` −10 e `NT_MAX` 50: tutto
-com'era.
-
-### Una cosa che temevo e non è successa: `resolveJsonModule`
-
-Il questionario ha `"resolveJsonModule": true` nel suo `tsconfig.json`; **questo repo no**.
-Mi aspettavo di dover toccare `tsconfig.app.json` per far compilare l'import del JSON.
-Misurato invece:
-
-```
-$ bunx tsc --noEmit -p tsconfig.app.json
-(nessun errore, esce 0)
-
-$ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -E "neurotipo|neurotype"
-.../src/lib/neurotipo-scoring.json
-.../src/lib/neurotype-scoring.ts
-```
-
-Con TypeScript 5.8 e `"moduleResolution": "bundler"`, `resolveJsonModule` è implicito. Il
-JSON entra nel type-check e non è servito cambiare nessuna configurazione. **`tsconfig.app.json`
-non è stato toccato.**
-
----
-
-## PARTE 2 — La lettura delle risposte
-
-**`src/hooks/useNeurotipo.ts` — 112 righe, nuovo.**
-
-Sullo stampo di `useIntake.ts` (che **non** è stato toccato), da cui prende tre cose:
-
-- **`.schema('public')`**, perché il client è agganciato a `movement`;
-- **la stringa di select letterale su una riga sola** — `submission_id` più `q01`…`q30`,
-  scritte a mano una per una. Non è vezzo: supabase-js inferisce i tipi solo da una
-  stringa letterale, e un `join()` o un `+` la degradano a `string` generico, da cui
-  arriva `GenericStringError`;
-- **i quattro stati espliciti** `caricamento` / `errore` / `assente` / `presente`, invece
-  di un `null` che il chiamante deve interpretare.
-
-**Un errore non diventa mai «assente».** Dentro `fetchNeurotipo`, `if (error) throw error`
-sta prima di qualunque interpretazione del dato: dire «non ha risposto» di qualcuno che ha
-risposto è la bugia che questa card esiste per non raccontare.
-
-**I dati vengono prima dell'errore, e qui l'hook si discosta di proposito dallo stampo.**
-`useIntake` guarda `error` prima di `data`. React-query però **non cancella `data` quando
-fallisce un *refetch***: tiene l'ultimo valore buono e accende `error` accanto. Con
-l'ordine dello stampo, un aggiornamento andato male su una scheda già aperta — 500,
-sessione scaduta, timeout — farebbe **sparire dallo schermo un neurotipo ancora in cache e
-perfettamente calcolabile**, e al suo posto non comparirebbe niente, perché il gruppo
-«Neurotipo» che spiegherebbe il caso parte chiuso. Il coach vedrebbe il verdetto svanire
-mentre lo guarda. Qui `data` viene guardato per primo, e l'errore conta solo quando non
-c'è niente da mostrare — che è l'unico caso in cui, per chi legge, è davvero un errore.
-Il commento nel file dice perché, così la divergenza dallo stampo non sembra una svista.
-
-**Due casi sono «assente», non uno.** Il prompt ne nominava uno — riga inesistente. Ne ho
-trovato un secondo leggendo il codice: la riga può **esistere ed essere tutta vuota**
-(30 colonne nullable, nessun vincolo che imponga una risposta). In quel caso
-`scoreNeurotype` darebbe cinque totali a zero e, per il tie-break deterministico, un
-primario **1A** con l'aria di un verdetto. Sarebbe un tipo inventato dal nulla. Perciò
-`compilate === 0` → `assente`, e la card non compare.
-
-**Quante ne ha compilate viene fuori.** Lo stato `presente` porta anche `compilate`, e la
-card lo dice quando è sotto 30: trenta domande a cui se ne sono risposte ventidue danno
-totali parziali, e chi legge deve saperlo.
-
-**La tabella morta non viene letta né scritta.** Il perché sta scritto nel file: ha zero
-righe, nessuno la scrive, e leggerla darebbe «nessun neurotipo» a chiunque. Il punteggio
-si calcola dalle risposte grezze al momento di mostrarlo.
-
-**Sola lettura.** Nessuna `insert`, `update`, `delete` o `upsert`; nessuna politica di riga
-toccata; nessuna chiave privilegiata.
-
----
-
-## PARTE 3 — La card, ricostruita con i token di questo repo
-
-**`src/components/client/NeurotipoCard.tsx` — 188 righe, nuova.**
-Montata nella linguetta **Intervista**, in cima, sotto il riassunto della scheda e sopra
-gli otto gruppi.
-
-`NeurotypeCard.tsx` del questionario **non è stata copiata**: usa `brand-deep`, `brand-soft`,
-`brand-bd`, `brand-sh`, che qui non esistono.
-
-### L'ordine è quello dell'uso, non quello del calcolo
-
-1. **Il tipo primario** — parola chiave in `font-display text-xl font-bold`, etichetta
-   sotto, codice in un marcatore. È la sola cosa che deve leggersi da lontano.
-2. **Il secondo e il margine**, una riga sola.
-3. **L'avvertimento del testa a testa** quando `closeCall`, **visibile senza toccare
-   niente**. Dice esplicitamente «indizio, non una diagnosi» e «va confermato sul campo».
-4. **I tre cues del primario**, letti dal JSON: *Come parlargli*, *Cosa lo muove*, *Come
-   impostare il lavoro*. Sono il motivo per cui la card esiste.
-5. **Le cinque barre** coi totali, scala da `NT_MIN` a `NT_MAX` letti dal modulo.
-   In fondo: sono il dettaglio, non il messaggio.
-6. **La riga di onestà**, sempre presente: «Viene da un questionario compilato dal
-   cliente, non da un test: dice come si descrive, non come reagisce al carico.»
-
-### Colori: nessuno inventato
-
-Tutti da `src/index.css` / `tailwind.config.ts`, nessuna libreria nuova:
-`surface-card`, `bg-muted/40`, `bg-muted`, `text-muted-foreground`, `text-foreground`,
-`bg-primary`, `bg-muted-foreground/40`, `hsl(var(--primary) / 0.1)`,
-`hsl(var(--compliance) / 0.1)` e `/ 0.45`. Nessun hex, nessun `rgb()`, nessuna classe di
-palette Tailwind (`bg-amber-*` e simili).
-
-Il file **esporta solo il componente**, così non aggiunge il warning
-`react-refresh/only-export-components` (il conteggio resta 17).
-
-### Due scelte che il prompt non prevedeva, e perché le ho fatte
-
-**1 · `TestoLungo` sopra la soglia, non sempre.**
-Il prompt diceva «sono testi lunghi: usa `TestoLungo`». Ho misurato i quindici cues del
-JSON: solo **due su quindici** superano `SOGLIA_CAMPO_LUNGO` (140 caratteri) — 182 e 148
-caratteri; gli altri tredici stanno fra 53 e 138. Nella prima anteprima in browser la card
-mostrava **tre «MOSTRA TUTTO»** sotto tre testi già interamente visibili — bottoni che non
-fanno niente, e tre per card insegnano a non leggerli. Quindi ho applicato la **stessa
-regola che il repo usa già** in `IntakeSummaryCard` e `UnifiedFlagsBand`: sopra
-`SOGLIA_CAMPO_LUNGO` va in `TestoLungo`, sotto resta un paragrafo. La soglia è importata da
-`lib/intake.ts`, **in sola lettura**: quel file non è stato modificato. Nessun secondo
-componente «mostra tutto» è stato scritto.
-
-> **La revisione mi ha contestato anche i due che restano, e ho misurato invece di
-> rispondere.** Il rilievo diceva: `line-clamp-4` non taglia nemmeno il cue da 182
-> caratteri, quindi il bottone è inerte in tutti e quindici i casi. Ho rimesso su
-> l'anteprima con un cliente di primario `3` e uno di `2B` — i due cues sopra soglia — e
-> ho letto `scrollHeight` contro `clientHeight` dal vivo, restringendo il telaio:
->
-> | telaio | larghezza del testo | righe | tagliato davvero |
-> |---|---|---|---|
-> | 390px (`PhoneShell` su desktop) | 308px | 4 | **no** |
-> | 375px (iPhone) | 293px | 4 | **no** |
-> | 360px (Android comune) | 278px | 4 | **no** |
-> | 344px | 262px | 4 | **sì** |
-> | 320px (iPhone SE) | 238px | 4 | **sì** |
->
-> Quindi il rilievo ha ragione sulla larghezza di disegno e torto in generale:
-> `PhoneShell` è un telaio fisso di 390px **solo da desktop**, mentre su un telefono vero
-> sotto i 430px la pagina è larga quanto lo schermo. Sotto i ~344px il cue del tipo 3
-> viene tagliato per davvero e `TestoLungo` serve. Ho lasciato le cose come stanno: il
-> bottone inerte fra 360 e 390px è una proprietà del `TestoLungo` condiviso — che monta il
-> bottone senza guardare se c'è overflow — e vale identica per `IntakeSummaryCard` e
-> `UnifiedFlagsBand`. Si corregge in una fetta su `TestoLungo`, dove si sistema per tutti
-> e tre i chiamanti insieme, non riscrivendo qui una quarta regola.
-
-**2 · Le parole dell'avvertimento sono `text-foreground`, non `--compliance-foreground`.**
-Ho aperto la card in browser anche col tema scuro e l'avvertimento del testa a testa era
-**illeggibile**: `--compliance-foreground` è `38 80% 15%`, un marrone quasi nero, sul fondo
-scuro. Il colore `--compliance` adesso tinge sfondo, bordo e icona; le parole restano
-`text-foreground`, che è giusto in entrambi i temi. Il segnale sta nella cornice, non
-nell'inchiostro.
-
-> **Da segnalare, e non l'ho corretto perché è fuori fetta:** lo stesso difetto esiste
-> già in `UnifiedFlagsBand.tsx` (il riquadro `halfMissing`) e in `IntakeBadges.tsx`
-> (`ConsentPill` nel caso `compliance`). Oggi non si vede, perché **il tema scuro non è
-> mai acceso**: `next-themes` è fra le dipendenze ma in `src/` non c'è nessun
-> `ThemeProvider` e nessuno aggiunge la classe `dark` (verificato con grep). Il giorno
-> che qualcuno lo accende, quei due riquadri diventano illeggibili.
-
-### La prova visiva, e come l'ho ottenuta senza lasciare tracce
-
-La app in locale richiede un'autenticazione che non ho, e la card vive dentro la scheda di
-un cliente. Ho aggiunto **temporaneamente** una rotta `/anteprima-neurotipo` e una pagina
-`src/pages/__AnteprimaNeurotipo.tsx`, ho aperto il browser a **375×812** (telefono),
-guardato la card nei due temi, e poi ho **smontato tutto**:
-
-```
-$ rm -f src/pages/__AnteprimaNeurotipo.tsx && git checkout -- src/App.tsx
-$ git diff --stat -- src/App.tsx
-(nessuna riga: intatto)
-$ grep -c "Anteprima" src/App.tsx
-0
-```
-
-Cosa ho visto, e che i test non possono vedere:
-- a 390px la card sta dentro il telaio, nessuno sfondamento orizzontale;
-- l'avvertimento del testa a testa è il blocco più evidente dopo il titolo;
-- le barre coi totali negativi (−10) mostrano una traccia vuota, non una barra fantasma;
-- i due difetti descritti sopra — i «MOSTRA TUTTO» inutili e il testo illeggibile sul
-  tema scuro — **li ho trovati così, non nei test**. È il motivo per cui è valsa la pena.
-
----
-
-## PARTE 4 — I comandi veri
-
-**`docs/COMANDI-VERI.md` — 140 righe, nuovo.** Quattro comandi, ognuno con la trappola
-accanto e il numero misurato, non ricordato:
-
-| comando | esito misurato | trappola |
+| misura | prompt | misurato |
 |---|---|---|
-| `bun run test` | 10 file, 129 test verdi | `bun test` è il runner nativo di Bun: niente jsdom, **11 test rossi** con `ReferenceError: document is not defined` |
-| `bunx tsc --noEmit -p tsconfig.app.json` | esce 0, 1152 file di cui 160 sotto `src/` | senza `-p` compila **zero file** (`tsconfig.json` ha `"files": []`) e riporta un successo su un insieme vuoto |
-| `bun run lint` | 0 errori, 17 warning | i 17 warning sono lo stato di partenza, non un fallimento: il metro è «nessuno in più» |
-| `bun run build` | `✓ built in 19.54s` | Vite compila con SWC e **cancella i tipi senza verificarli**: la build non sostituisce il type-check |
+| `tsc --listFiles \| grep -c "nc-movement/src/"` | 160 | **160** |
+| `bun run test` | 10 file, 129 test | **10 file, 129 test** |
+| `bun run lint` | 0 errori, 17 warning | **0 errori, 17 warning** |
+| import di `ui/sidebar` fuori dal file stesso | 0 | **0** |
+| colori hex fuori da `ui/` | 0 | **0** |
+| classi di palette Tailwind fuori da `ui/` | 17 | **17**, tutte in `CorrectiveLibrary.tsx` |
+| `use-mobile.tsx` importato da | — | **solo `ui/sidebar.tsx`** |
 
-Ogni numero del documento è stato ottenuto eseguendo il comando in questo repo, oggi.
+---
+
+## PARTE 1 — Il meccanismo, e perché non lampeggia
+
+**Scelta: un hook, `useCornice`, su `useSyncExternalStore` + `matchMedia`.** Non la via CSS.
+
+Il motivo è strutturale, non di gusto. Sotto i 700px la cornice è il telaio di `PhoneShell`,
+che da 640px (`sm:`) disegna da solo il telefono 390×844; sopra i 700px quel telaio non deve
+esistere. Con le sole media query in CSS avrei dovuto montare *due* cornici e nasconderne una —
+e le due cornici contengono la pagina, quindi la pagina sarebbe stata montata due volte, con le
+sue query al database fatte due volte. La decisione va presa in JavaScript, e allora va presa
+**prima del primo disegno**.
+
+`useSyncExternalStore(iscriviti, leggiCornice)`:
+
+- `leggiCornice` legge `window.matchMedia('(min-width: 1024px)')` e `('(min-width: 700px)')`
+  **durante il render**, in modo sincrono. Il primo render ha già la cornice giusta.
+- Il primo render è **l'unico**: `src/main.tsx` monta con `createRoot(...).render(...)`, non
+  idrata HTML del server. Non esiste un render «di default» seguito da uno «giusto», che è
+  esattamente ciò che produce il lampo.
+- Il terzo argomento (`getServerSnapshot`) è **omesso di proposito**: se un giorno l'app venisse
+  idratata, React lo segnalerebbe con un errore invece di scivolare in un lampo silenzioso.
+- `iscriviti` ascolta `change` sulle due `MediaQueryList` e si disiscrive al cleanup; è una
+  funzione a livello di modulo, identità stabile, nessuna reiscrizione a ogni render.
+
+La prova che non lampeggia è in due test, non in una frase: una sonda registra il valore che
+`useCornice` restituisce **a ogni render** e a 1440 / 834 / 390 l'elenco contiene **un solo
+valore**; e a livello di `AppShell`, due spie sulle barre dicono che la barra sbagliata **non è
+stata resa nemmeno una volta** (T2, sotto — la seconda è arrivata dalla revisione).
+
+### `use-mobile.tsx`: guardato, e non va bene
+
+Il prompt chiedeva di guardarlo prima di inventare un hook nuovo. L'ho letto (19 righe):
+
+```ts
+const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+React.useEffect(() => { ...; setIsMobile(window.innerWidth < MOBILE_BREAKPOINT); }, []);
+return !!isMobile;
+```
+
+Parte da `undefined`, legge la larghezza in un `useEffect` — cioè **dopo** il commit — e quindi
+fa esattamente il lampo che questa fetta deve evitare: un primo render «non mobile», un secondo
+render con il valore vero. Oltre a questo ha una soglia sola (768) e qui ne servono due (700 e
+1024). Non l'ho modificato: lo importa solo `ui/sidebar.tsx`, che è in una cartella vietata.
+
+### `ui/sidebar.tsx`: letto, e il prompt ha ragione
+
+23.474 byte, zero importatori (misurato). Riga 15: `SIDEBAR_COOKIE_NAME`, stato salvato nei
+cookie. Riga 155: `<Sheet>` a scomparsa per il telefono. Riga 6: `useIsMobile` a 768. Sono le
+tre cose che il prompt diceva, e sono tre cose che qui non servono. **Non l'ho usato**,
+`grep -rn "ui/sidebar"` resta a 0 (accettazione 5).
+
+---
+
+## PARTE 2 — I file, uno per uno
+
+### `src/lib/navigazione.ts` — 56 righe, nuovo · la sorgente unica
+
+Le sei voci in un posto solo. Ogni voce: `to`, `label`, `icon`, `esatta`.
+
+- `VOCI_PRINCIPALI` — Dashboard `/`, Clienti `/clients`, Test `/assessments`, Libreria
+  `/library`; icone `LayoutDashboard`, `Users`, `Activity`, `Library`. Stesso ordine, stesse
+  icone di prima.
+- `VOCI_SCRIVANIA` — Preparazione `/daily-prep` (`ClipboardList`), Team `/team` (`Users2`).
+  `Users2` in lucide 0.462 è un alias di `UsersRound`: è l'icona `users-2` del disegno, e la
+  stessa che l'intestazione usa già per il bottone Team.
+- `voceAttiva(pathname, voce)` — **pura**: nessun hook, nessun router. `esatta: true` solo per
+  la radice, che altrimenti sarebbe prefisso di tutto. Le altre voci sono attive sul loro
+  percorso e su ciò che gli sta sotto, **ma solo a confine di segmento**: `/clients/abc-123`
+  accende Clienti, `/clientsXYZ` no. **Senza distinguere le maiuscole**, come fanno le rotte di
+  react-router e come faceva `NavLink`: `/Clients/abc` apre la pagina Clienti, quindi deve
+  accendere Clienti (arrivato dalla revisione, vedi in fondo).
+
+Le due barre non calcolano niente da sole: chiamano `voceAttiva` e mettono `aria-current="page"`.
+Rompere la funzione rompe la UI in tutte e tre le cornici, ed è quello che T1 dimostra.
+
+Il file esporta costanti e una funzione, nessun componente: **nessun warning `react-refresh`**
+(lint resta a 17).
+
+### `src/hooks/useCornice.ts` — 48 righe, nuovo
+
+Descritto in Parte 1. Esporta `Cornice` (`'telefono' | 'tablet' | 'scrivania'`), le due
+soglie `SOGLIA_TABLET = 700` e `SOGLIA_SCRIVANIA = 1024`, e l'hook. Il commento in testa spiega
+perché non lampeggia e perché `use-mobile.tsx` non andava bene.
+
+### `src/components/AppHeader.tsx` — 64 righe, nuovo · l'intestazione estratta
+
+Il prompt: «se ti serve in due cornici, estraila in un componente suo invece di ricopiarla».
+Fatto. Logo, Team, Segnalazioni Bug (solo staff), Esci, con la logica di uscita. **Nessuna classe
+cambiata**: la prova è nel confronto del DOM più sotto.
+
+### `src/components/BarraInBasso.tsx` — 38 righe, nuovo · la barra del telefono
+
+Stesse classi di prima, legge `VOCI_PRINCIPALI`. Due differenze rispetto al vecchio blocco:
+
+1. `Link` + `aria-current` calcolato da `voceAttiva`, invece di `NavLink` con `end`. Il DOM
+   prodotto è lo stesso (`NavLink` mette esattamente `aria-current="page"` e la classe della
+   funzione), ma la decisione ora è nella funzione pura e non dentro react-router.
+2. `aria-label="Barra in basso"` sul `<nav>`, così i test possono distinguere le due barre e gli
+   screen reader hanno un nome per il landmark.
+
+`grid-cols-4` resta scritto: è il vincolo del telefono (quattro etichette sotto i 700px), non
+un secondo elenco. Il commento nel file lo dice.
+
+### `src/components/BarraLaterale.tsx` — 81 righe, nuovo · barra laterale e rail
+
+Un componente, una prop `rail`.
+
+| | ≥ 1024 | 700–1023 |
+|---|---|---|
+| larghezza | **240** (`w-[240px]`, `px-3 py-4`) | **72** (`w-[72px]`, `py-3.5`) |
+| voce | `h-10 px-3`, icona 18px + etichetta `text-[13px] font-medium` | `w-11 h-11` (44×44), solo icona |
+| etichetta | testo accanto | `aria-label` + `title` (tooltip nativo) |
+| separatore | `h-px bg-sidebar-border mx-3 my-3.5` | `w-9 h-px my-3.5` |
+| titolo «Scrivania» | visibile, `font-display 10px uppercase tracking-[0.14em] text-sidebar-foreground` | `sr-only` |
+| attiva | `bg-sidebar-accent text-sidebar-accent-foreground` | idem |
+| riposo | `text-sidebar-foreground`, hover `bg-muted/70 text-foreground` | idem |
+| fuoco | `focus-visible:ring-2 ring-sidebar-ring` | idem |
+
+Colori: **solo** `bg-sidebar`, `border-sidebar-border`, `text-sidebar-foreground`,
+`bg-sidebar-accent`, `text-sidebar-accent-foreground`, `ring-sidebar-ring`, più `bg-muted/70` e
+`text-foreground` che esistono già. Nessun hex, nessuna palette Tailwind (accettazione 6 e 7).
+I token `--sidebar-*` erano in `index.css` dal primo giorno e **questa è la prima volta che
+qualcuno li usa**, tema scuro compreso.
+
+I due gruppi sono `role="group"` con nome («Principale», «Scrivania»): serve a T3 per
+confrontare barra con barra, e agli screen reader per dire in che gruppo si è.
+
+**Tre scelte dove disegno e prompt non coincidevano, e cosa ho seguito:**
+
+- **Bersagli 44×44, non 44×40.** `vista-navigazione.html` disegna il rail con
+  `width:44px;height:40px`; il prompt dice «bersagli da 44px di lato». Ho seguito il prompt:
+  44 su entrambi i lati soddisfa entrambe le letture e la regola dei 44pt per il dito.
+- **Nessun grassetto in più sulla voce attiva.** Lo stesso file disegna la riga attiva a
+  `font:600` e le altre a `500`, ma la regola 3 scritta nel file stesso — e il prompt — dicono
+  «nessun grassetto in più». Ho seguito la regola: `font-medium` ovunque, e la voce attiva si
+  distingue **solo** per fondo e testo. Misurato in browser: `fontWeight: 500` sull'attiva.
+- **Il titolo «Scrivania» è `text-sidebar-foreground`, non `text-muted-foreground`.** Il
+  disegno usa `hsl(210 10% 45%)` (= muted-foreground), che sul fondo della barra fa
+  **4,44:1**, sotto il minimo AA per un testo da 10px. Il token `--sidebar-foreground` che la
+  fetta prescrive fa 5,35:1 nel chiaro e 6,14:1 nello scuro. Trovato dalla revisione.
+
+### `src/components/AppShell.tsx` — 82 righe, +70 −84 · **un solo albero**
+
+Prima: 96 righe con intestazione, main e barra scritti dentro, e `PhoneShell` come radice.
+Adesso decide la cornice e monta **lo stesso albero** per tutte e tre:
+
+```
+<div telaio.esterno>
+  <div telaio.interno>
+    <AppHeader/>
+    <div flex-1 min-h-0 flex>
+      {!telefono && <BarraLaterale rail/>}     ← slot: `false` sul telefono
+      <main …>
+        <div …>{children}</div>
+      </main>
+    </div>
+    {telefono && <BarraInBasso/>}              ← slot: `false` sopra i 700
+  </div>
+</div>
+```
+
+Cambiano solo le classi; gli elementi stanno nelle stesse posizioni, e le due barre vivono in
+due slot condizionali che restano `false` quando non servono. Così React **aggiorna invece di
+rimontare**, e un telefono che ruota (390 → 844px, cioè da telefono a tablet) non perde lo
+stato della pagina: un test a metà resta a metà.
+
+**Non era così nella prima stesura**, e la revisione l'ha beccato (in fondo): avevo due alberi,
+`<PhoneShell>` sotto i 700 e un `<div>` sopra, e attraversare i 700px rimontava tutto. Su
+`main` non succedeva mai — `PhoneShell` serviva ogni larghezza — quindi era una regressione mia.
+
+**Il telaio del telefono è quello di `PhoneShell`, copiato classe per classe** (`TELAIO_TELEFONO`,
+due stringhe). Non potevo usare il componente: avvolge tutto e non cambia forma con la
+larghezza. `PhoneShell.tsx` resta intatto (diff zero) e continua a servire il wizard FMS. La
+copia è tenuta d'occhio da un test che monta `PhoneShell` accanto ad `AppShell` a 390 e
+confronta i due `div` classe per classe: se `PhoneShell` cambia, quel test va rosso.
+
+Tre cose da sapere:
+
+- **Il `main` resta il contenitore che scorre** in tutte le cornici. Le pagine che usano
+  `sticky` dentro il main (`FmsAssessment.tsx` righe 517 e 788) si comportano uguale. Sulla
+  scrivania però **non** c'è `scrollbar-none`: nascondere la barra di scorrimento a chi usa il
+  mouse è una regressione, sul telefono no.
+- **`pb-24` anche sulla scrivania e sul tablet.** Nella prima stesura avevo `pb-8`; la
+  revisione ha fatto notare che `SfmaAssessment.tsx:424`, `YbtAssessment.tsx:409` e
+  `FcsAssessment.tsx:554` hanno una barra `fixed` in basso da 80-90px: con `pb-8` il fondo di
+  quelle pagine sarebbe rimasto **irraggiungibile** dietro la barra. Il `pb-24` del telefono
+  esisteva per quello, e sulla scrivania serve uguale.
+- **Sul telefono il `div` dentro il `main` è spoglio** (`className` assente): serve solo a
+  tenere `children` nello stesso posto dell'albero nelle tre cornici. Nessuna pagina sotto
+  `Shell` usa `h-full` alla radice (verificato con grep), quindi è trasparente.
+
+### I test: `src/lib/navigazione.test.ts` (95 righe, 13 test) e `src/components/cornice.test.tsx` (370 righe, 17 test)
+
+Descritti sotto, con le rotture.
+
+---
+
+## La cornice del telefono: il DOM dice cosa è cambiato, e non è niente che si veda
+
+jsdom non impagina, ma il DOM lo produce. Ho preso la **vecchia** `AppShell` da `main`
+(`git show main:src/components/AppShell.tsx`), l'ho montata a fianco della nuova in un test
+temporaneo, a 390px, su sette percorsi (`/`, `/clients`, `/clients/abc-123`,
+`/assessments/fms/12`, `/library`, `/team`, `/admin/bugs`), e ho confrontato la serializzazione
+del DOM **con gli attributi in ordine alfabetico e gli spazi delle classi normalizzati**.
+
+Il `diff` è lo stesso su tutti e sette i percorsi, dieci righe, e sono **tre differenze**:
+
+```
+17,20c17,22
+<       <main class="flex-1 overflow-y-auto px-4 pt-4 pb-24 animate-fade-in scrollbar-none">
+<         <p>
+<           "contenuto"
+<       <nav class="h-[66px] shrink-0 border-t border-border bg-card/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+---
+>       <div class="flex-1 min-h-0 flex">                    ← 1. la riga attorno al main
+>         <main class="flex-1 overflow-y-auto px-4 pt-4 pb-24 animate-fade-in scrollbar-none">
+>           <div>                                             ← 2. il div spoglio dentro il main
+>             <p>
+>               "contenuto"
+>       <nav aria-label="Barra in basso" class="h-[66px] …">   ← 3. il nome del landmark
+```
+
+Tutto il resto — i due `div` del telaio, l'intestazione con i suoi bottoni, il `main` con le
+sue classi, i quattro link con classi, `href`, `aria-current` e le SVG di lucide — è **byte per
+byte lo stesso**. I due `div` in più sono il prezzo dell'albero unico (vedi AppShell) e non
+hanno nessun effetto visibile: misurato in browser, intestazione 56, `main` 722, barra 66,
+esattamente come prima. Poi ho smontato:
+
+```
+$ rm -f src/components/__AppShellVecchia.tsx src/components/__confronto.test.tsx
+$ ls src/components/__* → nessun residuo
+```
 
 ---
 
 ## Test rossi, dimostrati nelle due direzioni
 
-**`src/lib/neurotypeScoring.test.ts` — 262 righe, 22 test.**
-**`src/components/client/neurotipoCard.test.tsx` — 209 righe, 15 test.**
-
 Per ognuno: verde col codice giusto, rosso col codice rotto, ripristino provato con
-`sha256sum` prima e dopo.
+`sha256sum` prima e dopo e `cmp` con la copia di riserva. Gli hash sono quelli dei **file
+finali**, dopo le correzioni della revisione: le rotture le ho rifatte tutte sull'ultima
+versione.
 
-### T1 — i tre `validation_examples` del JSON
+### T1 — la voce attiva (`navigazione.test.ts`, 13 test)
 
-Verifica primario, secondario, margine **e i cinque totali** di ognuno dei tre esempi.
-I totali si controllano *prima* del verdetto: un verdetto giusto per caso su totali
-sbagliati passerebbe il solo controllo sul primario.
+`/` accende **solo** Dashboard; `/clients` Clienti; `/clients/abc-123` Clienti **e non**
+Dashboard; `/assessments/fms/12` Test; `/library` Libreria; `/daily-prep` Preparazione; `/team`
+Team; `/admin/bugs` e `/auth` niente; `/clientsXYZ` niente (confine di segmento) e `/clients/`
+Clienti; `/Clients/abc-123`, `/CLIENTS`, `/Daily-Prep` accendono la voce giusta (maiuscole);
+**mai due accese insieme** su sedici percorsi. Più due test di forma sull'elenco.
 
-| | sha256 di `src/lib/neurotipo-scoring.json` |
+| | sha256 di `src/lib/navigazione.ts` |
 |---|---|
-| prima | `e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551` |
-| rotto | `2b1653ff3ab9aec25abf939c6fc84c7f4eaf5aa298bfd88a72a80526d2fda8c3` |
-| dopo | `e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551` |
+| prima | `b4b60e66184c38b27b681e7cee8caa695a388d9995f23c45c3dc8594906c4fb4` |
+| rotto | `d0b4068b88797ac01ffde1fb24a4b139e55ec68fd15f724e3798e60a9838a8aa` |
+| dopo | `b4b60e66184c38b27b681e7cee8caa695a388d9995f23c45c3dc8594906c4fb4` |
 
-**Rottura:** riga 41, `bands.alta.A` da `15` a `14`. Un solo punto, in una sola banda.
+**Rottura:** righe 54–55, il corpo di `voceAttiva` ridotto a `return percorso.startsWith(radice)`:
+via la corrispondenza esatta alla radice e via il confine di segmento, così `/` combacia con tutto.
 
 ```
-× Esempio 1 — profilo misto
-  → totale 1A: expected 28 to be 29
-× Esempio 2 — 2B netto
-  → totale 2B: expected 49 to be 50
-× Esempio 3 — testa a testa (margine piccolo)
-  → totale 1A: expected 49 to be 50
-× il secondo esempio e netto: margine 60, quindi nessun avvertimento
-  → expected 59 to be 60
-× una risposta valida in mezzo a trenta vuote muove un solo tipo
-  → expected 14 to be 15
+× "/clients" accende Clienti
+  → expected [ 'Dashboard', 'Clienti' ] to deeply equal [ 'Clienti' ]
+× "/clients/abc-123" accende ancora Clienti, e NON Dashboard
+  → expected [ 'Dashboard', 'Clienti' ] to not include 'Dashboard'
+× "/assessments/fms/12" accende Test
+  → expected [ 'Dashboard', 'Test' ] to deeply equal [ 'Test' ]
+× "/library" accende Libreria
+× "/daily-prep" accende Preparazione
+× "/team" accende Team
+× un percorso fuori dalle voci non accende niente: "/admin/bugs", "/auth"
+  → expected [ 'Dashboard' ] to deeply equal []
+× il prefisso vale solo a confine di segmento: "/clientsXYZ" non e sotto "/clients"
+  → expected [ 'Dashboard', 'Clienti' ] to deeply equal []
+× senza distinguere le maiuscole ...: "/Clients/abc-123" accende Clienti
+  → expected [ 'Dashboard', 'Clienti' ] to deeply equal [ 'Clienti' ]
+× in nessun caso due voci accese insieme
+  → percorso /clients: Dashboard, Clienti: expected 2 to be less than or equal to 1
+× T3 · la voce attiva e una sola, e la decide lo stesso voceAttiva in tutte e tre le cornici
+  → a 390px: expected [ 'Dashboard', 'Clienti' ] to deeply equal [ 'Clienti' ]
 
-Tests  5 failed | 14 passed (19)
+Tests  11 failed | 19 passed (30)
 ```
 
-Ripristinato: `cmp` con l'originale silenzioso, **19 passed (19)**.
+Undici rossi, e l'ultimo è quello che conta: cade anche il test **montato**, perché le barre
+usano davvero la funzione. Ripristinato: `cmp` silenzioso, hash identico.
 
-### T2 — il tie-break deterministico
+### T2 — le due cornici non stanno mai insieme (`cornice.test.tsx`)
 
-30 risposte tutte «C» (2 punti in tutte le bande) → cinque totali identici → primario `1A`,
-margine 0. Il test controlla **la classifica intera**, non solo i primi due: senza,
-invertire la coda dell'ordine passerebbe inosservato.
+`window.matchMedia` viene sostituito da una funzione che risponde alle query `(min-width: Npx)`
+confrontando N con la larghezza simulata: è lo **stesso oggetto** che `useCornice` legge in
+produzione. Il mock è fedele anche nel ridimensionamento: tiene gli ascoltatori **per query** e,
+come nel browser, avvisa **solo** la `MediaQueryList` il cui `matches` è cambiato (anche questo
+dalla revisione: prima avvisava tutti, e un hook iscritto a una sola delle due query sarebbe
+passato). Sei test:
 
-| | sha256 di `src/lib/neurotype-scoring.ts` |
+- a **1440** la barra laterale con le sei voci è nel DOM, la barra in basso **no**, un solo
+  `<nav>`, «Clienti» ha testo visibile, «Scrivania» c'è;
+- a **390** l'opposto, e «Scrivania» non c'è;
+- a **834** il rail: sei voci, **nessun testo** nei link (solo nome accessibile), barra in basso no;
+- le soglie sono **incluse**: 699 telefono, 700 rail, 1023 rail, 1024 barra piena;
+- il contenuto è montato **una volta sola** in entrambe le cornici;
+- ridimensionando **una soglia per volta** — 390 → 834 → 1440 → 834 → 390 — la cornice cambia
+  senza ricaricare, in entrambe le direzioni.
+
+Più i quattro test **anti-lampo**: la sonda su `useCornice` (un solo valore a 1440, 834, 390)
+e, a livello di `AppShell`, due spie (`vi.fn` attorno a `BarraInBasso` e `BarraLaterale`) che a
+1440 dicono «la barra in basso non è stata chiamata **nemmeno una volta**» e a 390 lo stesso
+per la laterale. `render` sta dentro `act`, che svuota effetti e re-render: un `AppShell` che
+rendesse prima una cornice di default e poi quella vera avrebbe chiamato la barra sbagliata
+almeno una volta.
+
+Più i due test sul **telaio copiato** da `PhoneShell` (uguale classe per classe a 390; niente
+`sm:` sulla scrivania).
+
+| | sha256 di `src/components/AppShell.tsx` |
 |---|---|
-| prima | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
-| rotto | `7fb44c384de90796a439e180f59eefa8bd2d3dfeb49165f084e272e39e94cd63` |
-| dopo | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
+| prima | `c449b02238a827aa74b966bce9cda97994806c0d1305f62c644fcd66bbd95ad7` |
+| rotto | `aa2dfecb1d45ddf84b6c4a1f0670d4529501c00a22a159a1b5489e768596c3e4` |
+| dopo | `c449b02238a827aa74b966bce9cda97994806c0d1305f62c644fcd66bbd95ad7` |
 
-**Rottura:** riga 14, `NT_ORDER` invertito in `["3", "2B", "2A", "1B", "1A"]`.
+**Rottura:** entrambe le barre rese sempre — riga 53 `{!telefono && <BarraLaterale …/>}` →
+`<BarraLaterale …/>`, riga 78 `{telefono && <BarraInBasso/>}` → `<BarraInBasso/>`.
 
 ```
-× Esempio 2 — 2B netto
-× 30 risposte tutte «C»: tutti i totali uguali, primario 1A e margine 0
-× a parita totale la classifica e sempre la stessa, non dipende dal caso
-  → AssertionError: secondario: expected '3' to be '1A'
-  → AssertionError: expected '3' to be '1A'
-  → AssertionError: expected '3' to be '1A'
+× a 1440 c e la barra laterale con le sei voci, e la barra in basso NO
+  → expected <nav …(2)>…(1)</nav> to be null
+× a 390 c e la barra in basso con le quattro voci, e la barra laterale NO
+  → expected <nav …(2)>…(3)</nav> to be null
+× a 834 c e il rail: la barra laterale con le sei voci a sole icone, e la barra in basso NO
+× le soglie sono 700 e 1024, incluse: 699 telefono, 700 rail, 1023 rail, 1024 barra piena
+  → expected 'telefono' to be 'rail'
+× ridimensionando la finestra la cornice cambia senza ricaricare, una soglia per volta
+× a 1440 la barra in basso non viene resa nemmeno per un render; a 390 la laterale
+  → expected "BarraInBasso" to not be called at all, but actually been called 1 times
+× T3 · la voce attiva e una sola ... in tutte e tre le cornici
+  → a 390px: expected [ 'Clienti', 'Clienti' ] to deeply equal [ 'Clienti' ]
 
-Tests  3 failed | 16 passed (19)
+Tests  7 failed | 10 passed (17)
 ```
 
-Cade anche l'Esempio 2 del JSON, ed è giusto: lì quattro tipi su cinque sono a −10, quindi
-il **secondario** lo decide interamente il tie-break.
+Ripristinato: `cmp` silenzioso, hash identico.
 
-### T3 — le risposte sporche
+### T3 — una sorgente sola (`cornice.test.tsx`)
 
-Chiavi `q1` oltre a `q01`, lettere minuscole, numeri 1–5, spazi attorno, valori nulli o
-mancanti che diventano stringa vuota e non aggiungono punti.
+Quattro test. Il primo è quello che il prompt chiedeva alla lettera: le etichette rese dalla
+barra in basso (a 390) e quelle rese dal gruppo «Principale» della barra laterale (a 1440) —
+**barra contro barra**, non barra contro elenco. Il secondo confronta ciascun gruppo di ciascuna
+barra con `lib/navigazione.ts`. Il terzo confronta, voce per voce, **etichetta, `href` e nome
+dell'icona lucide** (`lucide-users`, `lucide-activity`…) fra le due barre. Il quarto verifica che
+in tutte e tre le cornici la voce attiva sia una sola, su `/clients/abc-123`.
 
-| | sha256 di `src/lib/neurotype-scoring.ts` |
+**Rottura nella barra in basso** — una quinta voce scritta a mano (`<Link to="/extra">Extra</Link>`, riga 35):
+
+| | sha256 di `src/components/BarraInBasso.tsx` |
 |---|---|
-| prima | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
-| rotto | `58571fd0a623395e940e8eca2f5afaa41af8bebaae561c7f402d5364419b11a3` |
-| dopo | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
-
-**Rottura:** riga 125, `return "";` → `return "A";` per un valore mancante.
+| prima | `833aee448b6b08dd8f68aa5c0961ba5fc8c124e5920734cbcb8fd06bed502c32` |
+| rotto | `5c6282d104fb0c1bcbcca223ee74af2735ace6716a4163c4368940d5bb3fd1e8` |
+| dopo | `833aee448b6b08dd8f68aa5c0961ba5fc8c124e5920734cbcb8fd06bed502c32` |
 
 ```
-× un valore assente diventa stringa vuota e non aggiunge punti
-  → expected 'A' to be ''
-× un valore fuori scala non diventa una lettera per somiglianza
-  → expected [ '', 'A', 'A', '', 'A' ] to deeply equal [ '', '', '', '', '' ]
-× null e undefined al posto dell intera sorgente non fanno cadere il calcolo
-  → expected [ 'A', 'A', 'A', … ] to deeply equal [ '', '', '', … ]
-× una risposta valida in mezzo a trenta vuote muove un solo tipo
-  → expected 50 to be 15
+× T2 · a 390 c e la barra in basso con le quattro voci, e la barra laterale NO
+  → expected [ Array(5) ] to deeply equal [ Array(4) ]
+× T3 · le etichette della barra in basso sono ESATTAMENTE quelle del gruppo principale della barra laterale
+  → expected [ Array(5) ] to deeply equal [ Array(4) ]
+× T3 · e le due barre leggono entrambe da lib/navigazione.ts, gruppo per gruppo
+× T3 · stessa voce, stessa icona e stesso percorso nelle due barre
+  → expected [ [ 'Dashboard', '/', …(1) ], …(4) ] to deeply equal [ [ 'Dashboard', '/', …(1) ], …(3) ]
 
-Tests  4 failed | 15 passed (19)
+Tests  4 failed | 13 passed (17)
 ```
 
-L'ultima riga è il punto: **un dato mancante che vale «A» ha portato un tipo da 15 a 50.**
-Bastano due domande saltate per cambiare il primario, e nessuno se ne accorgerebbe
-guardando la card.
+**Rottura nella barra laterale** — il prompt ne chiedeva una sola, ma la direzione opposta costa
+poco: una voce a mano nel gruppo principale di `BarraLaterale.tsx` (riga 38).
 
-Dopo il ripristino di tutte e tre le rotture:
-
-```
-$ sha256sum src/lib/neurotype-scoring.ts src/lib/neurotipo-scoring.json
-6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5  neurotype-scoring.ts
-e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551  neurotipo-scoring.json
-
-$ cmp con i due originali del questionario
-entrambi identici byte per byte
-```
-
-### T4 — il confine di `closeCall`, aggiunto dopo la revisione
-
-`closeCall = margin <= 5` è **l'unico numero del calcolo che non viene dalla fonte**: il
-JSON lo dice a chiare lettere in `scoring.confidence_note` («la soglia di "margine
-piccolo" non è nella fonte, è giudizio del coach»). I margini toccati dagli esempi sono
-0, 1 e 60: il confine restava scoperto, e un ritocco di un'unità non avrebbe rotto niente.
-
-Tre casi costruiti su q01–q06 (le sei domande del tipo 1A, le altre lasciate vuote, così
-il margine coincide col totale di 1A): margine 4 → acceso, **margine 5 → acceso**,
-**margine 6 → spento**.
-
-| | sha256 di `src/lib/neurotype-scoring.ts` |
+| | sha256 di `src/components/BarraLaterale.tsx` |
 |---|---|
-| prima | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
-| rotto | `24385cc3fd27e54d9f9cea63cabca9c2e5ce99fe2234a853d1adcd863cadb9f2` |
-| dopo | `6408833443b0b8da13b3c3fe425889582663616e070455473d561b9fdff210e5` |
-
-**Rottura:** riga 89, `closeCall: margin <= 5` → `<= 4`.
+| prima | `f87d1210bd097bb18e2c7514fe5601b0c8e11101dc3dc0576f205245194c91dc` |
+| rotto | `1747a6376279567d94066ae2e26a73aa1a2030a617ba9d3ea3ab8f089949184a` |
+| dopo | `f87d1210bd097bb18e2c7514fe5601b0c8e11101dc3dc0576f205245194c91dc` |
 
 ```
-× la soglia del testa a testa e esattamente 5, non 4 e non 6
-  > margine 5: closeCall acceso — il confine appartiene al testa a testa
-  → AssertionError: expected false to be true
+× T2 · a 1440 c e la barra laterale con le sei voci, e la barra in basso NO
+  → expected [ Array(7) ] to deeply equal [ Array(6) ]
+× T2 · a 834 c e il rail ...
+× T3 · le etichette della barra in basso sono ESATTAMENTE quelle del gruppo principale ...
+  → expected [ Array(4) ] to deeply equal [ Array(5) ]
+× T3 · e le due barre leggono entrambe da lib/navigazione.ts, gruppo per gruppo
+× T3 · stessa voce, stessa icona e stesso percorso nelle due barre
 
-Tests  1 failed | 21 passed (22)
+Tests  5 failed | 12 passed (17)
 ```
 
-Ripristinato: `cmp` con l'originale silenzioso, **22 passed (22)**.
+### T4 — un solo albero: il cambio di cornice non rimonta la pagina (aggiunto dopo la revisione)
 
-### T5 — i quattro messaggi del gruppo «Neurotipo», aggiunto dopo la revisione
+Una pagina con `useState` e un contatore di montaggi, portata a «passo 3», attraversa
+390 → 834 → 1440 → 834 → 390 e deve restare a «passo 3» con **un solo montaggio**.
 
-I tre test di stato asserivano tutti la stessa cosa — che la card non compare — e la card
-sta dietro un solo `status === 'presente'`: tre prove per un booleano solo. Le **quattro
-stringhe che distinguono i casi** vivono nel corpo del gruppo richiudibile, che parte
-chiuso, e nessun test lo apriva. Adesso quattro test cliccano il bottone e leggono il
-messaggio; quello dell'errore verifica anche che **non** dica «non è stata compilata».
+| | sha256 di `src/components/AppShell.tsx` |
+|---|---|
+| prima | `c449b02238a827aa74b966bce9cda97994806c0d1305f62c644fcd66bbd95ad7` |
+| rotto | `e12dd08a0e63afcc303770b57c06d7ed9c345be6ff9c1c8eacef7cc26a80801f` |
+| dopo | `c449b02238a827aa74b966bce9cda97994806c0d1305f62c644fcd66bbd95ad7` |
 
-**Rottura:** in `IntakeTab.tsx`, il ramo `errore` fatto collassare sul testo di `assente`
-— cioè esattamente la bugia («non ha compilato» di chi magari ha compilato).
+**Rottura:** il file «rotto» è la **prima stesura** di `AppShell` — quella a due alberi,
+`<PhoneShell>` sotto i 700 e `<div>` sopra — rimessa al suo posto.
 
 ```
-× il gruppo Neurotipo dice QUALE dei quattro casi e
-  > errore: dice che non e riuscito a leggere, e che NON e detto che manchi
-  → Unable to find an element with the text: /non è detto che manchi/
+× lo stato della pagina sopravvive a 390 -> 834 -> 1440 -> 834 -> 390, con un solo montaggio
+  → dopo 834px: expected 'passo 0' to be 'passo 3'
 
-Tests  1 failed | 14 passed (15)
+Tests  1 failed | 16 passed (17)
 ```
 
-Ripristinato: **15 passed (15)**.
+È esattamente lo scenario del rilievo: un telefono ruotato in orizzontale e il test ricomincia
+da zero. Ripristinato: `cmp` silenzioso, hash identico.
 
-### I test della card
+Dopo il ripristino di tutte le rotture:
 
-Quindici test montati in jsdom, sullo stampo di `schedaStati.test.tsx`. Provano quello che
-il calcolo puro non può provare:
-
-- i cues mostrati sono quelli del **primario** e non del secondo classificato (asserzione
-  positiva *e* negativa);
-- con `closeCall` l'avvertimento è nel DOM **senza nessun click**;
-- con margine 60 l'avvertimento **non c'è**;
-- i cinque totali compaiono scritti accanto alle barre;
-- la riga di onestà c'è sempre;
-- con 22 risposte su 30 lo dice, con 30 su 30 tace;
-- i quattro stati del montaggio: `presente` mostra la card, `assente` / `errore` /
-  `caricamento` **non mostrano nessuna card vuota**;
-- e — dopo la revisione — i quattro **messaggi** del gruppo «Neurotipo», letti aprendo il
-  gruppo, perché è lì che sta la differenza fra «non ha compilato» e «non sono riuscito a
-  leggere».
+```
+$ sha256sum src/lib/navigazione.ts src/components/AppShell.tsx src/components/BarraInBasso.tsx src/components/BarraLaterale.tsx
+b4b60e66184c38b27b681e7cee8caa695a388d9995f23c45c3dc8594906c4fb4  src/lib/navigazione.ts
+c449b02238a827aa74b966bce9cda97994806c0d1305f62c644fcd66bbd95ad7  src/components/AppShell.tsx
+833aee448b6b08dd8f68aa5c0961ba5fc8c124e5920734cbcb8fd06bed502c32  src/components/BarraInBasso.tsx
+f87d1210bd097bb18e2c7514fe5601b0c8e11101dc3dc0576f205245194c91dc  src/components/BarraLaterale.tsx
+```
 
 ---
 
-## Accettazione — ogni riga col suo comando e il suo output
+## Accettazione — ogni riga col suo comando e il suo output, sul codice finale
 
 ### 1 · Type-check
 
@@ -458,12 +477,12 @@ $ bunx tsc --noEmit -p tsconfig.app.json
 exit=0
 
 $ bunx tsc --noEmit -p tsconfig.app.json --listFiles | grep -c "nc-movement/src/"
-160
+167
 ```
 
-**Prima della fetta: 154. Dopo: 160.** I sei file sono esattamente quelli della fetta:
-`neurotipo-scoring.json`, `neurotype-scoring.ts`, `neurotypeScoring.test.ts`,
-`useNeurotipo.ts`, `NeurotipoCard.tsx`, `neurotipoCard.test.tsx`.
+**Prima: 160. Dopo: 167.** I sette in più sono esattamente i file della fetta:
+`navigazione.ts`, `navigazione.test.ts`, `useCornice.ts`, `AppHeader.tsx`, `BarraInBasso.tsx`,
+`BarraLaterale.tsx`, `cornice.test.tsx`.
 
 ### 2 · Test
 
@@ -473,20 +492,22 @@ $ bun run test
  ✓ src/test/example.test.ts (1 test)
  ✓ src/lib/fms.test.ts (15 tests)
  ✓ src/lib/fmsPrescription.test.ts (6 tests)
+ ✓ src/lib/navigazione.test.ts (13 tests)
  ✓ src/lib/neurotypeScoring.test.ts (22 tests)
- ✓ src/test/cordone-lovable.test.ts (3 tests)
  ✓ src/lib/intake.test.ts (35 tests)
+ ✓ src/test/cordone-lovable.test.ts (3 tests)
  ✓ src/lib/medicalReferral.test.ts (14 tests)
  ✓ src/components/client/schedaStati.test.tsx (11 tests)
  ✓ src/components/client/invitoIntake.test.tsx (7 tests)
  ✓ src/components/client/neurotipoCard.test.tsx (15 tests)
+ ✓ src/components/cornice.test.tsx (17 tests)
 
- Test Files  10 passed (10)
-      Tests  129 passed (129)
+ Test Files  12 passed (12)
+      Tests  159 passed (159)
 ```
 
-**Prima: 8 file, 92 test. Dopo: 10 file, 129 test.** +37, tutti verdi, nessuno preesistente
-rotto.
+**Prima: 10 file, 129 test. Dopo: 12 file, 159 test.** +30, nessuno preesistente rotto. Il
+cordone Lovable ha letto anche i sette file nuovi ed è verde.
 
 ### 3 · Lint
 
@@ -495,105 +516,221 @@ $ bun run lint
 ✖ 17 problems (0 errors, 17 warnings)
 ```
 
-**Identico a prima: 0 errori, 17 warning. Nessuno nuovo.**
+**Identico a prima.** Nessuno dei 17 è in un file nuovo.
 
-### 4 · I due sha256 del JSON coincidono
-
-```
-e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551  ../nc-questionnaire/src/lib/neurotipo-scoring.json
-e227da26fbf6728941a9bb37bd126fc7d28b9461ef2d109a8f554cb6113ec551  src/lib/neurotipo-scoring.json
-```
-
-### 5 · File vietati: nessuna riga
+### 4 · File vietati: nessuna riga
 
 ```
-$ git diff --stat -- src/lib/fms.ts src/pages/FmsAssessment.tsx \
-    src/components/fms/FmsWizard.tsx src/components/PhoneShell.tsx \
-    src/hooks/useIntake.ts src/lib/intake.ts .github/workflows/ci.yml \
-    supabase/ docs/design/
+$ git diff --stat -- src/components/PhoneShell.tsx src/pages/FmsSetup.tsx \
+    src/pages/FmsWizardPage.tsx src/components/fms/FmsWizard.tsx src/lib/fms.ts \
+    src/lib/intake.ts src/hooks/useIntake.ts src/components/ui/ \
+    .github/workflows/ci.yml supabase/ docs/design/
 (nessun output)
 ```
 
-`src/lib/intake.ts` è stato **importato** (`SOGLIA_CAMPO_LUNGO`) ma non modificato: leggere
-non è toccare, e il diff lo dimostra.
+`PhoneShell.tsx` non è più importato da `AppShell` (ne è copiato il telaio, con un test che
+tiene le due copie uguali) e resta importato dal wizard; **non modificato**. `ui/sidebar.tsx` è
+stato letto per rispondere al prompt, non toccato.
 
-### 6 · La tabella morta — qui il prompt non torna con la realtà
-
-Il criterio chiedeva `grep -rn "neurotype_result" src/ | wc -l → 0`. **Non era 0 nemmeno
-prima di questa fetta**, e non può esserlo:
+### 5 · La barra laterale di shadcn resta inutilizzata
 
 ```
-$ git grep -c "neurotype_result" 7378663 -- src/     # la base del ramo
-7378663:src/components/client/IntakeTab.tsx:1
-7378663:src/integrations/supabase/types.ts:2
-```
-
-`src/integrations/supabase/types.ts` è **generato** e contiene l'intero schema `public`:
-la tabella morta ci compare per definizione, e riscriverlo a mano lo renderebbe una bugia
-al primo `supabase gen types`. Ho fatto la cosa giusta invece di quella scritta: ho tolto
-il nome da tutto ciò che ho scritto io, e ho **ridotto** il conteggio invece di aumentarlo.
-
-```
-$ grep -rn "neurotype_result" src/ | wc -l
-2                                   # prima della fetta: 3
-
-$ grep -rl "neurotype_result" src/
-src/integrations/supabase/types.ts  # solo lì, e non l'ho toccato
-
-$ grep -rn "neurotype_result" src/ --exclude-dir=integrations | wc -l
+$ grep -rn "ui/sidebar" src/ --include=*.tsx | grep -v "components/ui/sidebar.tsx" | wc -l
 0
 ```
 
-**Zero riferimenti in tutto il codice scritto a mano.** Le due occorrenze rimaste sono nei
-tipi generati, erano lì prima, e quel file non ha una riga di diff. Il commento in
-`IntakeTab.tsx` che la nominava è sparito.
-
-Nessun `select`, nessuna scrittura, nessuna lettura di quella tabella da nessuna parte.
-
-### 7 · Il cordone Lovable resta verde, senza nuove eccezioni
+### 6 · Nessun colore a mano
 
 ```
-$ git diff --stat -- src/test/cordone-lovable.test.ts
-(nessun output)
-
- ✓ src/test/cordone-lovable.test.ts (3 tests)
+$ grep -rnE "#[0-9a-fA-F]{6}\b" src/ --include=*.tsx --include=*.ts | grep -v "src/components/ui/" | wc -l
+0
 ```
 
-Il cordone legge **tutti** i file sotto `src/`, JSON compreso: i sette file nuovi ci sono
-passati sopra e sono verdi. (Verificato anche a mano: il JSON copiato non nomina la
-piattaforma.)
+### 7 · Nessuna classe di palette nuova
+
+```
+$ grep -rnE "(bg|text|border)-(blue|green|orange|amber|slate|gray|zinc|red|yellow)-[0-9]00" src/ --include=*.tsx | grep -v "src/components/ui/" | wc -l
+17
+```
+
+Le stesse 17 di prima, tutte in `CorrectiveLibrary.tsx`.
+
+### E la build, che l'accettazione non chiedeva ma `COMANDI-VERI.md` sì
+
+```
+$ bun run build
+✓ built in 8.33s
+```
+
+L'avviso sui chunk oltre 500 kB è preesistente.
+
+---
+
+## Guardata, non solo provata — due volte
+
+La app in locale richiede un'autenticazione che non ho. Come per la card del neurotipo, ho
+messo un'impalcatura **temporanea**: in `src/App.tsx` la funzione `Shell` senza `ProtectedRoute`
+(e, per guardare il wizard, le due rotte FMS senza il loro guard), server di sviluppo su 8080,
+browser dell'app. L'ho fatto due volte — prima e dopo le correzioni della revisione — e ho
+smontato tutto entrambe le volte:
+
+```
+$ git checkout -- src/App.tsx
+$ git diff --stat -- src/App.tsx
+(nessuna riga)
+$ grep -c ANTEPRIMA src/App.tsx
+0
+$ sha256sum src/App.tsx
+1cb754059d187eb22ddef1561c6533ed46d84b9a1cce9d7e0a38275f408ac6ef   (= main)
+```
+
+Le pagine, senza sessione, ricevono 401 da Supabase e mostrano i loro stati vuoti («Nessun
+cliente», «Nessuna organizzazione trovata», il toast «Errore nel caricamento della dashboard»):
+è il contenuto di oggi così com'è, senza dati. La cornice attorno è quella che conta qui.
+
+### Le misure, lette dal DOM e non a occhio
+
+| larghezza | cornice | misurato |
+|---|---|---|
+| **1440** | barra 240 | intestazione 56×1440; nav 240; main da x=240 largo 1200; colonna **1040** a x=313, `padding 32px`, **976 utili**, `padding-bottom 96px`; separatore `margin 14px 14px`; voce attiva: fondo `rgb(251,233,233)` = `hsl(0 70% 95%)`, testo `rgb(140,23,23)` = `hsl(0 72% 32%)`, `font-weight 500`, alta 40; titolo «Scrivania» `rgb(92,102,112)` = `--sidebar-foreground`, 10px; fondo barra `hsl(210 18% 96%)`, bordo `hsl(210 14% 89%)`; **un solo `<nav>`** |
+| **1280** | barra 240 | main largo 1040; colonna **1025**, **961 utili** — vedi «cose storte» |
+| **900** | rail 72 | nav 72; sei link **44×44** a x=14 (centrati), `textContent` vuoto, `aria-label` e `title` = etichetta; «Scrivania» `sr-only` (1×1); contenuto `padding 20px` |
+| **834** | rail 72 | nav 72; main 762; **722 utili**; nessuna barra in basso |
+| **390** | telefono | intestazione 56 a y=0; riga e **main 722** a y=56 (844−56−66), il main **scorre** (951 > 722); barra in basso **66** a y=778 con quattro celle da **98**; classi dei due `div` del telaio, del `main` e della barra **identiche** a `PhoneShell` e alla vecchia `AppShell`; nessuna barra laterale |
+| **660** | telefono | telaio 390×844 con `border-radius 44px` su sfondo `hsl(210 16% 91%)` (`--desk-bg`): il comportamento di `PhoneShell` da 640px, invariato |
+| **699** | telefono | telaio 390 |
+| **1024** (ricaricando) | barra 240 | nav 240 al primo render |
+
+Rotte a 1440: `/clients` accende **solo** Clienti, `/library` Libreria, `/daily-prep`
+Preparazione, `/team` Team; `/assessments/fms/setup` → **zero `<nav>`**, telaio 390×844 sullo
+sfondo scrivania: il wizard è rimasto stretto e senza navigazione, com'era deciso.
+
+**Tema scuro** (classe `dark` aggiunta a mano, non c'è un ThemeProvider): barra
+`rgb(21,24,30)` = `hsl(220 18% 10%)`, bordo `hsl(220 14% 15%)`, voce attiva fondo
+`rgb(64,28,28)` = `hsl(0 40% 18%)` e testo `rgb(240,168,168)` = `hsl(0 70% 80%)`, voci a riposo
+`hsl(210 10% 60%)`. Leggibile, e sono i token `.dark` di `index.css` senza toccarli.
+
+### La rotazione del telefono, dal vivo
+
+Dopo la correzione dell'albero unico ho rifatto la prova che il rilievo descriveva, nel
+browser e non solo in jsdom: a 390 ho **marcato il nodo `main`** con una proprietà JavaScript e
+l'ho fatto scorrere di 200px; poi 844×390 (telefono in orizzontale, fascia tablet), poi 1440.
+
+| passo | stesso nodo `main`? | `scrollTop` | cornice |
+|---|---|---|---|
+| 390 | (marcato) | 200 | barra in basso |
+| 844×390 | **sì** | **200** | rail 72, barra in basso sparita |
+| 1440 | **sì** | — | barra 240, colonna 1040 |
+
+Lo stesso elemento del DOM, con la sua posizione di scorrimento, attraverso entrambe le soglie.
+Con la prima stesura sarebbe stato un nodo nuovo ogni volta.
+
+### Il passaggio fra le cornici, e un artefatto dello strumento che va detto
+
+Le prime transizioni — 1440 → 1280 → 900 → 834 → 390 — hanno cambiato cornice **dal vivo**, senza
+ricaricare. Poi, dopo che il pannello del browser è entrato in emulazione mobile (sotto i 768),
+le transizioni successive (699 → 700 → 1023 → 1024) **non cambiavano più niente**, pur con
+`innerWidth` aggiornato.
+
+Ho verificato che non fosse il hook: `matchMedia('(min-width: 1024px)').matches` leggeva `true`
+a 1024, ma un ascoltatore di controllo installato a mano su `window` per l'evento nativo
+`resize` — su cui il mio codice non ha alcun controllo — **non riceveva niente** neanche lui
+(`log: []` dopo quattro ridimensionamenti). Il pannello era nascosto e la pagina non produceva
+fotogrammi (è lo stesso motivo per cui ogni screenshot dopo un ridimensionamento andava in
+timeout al primo tentativo); gli eventi `change` delle media query vengono spediti nel ciclo di
+rendering, che era fermo. Appena uno screenshot ha forzato un fotogramma, il registro ha
+ricevuto **tutto** — `['resize', 1100]`, `['change1024', true, 1100]`, `['change700', true, 1100]`,
+coalescenti alla larghezza finale — e la cornice è passata alla barra da 240. Ricaricando a
+1024 la barra da 240 c'era al primo render.
+
+Quindi: il primo render è giusto a qualunque larghezza (provato con ricarica e con le sonde), e
+il cambio dal vivo funziona quando il browser disegna (provato dal vivo, compresa la rotazione
+qui sopra, e in T2). Ciò che non ho potuto provare in questo strumento è una rotazione su un
+iPad vero.
+
+### Le cose storte, che i test non vedono
+
+1. **A 1280 esatti la colonna utile è 961, non 976.** Su Windows la barra di scorrimento del
+   `main` è classica e larga 15px; 1280 − 240 = 1040 lasciano alla colonna 1025, meno 64 di
+   margini. Il disegno assume una barra di scorrimento a scomparsa (macOS/iPad). Da 1295 in su
+   sono 976. Non ho nascosto la barra: sulla scrivania serve.
+2. **Il contenuto di oggi è un'impaginazione da telefono stirata a 976.** Sulla dashboard i
+   quattro KPI restano `grid-cols-2` (`Dashboard.tsx:186`): due carte larghe 483px con un numero
+   da 30px in un angolo e tanto vuoto. Le quattro carte di avvio rapido (`:222`), uguale. Lo
+   stato vuoto «Nessun cliente» è una carta larga 976 con un'icona al centro. È **storto ma
+   usabile**, ed è esattamente il perimetro che il prompt ha lasciato alla fetta delle quattro
+   schermate a 1280.
+3. **Tre pagine hanno una barra `fixed` in basso a tutta larghezza del viewport**, non della
+   colonna: `SfmaAssessment.tsx:424` e `YbtAssessment.tsx:409` (`fixed inset-x-0 bottom-0`) e
+   `FcsAssessment.tsx:554` (`fixed bottom-4 left-4 right-4 max-w-screen-md mx-auto`, centrata
+   sul viewport e non sulla colonna: sotto i 1248px entra nella barra laterale). Sulla scrivania
+   passano sopra il fondo della barra laterale (vuoto) e, nel caso FCS, stanno disallineate di
+   120px rispetto al contenuto. Il `pb-24` tiene raggiungibile il fondo del contenuto; il resto è
+   della fetta di quelle pagine, con la strada già usata da `FmsAssessment.tsx:788`
+   (`sticky bottom-…` dentro il main).
+4. **L'intestazione ha `px-4` anche a 1440**: il logo sta a 16px dal bordo, mentre le voci della
+   barra laterale iniziano a 24px (12 di padding del nav + 12 della voce). Il disegno a 1280 la
+   mette a 20px. L'ho lasciata così perché il prompt dice «INVARIATA, contenuto e logo dove
+   sono»: se vuoi i 20px, è una riga.
+5. **`FmsAssessment.tsx:517`** ha una fascia `sticky top-14 -mx-4 px-4` che assume il `px-4` del
+   main del telefono: sulla scrivania il contenitore ha `px-8`, quindi la fascia sanguina di 16px
+   invece di 32 e non arriva al bordo della colonna. Non rompe niente; è nella fetta della
+   scheda FMS a 1280.
+6. **La dissolvenza d'ingresso del `main`** (`animate-fade-in`, che c'era già) parte una volta
+   al montaggio e basta: con l'albero unico non riparte più al cambio di cornice.
 
 ---
 
 ## La revisione avversariale, e cosa ha cambiato
 
-Prima di chiudere ho fatto rileggere la fetta da cinque revisori indipendenti — copia
-fedele, hook, card e token, montaggio e file vietati, test e accettazione — e ogni loro
-rilievo è passato da un secondo revisore col compito di **smontarlo**, non di confermarlo.
-Otto rilievi verificati: **quattro confermati, quattro smontati**.
+Prima di chiudere ho fatto rileggere la fetta da **sette revisori indipendenti**, una lente
+ciascuno — conformità al disegno, correttezza React del meccanismo anti-lampo, telefono
+invariato e pagine esistenti, qualità dei test, accessibilità, vincoli e accettazione misurati,
+pagine di oggi dentro 976px — e ogni loro rilievo è passato da **tre smontatori** con tre
+compiti diversi: i fatti nel codice, il perimetro della fetta, la riproducibilità con un
+comando. Un rilievo è «confermato» se almeno due su tre non sono riusciti a smontarlo.
+Sessantuno agenti, **18 rilievi: 14 confermati, 4 smontati.**
 
-I quattro smontati sono altrettanto istruttivi dei confermati, perché mostrano dove un
-sospetto ragionevole non regge alla lettura del codice:
+### Il rilievo che contava, e che avevo sbagliato
 
-- «`COMANDI-VERI.md` dichiara 156 file, il suo stesso comando ne conta 160» — la stringa
-  `156` non esiste nel documento: era già stato corretto a 160;
-- «una sola risposta su 30 produce un verdetto pieno» — vero come aritmetica, ma il
-  gateway del questionario non può produrre una riga con una sola risposta;
-- «il freno `closeCall` non scatta mai su risposte scarse» — `closeCall` non è un freno
-  sulla completezza, quella la dice la riga «ne ha compilate N su 30»;
-- «`git status` mostra `docs/ULTIMO-RITORNO.md` fuori dall'elenco» — nessuna accettazione
-  di questo repo è mai stata misurata su `git status`, si misurano i diff.
+**Attraversando i 700px la pagina veniva rimontata.** L'hanno trovato **quattro lenti su
+sette** (disegno, React, telefono, accessibilità), e tutti e dodici gli smontatori l'hanno
+confermato, uno di loro con un test usa-e-getta nello scratchpad: un figlio con `useState`
+portato a 3 tornava a 0 passando da 390 a 844. La prima stesura di `AppShell` aveva due alberi
+— `<PhoneShell>` sotto i 700, `<div>` sopra — e il commento in testa prometteva «un tablet che
+ruota non rimonta la pagina», promessa vera solo sul confine 1024. Su `main` non succedeva mai.
+Caso concreto: un iPhone in verticale è 390px, ruotato è 844-932px, cioè fascia tablet; un PT a
+metà di una SFMA (`step` in `useState`) o di una FCS (form) che ruota il telefono si ritrovava
+al passo zero.
 
-I quattro confermati li ho corretti tutti:
+Corretto con l'**albero unico** (Parte 2, `AppShell`), con **T4** che lo dimostra rosso sulla
+prima stesura, e con la prova dal vivo della rotazione sopra.
 
-| gravità | rilievo | cosa ho fatto |
-|---|---|---|
-| bassa | un refetch fallito faceva sparire un neurotipo già in cache | in `useNeurotipo` i dati vengono ora **prima** dell'errore, con il perché scritto accanto |
-| media | il confine della soglia `closeCall` non era provato: qualunque valore fra 1 e 59 passava | **T4**, tre casi sul confine (4/5/6), rosso dimostrato |
-| media | i tre test di stato asserivano lo stesso booleano; i quattro messaggi non erano letti da nessuno | **T5**, quattro test che aprono il gruppo e leggono il messaggio, rosso dimostrato |
-| media | il «Mostra tutto» dei due cues lunghi è inerte a 390px | **misurato io stesso**: è inerte fra 360 e 390px, ma taglia davvero sotto i 344px. Lasciato com'è, con la tabella delle misure sopra e il rimando alla fetta su `TestoLungo` |
+### Gli altri confermati, e cosa ho fatto
 
-Nessuno dei quattro riguardava il calcolo: i tre hash sono rimasti quelli, prima e dopo.
+| gravità | lente | rilievo | cosa ho fatto |
+|---|---|---|---|
+| bassa | telefono | `voceAttiva` distingueva le maiuscole, `NavLink` no: su `/Clients` react-router apre Clienti e nessuna voce si accendeva | confronto in minuscolo, caso aggiunto a T1 |
+| bassa | a11y | «Scrivania» a 10px in `text-muted-foreground` fa 4,44:1 sul fondo della barra, sotto AA | `text-sidebar-foreground`: 5,35:1 chiaro, 6,14:1 scuro, ed è il token che la fetta chiede |
+| bassa | disegno | separatore a 8px (rail) e 12px (barra) dalle voci, il disegno ne vuole 14 (gap + margine) | `my-3.5` in entrambe; misurato `14px 14px` |
+| media | test | la sonda anti-lampo provava l'hook, non `AppShell`: un lampo introdotto in `AppShell` passava | spie `vi.fn` sulle due barre, «non chiamata nemmeno una volta»; la rottura T2 ora fa cadere anche questo |
+| media | test | il mock di `matchMedia` avvisava tutti gli ascoltatori a ogni resize: un hook iscritto a una sola query passava | ascoltatori per query, avviso solo se `matches` cambia, passi a soglia singola nel test |
+| alta | pagine976 | SFMA e YBT hanno una barra `fixed bottom-0` a tutta larghezza del viewport; FCS un bottone `fixed` centrato sul viewport | **fuori fetta** per la posizione, ma il mio `pb-8` avrebbe reso irraggiungibile il fondo di quelle pagine: `pb-24` anche sulla scrivania. Il resto in «cose storte» |
+| media | a11y | la voce attiva è marcata **dal solo colore**: fondo accent a 1,07:1 sul fondo della barra, testo che cambia quasi solo tonalità | **non corretto**: barretta e grassetto sono vietati dal prompt e dal disegno, e alzare la saturazione del token è una decisione tua. `aria-current` c'è, quindi gli screen reader lo sanno. Vedi «cosa non ho fatto» |
+| media | pagine976 | dashboard `grid-cols-2` stirata a 483px per cella | fuori fetta, in «cose storte» |
+| bassa | pagine976 | `FmsAssessment.tsx:517` `-mx-4 px-4` presume il `px-4` del telefono | fuori fetta, in «cose storte» |
+
+### I quattro smontati
+
+- «Clienti (`Users`) e Team (`UsersRound`) sul rail sono lo stesso glifo» — vero come geometria,
+  ma le due icone sono **prescritte** dal prompt e dal disegno; non è una scelta della fetta.
+- «I landmark si chiamano "Barra laterale" e "Barra in basso", la stessa navigazione cambia
+  nome con la larghezza» — preferenza di nomenclatura, non un difetto; il rilievo stesso lo
+  ammetteva.
+- «Il criterio di accettazione sulla palette descrive male lo stato reale» — leggeva un
+  testo del criterio che non esiste.
+- «`ClientDetail.tsx`: quattro bottoni da 483px in `grid-cols-2`» — file a diff zero, stato
+  intermedio dichiarato e accettato dal prompt.
 
 ---
 
@@ -602,68 +739,73 @@ Nessuno dei quattro riguardava il calcolo: i tre hash sono rimasti quelli, prima
 ```
 $ git status --short
  M docs/ULTIMO-RITORNO.md
- M src/components/client/IntakeTab.tsx
-?? docs/COMANDI-VERI.md
+ M src/components/AppShell.tsx
 ?? docs/design/
-?? src/components/client/NeurotipoCard.tsx
-?? src/components/client/neurotipoCard.test.tsx
-?? src/hooks/useNeurotipo.ts
-?? src/lib/neurotipo-scoring.json
-?? src/lib/neurotype-scoring.ts
-?? src/lib/neurotypeScoring.test.ts
+?? src/components/AppHeader.tsx
+?? src/components/BarraInBasso.tsx
+?? src/components/BarraLaterale.tsx
+?? src/components/cornice.test.tsx
+?? src/hooks/useCornice.ts
+?? src/lib/navigazione.test.ts
+?? src/lib/navigazione.ts
 ```
 
-Niente di più: nessun file di scarto, nessuna rotta di anteprima rimasta, `docs/design/`
-non tracciata com'era.
+Niente di più: nessun file di scarto, nessuna rotta di anteprima rimasta, nessun `__*`,
+`docs/design/` non tracciata com'era. I test usa-e-getta degli smontatori sono nello scratchpad
+della sessione, fuori dal repo.
 
-`IntakeTab.tsx` è l'unico file esistente modificato: **47 righe aggiunte, 16 tolte**.
-Tre cose: l'hook chiamato *prima* del ritorno anticipato, la card montata in cima solo
-quando le risposte ci sono, e il gruppo «Neurotipo» che non dice più «in arrivo» di una
-cosa che è arrivata (adesso dice quale dei quattro stati è).
+`AppShell.tsx` è l'unico file esistente modificato: **70 righe aggiunte, 84 tolte**.
 
 ---
 
 ## Cosa non ho fatto, e perché
 
-**Non ho toccato niente dentro `../nc-questionnaire`.** Solo letture. Il `git status` di
-quel repo a fine fetta mostra un `supabase/.temp/` non tracciato che era già lì.
+**Non ho messo il numero dei clienti accanto a «Clienti».** Fuori fetta di proposito, per il
+motivo scritto nel prompt: un componente di impaginazione che interroga il database si porta
+dietro uno stato di errore su ogni pagina. Arriva con l'elenco clienti.
 
-**Non ho letto e non ho scritto `public.neurotype_result`.** Ha zero righe e nessuno la
-scrive. Se un giorno servirà salvare il punteggio, sarà una fetta a sé — e la prima cosa da
-decidere sarà chi lo ricalcola quando le risposte cambiano, perché un risultato salvato che
-nessuno rinfresca invecchia in silenzio.
+**Non ho toccato le quattro schermate a 1280, il pannello del wizard, i colori della libreria e
+il commento sbagliato di `ScoreSelector.tsx`.** Fuori fetta. Le cose storte che ne derivano sono
+elencate sopra, con file e riga.
 
-**Non ho toccato `tsconfig.app.json`.** Temevo servisse `resolveJsonModule` e non serve:
-con `moduleResolution: bundler` è implicito. Misurato, non supposto.
+**Non ho cambiato come si distingue la voce attiva.** La revisione ha ragione che è solo colore,
+e che il fondo accent contro il fondo della barra fa 1,07:1: chi non distingue bene i colori
+vede la voce attiva solo dal testo rosso scuro contro il grigio. Le due vie che restano sono
+entrambe decisioni tue, non mie: un `--sidebar-accent` più saturo (es. `0 70% 88%`), che cambia
+un token usato d'ora in poi ovunque, oppure un segno non cromatico che il disegno ha escluso.
+`aria-current="page"` c'è in tutte le cornici, quindi la tastiera e gli screen reader lo sanno.
 
-**Non ho convertito le virgolette del modulo copiato da doppie a singole.** Sarebbe stato
-diff cosmetico su un file la cui unica virtù è essere identico. Il prezzo è che
-`neurotype-scoring.ts` ha uno stile diverso dal resto di `src/lib/`; il guadagno è che la
-sua fedeltà si prova con un `diff` vuoto.
+**Non ho spostato le barre `fixed` di SFMA, YBT e FCS.** Sono in tre pagine fuori fetta, e la
+strada è già nel repo (`FmsAssessment.tsx:788`, `sticky` dentro il main). Ho messo il `pb-24`
+perché il fondo del contenuto resti raggiungibile.
 
-**Non ho corretto `TestoLungo.tsx`,** che monta il bottone «Mostra tutto» senza guardare se
-il testo va davvero in overflow. È la ragione per cui fra 360 e 390px quel bottone è inerte
-sui due cues lunghi — e lo è, identicamente, anche in `IntakeSummaryCard` e
-`UnifiedFlagsBand`, che usano lo stesso componente. Si corregge una volta sola, in una
-fetta su `TestoLungo`, dove si può provare su tutti e tre i chiamanti; riscriverlo qui
-avrebbe messo a rischio i test della scheda unificata per un difetto che questa fetta non
-ha introdotto.
+**Non ho usato `ui/sidebar.tsx` e non l'ho cancellato.** Non usarlo: per i tre motivi tecnici
+del prompt, verificati riga per riga (15, 155, 6). Non cancellarlo: `src/components/ui/` è
+vietata. Resta un file da 23 KB che nessuno importa; se un giorno si vorrà togliere, si toglie
+insieme a `use-mobile.tsx`, che esiste solo per lui.
 
-**Non ho corretto `--compliance-foreground` in `UnifiedFlagsBand.tsx` e `IntakeBadges.tsx`,**
-dove produce lo stesso testo illeggibile sul tema scuro che ho evitato nella card nuova. È
-un difetto vero ma latente (il tema scuro non è mai acceso oggi) e sta in due componenti
-che questa fetta non doveva riscrivere. È una fetta piccola e a sé: tre righe in due file.
+**Non ho usato `use-mobile.tsx` e non l'ho corretto.** Lampeggia per costruzione (Parte 1) e ha
+la soglia sbagliata. Correggerlo avrebbe significato toccare l'unico posto che lo usa, che è
+vietato.
 
-**Non ho acceso il tema scuro né aggiunto un `ThemeProvider`.** L'ho solo simulato nel
-browser aggiungendo la classe `dark` a mano, per guardare cosa succederà.
+**Non ho nascosto la barra di scorrimento sulla scrivania.** È la scelta che fa perdere 15px a
+1280 su Windows, e la rifarei: una pagina da scrivania senza barra di scorrimento visibile è un
+errore più grande di una colonna larga 961.
 
-**Non ho messo la card in nessun altro posto** — solo nella linguetta Intervista. Il
-riassunto della scheda sta sopra le linguette e resta com'era: `IntakeSummaryCard` non è
-stata toccata.
+**Non ho cambiato il `px-4` dell'intestazione.** «Invariata» voleva dire invariata.
 
-**Non ho mostrato le 30 risposte grezze da nessuna parte.** Sarebbero trenta lettere senza
-significato per chi legge, e il gruppo «Neurotipo» dell'accordion adesso dice quante ne
-sono state lette invece di elencarle.
+**Non ho corretto il commento in testa a `PhoneShell.tsx`**, che dice «desktop (viewport ≥
+430px)» mentre il codice usa `sm:`, cioè 640px (il prompt lo dice giusto). Il file è vietato.
+Lo segnalo perché è il tipo di commento che fa perdere un'ora a chi legge.
 
-**Non ho fatto merge e non ho fatto deploy**, come chiesto. Il ramo `claude/neurotipo` è
-pronto per una PR.
+**Non ho reso persistente la cornice** (né cookie né localStorage): la larghezza della finestra
+è l'unica verità, e non ha bisogno di essere ricordata.
+
+**Non ho acceso il tema scuro né aggiunto un `ThemeProvider`.** L'ho solo simulato aggiungendo
+la classe `dark` a mano, per guardare cosa succederà.
+
+**Non ho provato su un iPad vero né su Safari.** Solo il browser dell'app (Chromium) con
+emulazione delle larghezze, con il limite descritto sopra.
+
+**Non ho fatto merge, non ho fatto deploy e non ho spinto il ramo**, come chiesto. Il ramo
+`claude/cornice-scrivania` è committato in locale e pronto per una PR.
